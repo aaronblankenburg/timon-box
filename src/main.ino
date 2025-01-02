@@ -18,6 +18,7 @@
 #define CR_RST GPIO_NUM_18   // 22
 
 #define BLUETOOTH_TAG "04c6d4b26e6780"
+#define MANAGEMENT_SERVER_TAG "042041122a6781"
 #define VOLUME_PIN GPIO_NUM_36
 #define POWER_SUPPLY_PIN GPIO_NUM_33
 #define LKS_PIN GPIO_NUM_35
@@ -46,7 +47,9 @@ RTC_NOINIT_ATTR bool bluetoothMode;  // survives ESP.restart()
 enum State { paused,
              playing,
              bluetoothPlaying,
-             bluetoothPaused };
+             bluetoothPaused,
+             managementServerWaitForTag,
+             managementServerRunning };
 enum KnockSensorAction { noPress,
                          leftPress,
                          rightPress };
@@ -105,6 +108,12 @@ void loop() {
           ESP.restart();
         }
         state = bluetoothPaused;
+        break;
+      }
+
+      if (recent_tag == MANAGEMENT_SERVER_TAG) {
+        Serial.println("management server mode, waiting for token");
+        state = managementServerWaitForTag;
         break;
       }
 
@@ -168,6 +177,28 @@ void loop() {
         state = paused;
       }
       if (millis() - musicStopTime > (MAX_PAUSE_TIME_IN_S * 1000)) {
+        shutdown();
+      }
+      break;
+
+    case managementServerWaitForTag:
+      if (recent_tag != "" && recent_tag != MANAGEMENT_SERVER_TAG) {
+        player.loadPlaylist(recent_tag);
+        Serial.println("connecting to wifi");
+        WiFi.begin("MyWiFi", "12345678");
+        while (WiFi.status() != WL_CONNECTED) {
+          delay(10);
+        Serial.print(".");
+        }
+        Serial.println();
+        Serial.println("starting management server");
+        player.setupManagementServer();
+        state = managementServerRunning;
+      }
+      break;
+
+    case managementServerRunning:
+      if (recent_tag == "") {
         shutdown();
       }
       break;

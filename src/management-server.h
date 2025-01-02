@@ -18,17 +18,19 @@ void deleteIndexFiles() {
 }
 
 String listFiles() {
-  String html = "<form method='POST' enctype='multipart/form-data' action='/upload'>";
-  html += "<input type='file' name='files' multiple><input type='submit'></form><br>";
+  String html = "<html><head><link rel=\"stylesheet\" href=\"https://unpkg.com/plain-css@latest/dist/plain.min.css\"></head><body><form method='POST' enctype='multipart/form-data' action='/upload'>";
+  html += "<input type='file' name='files' multiple><input type='submit'></form><ul>";
   File dir = SD.open(webServerFolderPath);
   while (File file = dir.openNextFile()) {
     if (!file.isDirectory()) {
+      html += "<li><a href='/delete?file=" + String(file.name()) + "' class=\"pl-button full red\">Delete</a> ";
       html += file.name();
-      html += " <a href='/delete?file=" + String(file.name()) + "'>Delete</a><br>";
+      html += "</li>";
     }
     file.close();
   }
   dir.close();
+  html += "</ul></body></html>";
   return html;
 }
 

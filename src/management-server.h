@@ -18,8 +18,35 @@ void deleteIndexFiles() {
 }
 
 String listFiles() {
-  String html = "<html><head><link rel=\"stylesheet\" href=\"https://unpkg.com/plain-css@latest/dist/plain.min.css\"></head><body><form method='POST' enctype='multipart/form-data' action='/upload'>";
-  html += "<input type='file' name='files' multiple><input type='submit'></form><ul>";
+  String html = "<html><head><link rel=\"stylesheet\" href=\"https://unpkg.com/plain-css@latest/dist/plain.min.css\"></head><body><form id='uploadForm' enctype='multipart/form-data'>";
+  html += "<input type='file' id='fileInput' multiple><br><br>";
+  html += "<button type='button' onclick='uploadFiles()'>Upload</button><br><br>";
+  html += "<div id='progress'>0 of 0 files uploaded</div><br>";
+
+  html += "<script>";
+  html += "let files = [];";
+  html += "let uploaded = 0;";
+
+  html += "function uploadFiles() {";
+  html += "const input = document.getElementById('fileInput');";
+  html += "files = input.files;";
+  html += "uploaded = 0;";
+  html += "if (files.length === 0) return alert('No files selected!');";
+  html += "document.getElementById('progress').innerText = `${uploaded} of ${files.length} files uploaded`;";
+  html += "uploadNextFile();";
+  html += "}";
+
+  html += "function uploadNextFile() {";
+  html += "if (uploaded >= files.length) { location.reload(); return; }";
+  html += "const formData = new FormData();";
+  html += "formData.append('files', files[uploaded]);";
+  html += "fetch('/upload', { method: 'POST', body: formData }).then(() => {";
+  html += "uploaded++;";
+  html += "document.getElementById('progress').innerText = `${uploaded} of ${files.length} files uploaded`;";
+  html += "uploadNextFile();";
+  html += "}).catch(err => { alert('Upload failed: ' + err); });";
+  html += "}";
+  html += "</script><ul>\n";
   File dir = SD.open(webServerFolderPath);
   while (File file = dir.openNextFile()) {
     if (!file.isDirectory()) {
@@ -58,7 +85,7 @@ void handleUpload(AsyncWebServerRequest *request, String filename, size_t index,
     request->_tempFile.close();
     deleteIndexFiles();
     Serial.println(logmessage);
-    request->redirect("/");
+    request->send(200, "text/plain", "File uploaded successfully");
   }
 }
 

@@ -184,13 +184,10 @@ void loop() {
     case managementServerWaitForTag:
       if (recent_tag != "" && recent_tag != MANAGEMENT_SERVER_TAG) {
         player.loadPlaylist(recent_tag);
-        Serial.println("connecting to wifi");
-        WiFi.begin("MyWiFi", "12345678");
-        while (WiFi.status() != WL_CONNECTED) {
-          delay(10);
-        Serial.print(".");
-        }
-        Serial.println();
+        WiFi.softAP("Timon-Box");
+        IPAddress IP = WiFi.softAPIP();
+        Serial.print("AP IP address: ");
+        Serial.println(IP);
         Serial.println("starting management server");
         player.setupManagementServer();
         state = managementServerRunning;
@@ -200,6 +197,7 @@ void loop() {
     case managementServerRunning:
       if (recent_tag == "") {
         shutdown();
+        state = paused;
       }
       break;
   }

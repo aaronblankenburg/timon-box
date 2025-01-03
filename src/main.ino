@@ -1,9 +1,11 @@
 // will play many audio file formats, mp3,aac,flac etc.
 // See github page : https://github.com/schreibfaul1/ESP32-audioI2S
-
 #include <MFRC522.h>
 #include <Preferences.h>
 #include <WiFi.h>
+#include <DNSServer.h>
+
+DNSServer dnsServer;
 
 #include "Arduino.h"
 #include "BluetoothA2DPSink.h"
@@ -189,6 +191,8 @@ void loop() {
         Serial.print("AP IP address: ");
         Serial.println(IP);
         Serial.println("starting management server");
+        dnsServer.setErrorReplyCode(DNSReplyCode::NoError);
+        dnsServer.start(53, "*", IP);
         player.setupManagementServer();
         state = managementServerRunning;
       }
@@ -198,7 +202,9 @@ void loop() {
       if (recent_tag == "") {
         shutdown();
         state = paused;
+        ESP.restart();
       }
+      dnsServer.processNextRequest();
       break;
   }
 

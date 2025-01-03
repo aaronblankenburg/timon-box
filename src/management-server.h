@@ -82,7 +82,7 @@ String listFiles() {
   html += "<ul>";
   File dir = SD.open(webServerFolderPath);
   while (File file = dir.openNextFile()) {
-    if (!file.isDirectory()) {
+        if (!file.isDirectory()) {
       html += "<li><a href='/delete?file=" + String(file.name()) + "' class='button'>Delete</a> " + file.name() + "</li>";
     }
     file.close();
@@ -150,6 +150,9 @@ void setupWebServer() {
   server.on("/upload", HTTP_POST, [](AsyncWebServerRequest *request) { request->send(200); }, handleUpload);
   server.on("/delete", HTTP_GET, handleFileDelete);
   server.on("/setFolderPath", HTTP_POST, handleFolderPathChange);
+  server.onNotFound([](AsyncWebServerRequest *request) {
+    request->redirect("/");
+  });
   server.begin();
 }
 

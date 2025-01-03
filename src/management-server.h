@@ -138,6 +138,7 @@ void handleFolderPathChange(AsyncWebServerRequest *request) {
     String newFolderPath = request->getParam("path", true)->value();
     if (renameFolder(webServerFolderPath, newFolderPath)) webServerFolderPath = newFolderPath;
   }
+  deleteIndexFiles();
   request->redirect("/");
 }
 

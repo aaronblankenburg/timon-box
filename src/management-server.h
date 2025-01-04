@@ -5,6 +5,8 @@
 #include <SD.h>
 #include <SPI.h>
 
+#include <vector>
+
 AsyncWebServer server(80);
 String webServerFolderPath = "/";
 
@@ -80,12 +82,22 @@ String listFiles() {
   html += "<script>let files=[],uploaded=0;function uploadFiles(){const input=document.getElementById('fileInput');files=input.files;uploaded=0;if(files.length===0)return alert('No files selected!');document.getElementById('progress').innerText=`${uploaded} of ${files.length} files uploaded`;uploadNextFile()}function uploadNextFile(){if(uploaded>=files.length){location.reload();return}const formData=new FormData();formData.append('files',files[uploaded]);fetch('/upload',{method:'POST',body:formData}).then(()=>{uploaded++;document.getElementById('progress').innerText=`${uploaded} of ${files.length} files uploaded`;uploadNextFile()}).catch(err=>{alert('Upload failed: '+err)})}</script>";
 
   html += "<ul>";
+
   File dir = SD.open(webServerFolderPath);
+  std::vector<String> filenames;
+
   while (File file = dir.openNextFile()) {
     if (!file.isDirectory()) {
-      html += "<li><form method='POST' action='/delete'><input type='hidden' name='filename' value='" + String(file.name()) + "'><button type='submit'>x</button> " + String(file.name()) + "</form></li>";
+      filenames.push_back(String(file.name()));  // Store the filenames
     }
     file.close();
+  }
+
+  // Sort the filenames alphanumerically
+  std::sort(filenames.begin(), filenames.end());
+
+  for (const String &filename : filenames) {
+      html += "<li><form method='POST' action='/delete'><input type='hidden' name='filename' value='" + filename + "'><button type='submit'>x</button> " + filename + "</form></li>";
   }
   html += "</ul>";
   dir.close();

@@ -82,8 +82,8 @@ String listFiles() {
   html += "<ul>";
   File dir = SD.open(webServerFolderPath);
   while (File file = dir.openNextFile()) {
-        if (!file.isDirectory()) {
-      html += "<li><a href='/delete?file=" + String(file.name()) + "' class='button'>Delete</a> " + file.name() + "</li>";
+    if (!file.isDirectory()) {
+      html += "<li><form method='POST' action='/delete'><input type='hidden' name='filename' value='" + String(file.name()) + "'><button type='submit'>x</button> " + String(file.name()) + "</form></li>";
     }
     file.close();
   }
@@ -121,8 +121,8 @@ void handleUpload(AsyncWebServerRequest *request, String filename, size_t index,
 }
 
 void handleFileDelete(AsyncWebServerRequest *request) {
-  if (request->hasParam("file")) {
-    String fileName = request->getParam("file")->value();
+  if (request->hasParam("filename", true)) {
+    String fileName = request->getParam("filename", true)->value();
     String filePath = webServerFolderPath + "/" + fileName;
     if (SD.exists(filePath)) {
       SD.remove(filePath);
@@ -148,7 +148,7 @@ void setupWebServer() {
   });
 
   server.on("/upload", HTTP_POST, [](AsyncWebServerRequest *request) { request->send(200); }, handleUpload);
-  server.on("/delete", HTTP_GET, handleFileDelete);
+  server.on("/delete", HTTP_POST, handleFileDelete);
   server.on("/setFolderPath", HTTP_POST, handleFolderPathChange);
   server.onNotFound([](AsyncWebServerRequest *request) {
     request->redirect("/");

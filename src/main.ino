@@ -3,9 +3,7 @@
 #include <MFRC522.h>
 #include <Preferences.h>
 #include <WiFi.h>
-#include <DNSServer.h>
-
-DNSServer dnsServer;
+#include <esp_task_wdt.h>
 
 #include "Arduino.h"
 #include "BluetoothA2DPSink.h"
@@ -72,6 +70,8 @@ unsigned int maxVolume = MAX_VOLUME_SAFE;
 void setup() {
   pinMode(POWER_SUPPLY_PIN, OUTPUT);
   digitalWrite(POWER_SUPPLY_PIN, HIGH);
+  esp_task_wdt_init(200, true); //enable panic so ESP32 restarts
+  esp_task_wdt_add(NULL); //add current thread to WDT watch
   Serial.begin(115200);
   settings.begin("settings", false);
   restoreToneSettings();
@@ -92,6 +92,7 @@ void setup() {
 }
 
 void loop() {
+  esp_task_wdt_reset();
   checkSerialForCommands();
 
   player.loop();
@@ -186,13 +187,6 @@ void loop() {
     case managementServerWaitForTag:
       if (recent_tag != "" && recent_tag != MANAGEMENT_SERVER_TAG) {
         player.loadPlaylist(recent_tag);
-        WiFi.softAP("Timon-Box");
-        IPAddress IP = WiFi.softAPIP();
-        Serial.print("AP IP address: ");
-        Serial.println(IP);
-        Serial.println("starting management server");
-        dnsServer.setErrorReplyCode(DNSReplyCode::NoError);
-        dnsServer.start(53, "*", IP);
         player.setupManagementServer();
         state = managementServerRunning;
       }

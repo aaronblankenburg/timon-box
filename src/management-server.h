@@ -1,14 +1,20 @@
 #ifndef MANAGEMENT_WEB_SERVER
 #define MANAGEMENT_WEB_SERVER
 
+#include <DNSServer.h>
 #include <ESPAsyncWebServer.h>
 #include <SD.h>
 #include <SPI.h>
 
 #include <vector>
 
+DNSServer dnsServer;
+
+#define PAGE_SIZE 10
+
 AsyncWebServer server(80);
 String webServerFolderPath = "/";
+std::vector<String> filesInDir;
 
 void deleteIndexFiles() {
   if (SD.exists(webServerFolderPath + "/index.txt")) {
@@ -63,9 +69,8 @@ bool renameFolder(const String &oldFolder, const String &newFolder) {
   }
 }
 
-String listFiles() {
-  String html = "<style>body{font-family:'Roboto','Helvetica Neue','Helvetica','Arial',sans-serif;font-size:1.6em;font-weight:300;line-height:1.6}input[type='file'],button{margin-bottom:1rem;font-size:1rem;padding:0.5rem 1rem}button{background-color:#9b4dca;color:#fff;border:none;border-radius:0.4rem;cursor:pointer;text-transform:uppercase}button:hover{background-color:#606c76}div#progress{font-size:1rem;margin-top:0.5rem}a{color:#9b4dca;text-decoration:none}a:hover{color:#606c76}.button{background-color:#ff4d4d;color:#fff;padding:0.3rem 0.6rem;border-radius:0.4rem;text-decoration:none;margin-right:0.5rem;}.button-outline{border:1px solid #9b4dca;background-color:transparent;color:#9b4dca;padding:0.3rem 0.6rem;border-radius:0.4rem;cursor:pointer;text-transform:uppercase}input[type='file']{display:none}input[type='text']{-webkit-appearance:none;background-color:transparent;border:0.1rem solid #d1d1d1;border-radius:.4rem;box-shadow:none;box-sizing:inherit;height:3.8rem;padding:.6rem 1.0rem .7rem;width:100%;}</style>";
-  html += "<h1>Management Server</h1>";
+String home() {
+  String html = "<h1>Management Server</h1>";
   html += "<h2>Album directory: " + webServerFolderPath + "</h2><br>";
 
   html += "<form method='POST' action='/setFolderPath'>";
@@ -80,27 +85,36 @@ String listFiles() {
   html += "<div id='progress'>0 of 0 files uploaded</div><br>";
 
   html += "<script>let files=[],uploaded=0;function uploadFiles(){const input=document.getElementById('fileInput');files=input.files;uploaded=0;if(files.length===0)return alert('No files selected!');document.getElementById('progress').innerText=`${uploaded} of ${files.length} files uploaded`;uploadNextFile()}function uploadNextFile(){if(uploaded>=files.length){location.reload();return}const formData=new FormData();formData.append('files',files[uploaded]);fetch('/upload',{method:'POST',body:formData}).then(()=>{uploaded++;document.getElementById('progress').innerText=`${uploaded} of ${files.length} files uploaded`;uploadNextFile()}).catch(err=>{alert('Upload failed: '+err)})}</script>";
+  html += "<a href='/list'>Files</a>";
+  return html;
+}
 
-  html += "<ul>";
+String listFiles(AsyncWebServerRequest *request) {
+  String html = "<h1>Management Server</h1>";
+  html += "<h2>Album directory: " + webServerFolderPath + "</h2><br>";
 
-  File dir = SD.open(webServerFolderPath);
-  std::vector<String> filenames;
+  Serial.println("<div>" + String(filesInDir.size()) + " files</div>");
+  html += "<div>" + String(filesInDir.size()) + " files</div>";
 
-  while (File file = dir.openNextFile()) {
-    if (!file.isDirectory()) {
-      filenames.push_back(String(file.name()));  // Store the filenames
-    }
-    file.close();
+  // Sort the filesInDir alphanumerically
+  std::sort(filesInDir.begin(), filesInDir.end());
+
+  int page = 0;
+  if (request->hasParam("page")) {
+    page = request->getParam("page")->value().toInt();
   }
-
-  // Sort the filenames alphanumerically
-  std::sort(filenames.begin(), filenames.end());
-
-  for (const String &filename : filenames) {
-      html += "<li><form method='POST' action='/delete'><input type='hidden' name='filename' value='" + filename + "'><button type='submit'>x</button> " + filename + "</form></li>";
+  if (page > 0) {
+    html += "<a class='button' href='/list?page=" + String(page - 1) + "'>Previous</a> ";
+  }
+  if (filesInDir.size() > (page + 1) * PAGE_SIZE) {
+    html += "<a class='button' href='/list?page=" + String(page + 1) + "'>Next</a>";
+  }
+  html += "<ul>";
+  for (int i = (page * PAGE_SIZE); i < min((page + 1) * PAGE_SIZE, (int)filesInDir.size()); i++) {
+    // html += filesInDir.at(i);
+    html += "<li><form method='POST' action='/delete'><input type='hidden' name='filename' value='" + filesInDir.at(i) + "'><button type='submit'>x</button> " + filesInDir.at(i) + "</form></li>";
   }
   html += "</ul>";
-  dir.close();
   return html;
 }
 
@@ -154,9 +168,41 @@ void handleFolderPathChange(AsyncWebServerRequest *request) {
   request->redirect("/");
 }
 
-void setupWebServer() {
+void prepareFilesInDir() {
+  if (!filesInDir.empty()) return;
+
+  File dir = SD.open(webServerFolderPath);
+
+  while (File file = dir.openNextFile()) {
+    esp_task_wdt_reset();
+    if (!file.isDirectory()) {
+      filesInDir.push_back(String(file.name()));  // Store the filesInDir
+    }
+    file.close();
+  }
+  dir.close();
+  Serial.println(String(filesInDir.size()) + " files loaded from " + webServerFolderPath);
+}
+
+void setupWebServer(String path) {
+  webServerFolderPath = path;
+
+  // prepareFilesInDir();
+
+  WiFi.softAP("Timon-Box");
+  IPAddress IP = WiFi.softAPIP();
+  Serial.print("AP IP address: ");
+  Serial.println(IP);
+  Serial.println("starting management server");
+  dnsServer.setErrorReplyCode(DNSReplyCode::NoError);
+  dnsServer.start(53, "*", IP);
   server.on("/", HTTP_GET, [](AsyncWebServerRequest *request) {
-    request->send(200, "text/html", listFiles());
+    request->send(200, "text/html", home());
+    prepareFilesInDir();
+  });
+  server.on("/list", HTTP_GET, [](AsyncWebServerRequest *request) {
+    prepareFilesInDir();
+    request->send(200, "text/html", listFiles(request));
   });
 
   server.on("/upload", HTTP_POST, [](AsyncWebServerRequest *request) { request->send(200); }, handleUpload);
@@ -165,6 +211,7 @@ void setupWebServer() {
   server.onNotFound([](AsyncWebServerRequest *request) {
     request->redirect("/");
   });
+
   server.begin();
 }
 

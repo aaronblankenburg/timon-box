@@ -156,8 +156,7 @@ class Player {
   }
 
   void setupManagementServer(){
-    setupWebServer();
-    webServerFolderPath = this->albumDir;
+    setupWebServer(this->albumDir);
   }
 
   void loop() { audio.loop(); }

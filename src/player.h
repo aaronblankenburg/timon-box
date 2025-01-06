@@ -156,6 +156,8 @@ class Player {
   }
 
   void setupManagementServer(){
+    audio.~Audio();
+    playlist.~LList();
     setupWebServer(this->albumDir);
   }
 

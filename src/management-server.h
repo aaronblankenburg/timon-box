@@ -10,7 +10,7 @@
 
 DNSServer dnsServer;
 
-#define PAGE_SIZE 10
+#define PAGE_SIZE 20
 
 AsyncWebServer server(80);
 String webServerFolderPath = "/";
@@ -69,32 +69,40 @@ bool renameFolder(const String &oldFolder, const String &newFolder) {
   }
 }
 
-String home() {
-  String html = "<h1>Management Server</h1>";
-  html += "<h2>Album directory: " + webServerFolderPath + "</h2><br>";
+void home(AsyncWebServerRequest *request) {
+  AsyncResponseStream *response = request->beginResponseStream("text/html");
 
-  html += "<form method='POST' action='/setFolderPath'>";
-  html += "<input type='text' name='path' value='" + webServerFolderPath + "' required> ";
-  html += "<button type='submit'>Rename Folder</button>";
-  html += "</form><br>";
+  response->printf("<h1>Management Server</h1>");
+  response->printf("<h2>Album directory: %s</h2><br>", webServerFolderPath.c_str());
 
-  html += "<form id='uploadForm' enctype='multipart/form-data'>";
-  html += "<label for='fileInput' class='button button-outline'>Select files</label>";
-  html += "<input type='file' id='fileInput' accept='audio/mpeg' multiple>";
-  html += "<button type='button' onclick='uploadFiles()'>Upload</button><br><br>";
-  html += "<div id='progress'>0 of 0 files uploaded</div><br>";
+  response->printf("<form method='POST' action='/setFolderPath'>");
+  response->printf("<input type='text' name='path' value='%s' required> ", webServerFolderPath.c_str());
+  response->printf("<button type='submit'>Rename Folder</button>");
+  response->printf("</form><br>");
 
-  html += "<script>let files=[],uploaded=0;function uploadFiles(){const input=document.getElementById('fileInput');files=input.files;uploaded=0;if(files.length===0)return alert('No files selected!');document.getElementById('progress').innerText=`${uploaded} of ${files.length} files uploaded`;uploadNextFile()}function uploadNextFile(){if(uploaded>=files.length){location.reload();return}const formData=new FormData();formData.append('files',files[uploaded]);fetch('/upload',{method:'POST',body:formData}).then(()=>{uploaded++;document.getElementById('progress').innerText=`${uploaded} of ${files.length} files uploaded`;uploadNextFile()}).catch(err=>{alert('Upload failed: '+err)})}</script>";
-  html += "<a href='/list'>Files</a>";
-  return html;
+  response->printf("<form id='uploadForm' enctype='multipart/form-data'>");
+  response->printf("<label for='fileInput' class='button button-outline'>Select files</label>");
+  response->printf("<input type='file' id='fileInput' accept='audio/mpeg' multiple>");
+  response->printf("<button type='button' onclick='uploadFiles()'>Upload</button><br><br>");
+  response->printf("<div id='progress'>0 of 0 files uploaded</div><br>");
+
+  response->printf("<script>");
+  response->printf("let files=[],uploaded=0;function uploadFiles(){const input=document.getElementById('fileInput');files=input.files;uploaded=0;if(files.length===0)return alert('No files selected!');document.getElementById('progress').innerText=`${uploaded} of ${files.length} files uploaded`;uploadNextFile()}function uploadNextFile(){if(uploaded>=files.length){location.reload();return}const formData=new FormData();formData.append('files',files[uploaded]);fetch('/upload',{method:'POST',body:formData}).then(()=>{uploaded++;document.getElementById('progress').innerText=`${uploaded} of ${files.length} files uploaded`;uploadNextFile()}).catch(err=>{alert('Upload failed: '+err)})}");
+  response->printf("</script>");
+
+  response->printf("<a href='/list'>Files</a>");
+
+  request->send(response);
 }
 
-String listFiles(AsyncWebServerRequest *request) {
-  String html = "<h1>Management Server</h1>";
-  html += "<h2>Album directory: " + webServerFolderPath + "</h2><br>";
+void listFiles(AsyncWebServerRequest *request) {
+  AsyncResponseStream *response = request->beginResponseStream("text/html");
 
-  Serial.println("<div>" + String(filesInDir.size()) + " files</div>");
-  html += "<div>" + String(filesInDir.size()) + " files</div>";
+  response->printf("<h1>Management Server</h1>");
+  response->printf("<h2>Album directory: %s</h2><br>", webServerFolderPath.c_str());
+  response->printf("<a class='button' href='/'>Upload</a> ");
+
+  response->printf("<div>%d files</div>", filesInDir.size());
 
   // Sort the filesInDir alphanumerically
   std::sort(filesInDir.begin(), filesInDir.end());
@@ -104,18 +112,18 @@ String listFiles(AsyncWebServerRequest *request) {
     page = request->getParam("page")->value().toInt();
   }
   if (page > 0) {
-    html += "<a class='button' href='/list?page=" + String(page - 1) + "'>Previous</a> ";
+    response->printf("<a class='button' href='/list?page=%d'>Previous</a> ", page - 1);
   }
   if (filesInDir.size() > (page + 1) * PAGE_SIZE) {
-    html += "<a class='button' href='/list?page=" + String(page + 1) + "'>Next</a>";
+    response->printf("<a class='button' href='/list?page=%d'>Next</a>", page + 1);
   }
-  html += "<ul>";
-  for (int i = (page * PAGE_SIZE); i < min((page + 1) * PAGE_SIZE, (int)filesInDir.size()); i++) {
-    // html += filesInDir.at(i);
-    html += "<li><form method='POST' action='/delete'><input type='hidden' name='filename' value='" + filesInDir.at(i) + "'><button type='submit'>x</button> " + filesInDir.at(i) + "</form></li>";
+  response->printf("<ul>");
+  for (int i = (page * PAGE_SIZE); i < std::min((page + 1) * PAGE_SIZE, (int)filesInDir.size()); i++) {
+    response->printf("<li><form method='POST' action='/delete'><input type='hidden' name='filename' value='%s'><button type='submit'>x</button> %s</form></li>", filesInDir.at(i).c_str(), filesInDir.at(i).c_str());
   }
-  html += "</ul>";
-  return html;
+  response->printf("</ul>");
+
+  request->send(response);
 }
 
 void handleUpload(AsyncWebServerRequest *request, String filename, size_t index, uint8_t *data, size_t len, bool final) {
@@ -187,7 +195,7 @@ void prepareFilesInDir() {
 void setupWebServer(String path) {
   webServerFolderPath = path;
 
-  // prepareFilesInDir();
+  prepareFilesInDir();
 
   WiFi.softAP("Timon-Box");
   IPAddress IP = WiFi.softAPIP();
@@ -196,14 +204,8 @@ void setupWebServer(String path) {
   Serial.println("starting management server");
   dnsServer.setErrorReplyCode(DNSReplyCode::NoError);
   dnsServer.start(53, "*", IP);
-  server.on("/", HTTP_GET, [](AsyncWebServerRequest *request) {
-    request->send(200, "text/html", home());
-    prepareFilesInDir();
-  });
-  server.on("/list", HTTP_GET, [](AsyncWebServerRequest *request) {
-    prepareFilesInDir();
-    request->send(200, "text/html", listFiles(request));
-  });
+  server.on("/", HTTP_GET, home);
+  server.on("/list", HTTP_GET, listFiles);
 
   server.on("/upload", HTTP_POST, [](AsyncWebServerRequest *request) { request->send(200); }, handleUpload);
   server.on("/delete", HTTP_POST, handleFileDelete);

@@ -170,21 +170,20 @@ void listFiles(AsyncWebServerRequest *request) {
 }
 
 void handleUpload(AsyncWebServerRequest *request, String filename, size_t index, uint8_t *data, size_t len, bool final) {
-  filename = sanitizeFilename(filename);
   String logmessage = "Client:" + request->client()->remoteIP().toString() + " " + request->url();
   // Serial.println(logmessage);
 
   if (!index) {
     logmessage = "Upload Start: " + String(filename);
     // open the file on first call and store the file handle in the request object
-    request->_tempFile = SD.open(webServerFolderPath + "/" + filename, "w");
+    request->_tempFile = SD.open("/temp", "w");
     Serial.println(logmessage);
   }
 
   if (len) {
     // stream the incoming chunk to the opened file
     request->_tempFile.write(data, len);
-    logmessage = "Writing file: " + String(filename) + " index=" + String(index) + " len=" + String(len);
+    // logmessage = "Writing file: " + String(filename) + " index=" + String(index) + " len=" + String(len);
     // Serial.println(logmessage);
   }
 
@@ -192,6 +191,8 @@ void handleUpload(AsyncWebServerRequest *request, String filename, size_t index,
     logmessage = "Upload Complete: " + String(filename) + ",size: " + String(index + len);
     // close the file handle as the upload is now doneu
     request->_tempFile.close();
+    filename = sanitizeFilename(filename);
+    SD.rename("/temp", webServerFolderPath + "/" + filename);
     filesInDir.erase(std::remove(filesInDir.begin(), filesInDir.end(), filename), filesInDir.end());
     filesInDir.push_back(filename);
     deleteIndexFiles();

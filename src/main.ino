@@ -70,8 +70,8 @@ unsigned int maxVolume = MAX_VOLUME_SAFE;
 void setup() {
   pinMode(POWER_SUPPLY_PIN, OUTPUT);
   digitalWrite(POWER_SUPPLY_PIN, HIGH);
-  esp_task_wdt_init(200, true); //enable panic so ESP32 restarts
-  esp_task_wdt_add(NULL); //add current thread to WDT watch
+  esp_task_wdt_init(200, true);  // enable panic so ESP32 restarts
+  esp_task_wdt_add(NULL);        // add current thread to WDT watch
   Serial.begin(115200);
   settings.begin("settings", false);
   restoreToneSettings();
@@ -186,8 +186,7 @@ void loop() {
 
     case managementServerWaitForTag:
       if (recent_tag != "" && recent_tag != MANAGEMENT_SERVER_TAG) {
-        player.loadPlaylist(recent_tag);
-        player.setupManagementServer();
+        player.setupManagementServer(recent_tag);
         state = managementServerRunning;
       }
       break;
@@ -381,12 +380,11 @@ void checkBattery(bool playAlert) {
 }
 
 unsigned int getBattery() {
-  unsigned int value = (analogRead(VOLTAGE_PIN) + analogRead(VOLTAGE_PIN) +
-                        analogRead(VOLTAGE_PIN) + analogRead(VOLTAGE_PIN) +
-                        analogRead(VOLTAGE_PIN) + analogRead(VOLTAGE_PIN) +
-                        analogRead(VOLTAGE_PIN) + analogRead(VOLTAGE_PIN) +
-                        analogRead(VOLTAGE_PIN) + analogRead(VOLTAGE_PIN)) /
-                       10;
+  uint16_t acc = 0;
+  for (size_t i = 0; i < 10; i++) {
+    acc += analogRead(VOLTAGE_PIN);
+  }
+  unsigned int value = acc / 10;
   // unsigned int batteryPercent = ::map(value, 400, 3100, 0, 100);
   unsigned int batteryPercent = ::max(0L, ::min(100L, ::map(value, 2074, 2803, 0, 100)));
   return batteryPercent;
@@ -424,13 +422,6 @@ void checkSerialForCommands() {
     if (value == "safe") maxVolumeIsSafe = true;
     if (value == "unsafe") maxVolumeIsSafe = false;
     Serial.println("Set maxVolume to " + maxVolumeIsSafe ? "safe" : "unsafe");
-  } else if (cmd == "filemanager") {
-    WiFi.begin("MyWiFi", "12345678");
-    while (WiFi.status() != WL_CONNECTED) {
-      delay(10);
-    }
-    player.pause();
-    player.setupManagementServer();
   } else {
     Serial.println("Command \"" + cmd +
                    "\" is not supported. Supported commands: low[:<-40..6>], "

@@ -6,7 +6,6 @@
 #include "FS.h"
 #include "LList.h"
 #include "SD.h"
-
 #include "management-server.h"
 
 // SD card
@@ -22,7 +21,6 @@
 
 #define LAST_PLAYED_FILE_NAME "/last_played.txt"
 #define INDEX_FILE_NAME "/index.txt"
-
 
 class Player {
  private:
@@ -155,19 +153,17 @@ class Player {
     audio.forceMono(true);
   }
 
-  void setupManagementServer(){
+  void setupManagementServer(String tag) {
     audio.~Audio();
     playlist.~LList();
+    determineAlbumDir(tag);
     setupWebServer(this->albumDir);
   }
 
   void loop() { audio.loop(); }
 
-  void loadPlaylist(String tag) {
+  void determineAlbumDir(String tag) {
     albumDir = "";
-    playlist.clear();
-    currentlyPlayingFile = "";
-
     File root = SD.open("/");
     File file = root.openNextFile();
     while (file) {
@@ -187,10 +183,17 @@ class Player {
     Serial.println("albumDir: " + albumDir);
 
     if (albumDir == "") {
-      Serial.println("New tag, created dir /" + tag);
-      SD.mkdir("/" + tag);
-      return;
+      albumDir = "/" + tag;
+      Serial.println("New tag, created dir " + tag);
+      SD.mkdir(albumDir);
     }
+  }
+
+  void loadPlaylist(String tag) {
+    playlist.clear();
+    currentlyPlayingFile = "";
+
+    determineAlbumDir(tag);
 
     loadAlbumIntoPlaylist(albumDir);
   }

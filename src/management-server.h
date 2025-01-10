@@ -9,54 +9,101 @@
 #include <unordered_map>
 #include <vector>
 
-DNSServer dnsServer;
-
 #define PAGE_SIZE 20
+#define LAST_PLAYED_FILE_NAME "/last_played.txt"
+
+DNSServer dnsServer;
 
 AsyncWebServer server(80);
 String webServerFolderPath = "/";
 std::vector<String> filesInDir;
+
+String getLastPlayedFileName() {
+  if (!SD.exists(webServerFolderPath + LAST_PLAYED_FILE_NAME)) {
+    Serial.println("Failed to open file for reading");
+    return "";
+  }
+
+  File file = SD.open(webServerFolderPath + LAST_PLAYED_FILE_NAME);
+
+  String fileName;
+  while (file.available()) {
+    fileName += (char)file.read();
+  }
+  file.close();
+  return fileName;
+}
+
+void deleteLastPlayedFile() {
+  if (SD.exists(webServerFolderPath + LAST_PLAYED_FILE_NAME)) {
+    SD.remove(webServerFolderPath + LAST_PLAYED_FILE_NAME);
+    filesInDir.erase(std::remove(filesInDir.begin(), filesInDir.end(), "last_played.txt"), filesInDir.end());
+  }
+}
 
 void deleteIndexFiles() {
   if (SD.exists(webServerFolderPath + "/index.txt")) {
     SD.remove(webServerFolderPath + "/index.txt");
     filesInDir.erase(std::remove(filesInDir.begin(), filesInDir.end(), "index.txt"), filesInDir.end());
   }
-  if (SD.exists(webServerFolderPath + "/last_played.txt")) {
-    SD.remove(webServerFolderPath + "/last_played.txt");
-    filesInDir.erase(std::remove(filesInDir.begin(), filesInDir.end(), "last_played.txt"), filesInDir.end());
-  }
 }
 
 String sanitizeFilename(const String &input) {
-  std::unordered_map<char, String> replacements = {
-      {' ', "_"},
-      {'ü', "ue"},  // ü
-      {'ä', "ae"},  // ä
-      {'ö', "oe"},  // ö
-      {'ß', "ss"}   // ß
-  };
-
   String result = "";
-  for (unsigned int i = 0; i < input.length(); i++) {
-    char ch = input.charAt(i);
-    if (replacements.find(ch) != replacements.end()) {
-      result += replacements[ch];
-    } else if (isalnum(ch) || ch == '_' || ch == '-' || ch == '(' || ch == ')' || ch == '[' || ch == ']' || ch == '.' || ch == ',' || ch == '+' || ch == '&') {
+  unsigned int i = 0;
+  while (i < input.length()) {
+    String ch = input.substring(i, i + 1);
+
+    // Handle multibyte characters
+    if ((ch[0] & 0xC0) == 0xC0 && (i + 1 < input.length())) {
+      ch = input.substring(i, i + 2);  // UTF-8 2-byte sequence
+      i++;
+    }
+
+    if (ch == " ") {
+      result += "_";
+    } else if (ch == "\xc3\x9c") {
+      result += "Ue";
+    } else if (ch == "\xc3\xbc") {
+      result += "ue";
+    } else if (ch == "\xc3\x84") {
+      result += "Ae";
+    } else if (ch == "\xc3\xa4") {
+      result += "ae";
+    } else if (ch == "\xc3\x96") {
+      result += "Oe";
+    } else if (ch == "\xc3\xb6") {
+      result += "oe";
+    } else if (ch == "ß") {
+      result += "ss";
+    } else if (isalnum(ch[0]) || ch == "_" || ch == "-" || ch == "(" || ch == ")" || ch == "[" || ch == "]" || ch == "." || ch == "," || ch == "+" || ch == "&") {
       result += ch;  // Keep allowed characters
     } else {
       // Replace all other invalid characters with an underscore
       result += '_';
     }
+    i++;
   }
 
   return result;
 }
 
-bool renameFolder(const String &oldFolder, const String &newFolder) {
+bool renameFolder(const String &oldFolder, String &newFolder) {
+  String tag = oldFolder.substring(max(oldFolder.lastIndexOf("_"), (int)oldFolder.length() - 14));
+  if (!newFolder.endsWith(tag)) {
+    newFolder += "_" + tag;
+  }
+
+  if (newFolder.startsWith("/")) {
+    newFolder = newFolder.substring(1);
+  }
+
+  newFolder = "/" + sanitizeFilename(newFolder);
+
   // Make sure the new folder exists (it will be created if not)
-  if (!SD.mkdir(newFolder)) {
-    Serial.println("Failed to create new folder!");
+  if (newFolder.lastIndexOf('/') > 0 || !SD.mkdir(newFolder)) {
+    Serial.print("Failed to create new folder! ");
+    Serial.println(newFolder);
     return false;
   }
 
@@ -111,11 +158,11 @@ void home(AsyncWebServerRequest *request) {
   response->printf("<h1>Timon-Box</h1>");
   response->printf("<h2>Album directory: %s</h2><br>", webServerFolderPath.c_str());
 
-  response->printf("<nav><ul><li><a href='/list'>Files</a></li></ul></nav>");
+  response->printf("<nav><ul><li><a href='/'>Files</a></li></ul></nav>");
 
   response->printf("<h3>Rename Folder</h3>");
 
-  response->printf("<form method='POST' action='/setFolderPath'>");
+  response->printf("<form method='POST' action='/setFolderPath' accept-charset='UTF-8'>");
   response->printf("<input type='text' name='path' value='%s' required> ", webServerFolderPath.c_str());
   response->printf("<button type='submit'>Rename Folder</button>");
   response->printf("</form><br>");
@@ -148,7 +195,7 @@ void listFiles(AsyncWebServerRequest *request) {
   if (request->hasParam("page")) {
     page = request->getParam("page")->value().toInt();
   }
-  response->printf("<nav><ul><li><a href='/'>Upload</a></li>");
+  response->printf("<nav><ul><li><a href='/home'>Upload</a></li>");
 
   if (page > 0) {
     response->printf("<li><a class='button' href='/list?page=%d'>Previous</a></li> ", page - 1);
@@ -159,9 +206,12 @@ void listFiles(AsyncWebServerRequest *request) {
   response->printf("</ul></nav>");
   response->printf("<h3>File Management</h3>");
 
-  response->printf("<table><caption>%d files</caption><tbody>", filesInDir.size());
+  response->printf("<table><caption>%d files</caption><thead><tr><th>Playing</th><th>Name</th><th>Delete</th></tr></thead><tbody>", filesInDir.size());
+  String lastPlayedFileName = getLastPlayedFileName();
   for (int i = (page * PAGE_SIZE); i < std::min((page + 1) * PAGE_SIZE, (int)filesInDir.size()); i++) {
-    response->printf("<tr><td>%s</td><td style='text-align:right'><form method='POST' action='/delete' style='margin:0'><input type='hidden' name='filename' value='%s'><button type='submit'>x</button></form></td></tr>", filesInDir.at(i).c_str(), filesInDir.at(i).c_str());
+    String fileName = filesInDir.at(i);
+    String selectButtonLabel = lastPlayedFileName.endsWith(fileName) ? "&#x25B6;" : "&#x25B7;";
+    response->printf("<tr><td><form method='POST' action='/select' style='margin:0'><input type='hidden' name='filename' value='%s'><button type='submit'>%s</button></form></td><td>%s</td><td style='text-align:right'><form method='POST' action='/delete' style='margin:0'><input type='hidden' name='filename' value='%s'><button type='submit' style='background-color:red'>&#x274C;</button></form></td></tr>", fileName.c_str(), selectButtonLabel, fileName.c_str(), fileName.c_str());
   }
   response->printf("</tbody></table>");
 
@@ -207,10 +257,32 @@ void handleFileDelete(AsyncWebServerRequest *request) {
     if (SD.exists(filePath)) {
       SD.remove(filePath);
       filesInDir.erase(std::remove(filesInDir.begin(), filesInDir.end(), fileName), filesInDir.end());
+      if (getLastPlayedFileName() == filePath) {
+        deleteLastPlayedFile();
+      }
     }
   }
 
   deleteIndexFiles();
+  request->redirect(request->header("referer"));
+}
+
+void handleFileSelect(AsyncWebServerRequest *request) {
+  if (request->hasParam("filename", true)) {
+    String fileName = request->getParam("filename", true)->value();
+    String filePath = webServerFolderPath + "/" + fileName;
+    if (SD.exists(filePath)) {
+      File file = SD.open(webServerFolderPath + LAST_PLAYED_FILE_NAME, FILE_WRITE);
+      if (!file) {
+        Serial.println("Failed to open file for writing");
+        return;
+      }
+      if (file.print(filePath)) {
+        Serial.println(filePath);
+      }
+      file.close();
+    }
+  }
   request->redirect(request->header("referer"));
 }
 
@@ -219,6 +291,7 @@ void handleFolderPathChange(AsyncWebServerRequest *request) {
     String newFolderPath = request->getParam("path", true)->value();
     if (renameFolder(webServerFolderPath, newFolderPath)) webServerFolderPath = newFolderPath;
   }
+  deleteLastPlayedFile();
   deleteIndexFiles();
   request->redirect("/");
 }
@@ -251,11 +324,12 @@ void setupWebServer(String path) {
   Serial.println("starting management server");
   dnsServer.setErrorReplyCode(DNSReplyCode::NoError);
   dnsServer.start(53, "*", IP);
-  server.on("/", HTTP_GET, home);
-  server.on("/list", HTTP_GET, listFiles);
+  server.on("/home", HTTP_GET, home);
+  server.on("/", HTTP_GET, listFiles);
   server.on("/css", HTTP_GET, css);
 
   server.on("/upload", HTTP_POST, [](AsyncWebServerRequest *request) { request->send(200); }, handleUpload);
+  server.on("/select", HTTP_POST, handleFileSelect);
   server.on("/delete", HTTP_POST, handleFileDelete);
   server.on("/setFolderPath", HTTP_POST, handleFolderPathChange);
   server.onNotFound([](AsyncWebServerRequest *request) {

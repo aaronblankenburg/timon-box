@@ -37,14 +37,12 @@ String getLastPlayedFileName() {
 void deleteLastPlayedFile() {
   if (SD.exists(webServerFolderPath + LAST_PLAYED_FILE_NAME)) {
     SD.remove(webServerFolderPath + LAST_PLAYED_FILE_NAME);
-    filesInDir.erase(std::remove(filesInDir.begin(), filesInDir.end(), "last_played.txt"), filesInDir.end());
   }
 }
 
 void deleteIndexFiles() {
   if (SD.exists(webServerFolderPath + "/index.txt")) {
     SD.remove(webServerFolderPath + "/index.txt");
-    filesInDir.erase(std::remove(filesInDir.begin(), filesInDir.end(), "index.txt"), filesInDir.end());
   }
 }
 
@@ -303,7 +301,7 @@ void prepareFilesInDir() {
 
   while (File file = dir.openNextFile()) {
     esp_task_wdt_reset();
-    if (!file.isDirectory()) {
+    if (!file.isDirectory() && String(file.name()).endsWith(".mp3")) {
       filesInDir.push_back(String(file.name()));  // Store the filesInDir
     }
     file.close();

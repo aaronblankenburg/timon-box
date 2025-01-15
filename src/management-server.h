@@ -9,7 +9,7 @@
 #include <unordered_map>
 #include <vector>
 
-#define PAGE_SIZE 20
+#define PAGE_SIZE 10
 #define LAST_PLAYED_FILE_NAME "/last_played.txt"
 
 DNSServer dnsServer;
@@ -196,10 +196,10 @@ void listFiles(AsyncWebServerRequest *request) {
   response->printf("<nav><ul><li><a href='/home'>Upload</a></li>");
 
   if (page > 0) {
-    response->printf("<li><a class='button' href='/list?page=%d'>Previous</a></li> ", page - 1);
+    response->printf("<li><a class='button' href='/?page=%d'>Previous</a></li> ", page - 1);
   }
   if (filesInDir.size() > (page + 1) * PAGE_SIZE) {
-    response->printf("<li><a class='button' href='/list?page=%d'>Next</a></li>", page + 1);
+    response->printf("<li><a class='button' href='/?page=%d'>Next</a></li>", page + 1);
   }
   response->printf("</ul></nav>");
   response->printf("<h3>File Management</h3>");
@@ -331,7 +331,7 @@ void setupWebServer(String path) {
   server.on("/delete", HTTP_POST, handleFileDelete);
   server.on("/setFolderPath", HTTP_POST, handleFolderPathChange);
   server.onNotFound([](AsyncWebServerRequest *request) {
-    request->redirect("/");
+    request->redirect("/home");
   });
 
   server.begin();

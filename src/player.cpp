@@ -2,11 +2,9 @@
 #define PLAYER_CLASS
 
 #include "Arduino.h"
-#include "Audio.h"
 #include "FS.h"
 #include "LList.h"
 #include "SD.h"
-#include "management-server.h"
 
 // SD card
 #define SD_SPEED 27000000
@@ -15,15 +13,11 @@
 #define SD_SCK GPIO_NUM_16
 #define SD_MISO GPIO_NUM_4
 
-#define I2S_DOUT 25
-#define I2S_BCLK GPIO_NUM_27  // I2S
-#define I2S_LRC GPIO_NUM_26
-
 #define LAST_PLAYED_FILE_NAME "/last_played.txt"
 #define INDEX_FILE_NAME "/index.txt"
 
 class Player {
- private:
+ protected:
   SPIClass spiSD = SPIClass(HSPI);
   String albumDir;
   LList<String> playlist;
@@ -45,20 +39,7 @@ class Player {
     }
   }
 
-  void playFile(String path) {
-    // startSdCard();
-    if (SD.exists(path)) {
-      handleParams(path);
-      currentlyPlayingFile = path;
-      sdConnected = audio.connecttoSD(path.c_str());
-      Serial.println("playing file: " + path);
-    } else {
-      Serial.println("file does not exist, flushing player cache: " + path);
-      flushPlayerCache();
-      loadAlbumDirIntoPlaylist(albumDir);
-      startOrContinueAlbum();
-    }
-  }
+  virtual void playFile(String path) = 0;
 
   void flushPlayerCache() {
     if (SD.exists(albumDir + LAST_PLAYED_FILE_NAME)) SD.remove(albumDir + LAST_PLAYED_FILE_NAME);
@@ -140,7 +121,6 @@ class Player {
   }
 
  public:
-  Audio audio = Audio();
   boolean sdConnected = false;
   unsigned int songMaxVolume = 0;
   String currentlyPlayingFile;
@@ -149,18 +129,12 @@ class Player {
 
   void setup() {
     startSdCard();
-    audio.setPinout(I2S_BCLK, I2S_LRC, I2S_DOUT);
-    audio.forceMono(true);
+    startAudio();
   }
 
-  void setupManagementServer(String tag) {
-    audio.~Audio();
-    playlist.~LList();
-    determineAlbumDir(tag);
-    setupWebServer(this->albumDir);
-  }
+  virtual void startAudio() = 0;
 
-  void loop() { audio.loop(); }
+  virtual void loop() = 0;
 
   void determineAlbumDir(String tag) {
     albumDir = "";
@@ -206,13 +180,9 @@ class Player {
     }
   }
 
-  void resume() {
-    if (!audio.isRunning()) audio.pauseResume();
-  }
+  virtual void resume() = 0;
 
-  void pause() {
-    if (audio.isRunning()) audio.pauseResume();
-  }
+  virtual void pause() = 0;
 
   void next() {
     int currentIndex = playlistIndexOf(currentlyPlayingFile);
@@ -223,8 +193,10 @@ class Player {
     }
   }
 
+  virtual int getAudioCurrentTime() =0;
+
   void previous() {
-    if (audio.getAudioCurrentTime() <= 5) {
+    if (getAudioCurrentTime() <= 5) {
       int currentIndex = playlistIndexOf(currentlyPlayingFile);
       if (currentIndex == 0) {
         playFile(playlist.get(playlist.size() - 1));
@@ -270,37 +242,9 @@ class Player {
     file.close();
   }
 
-  void playClick() {
-    this->songMaxVolume = 0;
-    Serial.println("playing click");
-    audio.stopSong();
-    sdConnected = audio.connecttoSD("/tap.mp3");
-    unsigned long startTime = millis();
-    while (millis() < startTime + 300) loop();
-  }
+  virtual void playClick()=0;
 
-  void playAlert() {
-    this->songMaxVolume = 0;
-    Serial.println("playing alert");
-    audio.stopSong();
-    sdConnected = audio.connecttoSD("/alert.mp3");
-    unsigned long startTime = millis();
-    while (millis() < startTime + 4500) loop();
-  }
-
-  void printPlaylist() {
-    Serial.println("index: song name");
-    Serial.println("----------------");
-    for (size_t i = 0; i < playlist.size(); i++) {
-      audio.loop();
-      String songPath = playlist.get(i);
-      String songName = songPath.substring(songPath.lastIndexOf('/') + 1);
-      songName.replace('_', ' ');
-      Serial.print(i);
-      Serial.print(": ");
-      Serial.println(songName);
-    }
-  }
+  virtual void playAlert() =0;
 
   void playSongByIndex(int index) {
     if (index < 0) {

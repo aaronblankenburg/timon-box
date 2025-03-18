@@ -9,6 +9,7 @@
 #include "BluetoothA2DPSink.h"
 #include "knock.cpp"
 #include "playerI2S.h"
+// #include "playerBT.h"
 
 // card reader
 #define CR_CS GPIO_NUM_23    // GPIO_NUM_14  // 17
@@ -39,6 +40,7 @@ KnockSensor rightKnockSensor(LKS_PIN, 40000);
 BluetoothA2DPSink a2dp_sink;
 MFRC522 rfid(CR_CS, CR_RST);
 PlayerI2S player;
+// PlayerBT player;
 
 Preferences settings;
 

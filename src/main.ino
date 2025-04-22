@@ -23,7 +23,7 @@
 #define POWER_SUPPLY_PIN GPIO_NUM_33
 #define LKS_PIN GPIO_NUM_35
 #define RKS_PIN GPIO_NUM_34
-#define VOLUME_BOOST_PIN GPIO_NUM_12
+#define SWITCH_TOKEN_PRESENT GPIO_NUM_32
 #define VOLTAGE_PIN GPIO_NUM_39
 
 #define MAX_VOLUME_LOUD 21
@@ -77,7 +77,7 @@ void setup() {
   restoreToneSettings();
 
   pinMode(VOLUME_PIN, INPUT);
-  pinMode(VOLUME_BOOST_PIN, INPUT_PULLUP);
+  pinMode(SWITCH_TOKEN_PRESENT, INPUT_PULLUP);
   pinMode(VOLTAGE_PIN, INPUT);
 
   if (esp_reset_reason() != ESP_RST_SW) bluetoothMode = false;
@@ -343,22 +343,10 @@ void setVolume() {
 }
 
 bool isTokenPresent() {
-  int batteryPercent = getBattery();
-  return batteryPercent > 0;
+  return digitalRead(SWITCH_TOKEN_PRESENT) == LOW;
 }
 
 void handleVolumeBoost() {
-  if (digitalRead(VOLUME_BOOST_PIN) == LOW &&
-      millis() - maxVolumeBoostLastRead > maxVolumeBoostTimeout) {
-    maxVolumeBoostLastRead = millis();
-    maxVolumeIsSafe = !maxVolumeIsSafe;
-    // maxVolume = (maxVolume == MAX_VOLUME_LOUD)
-    // ? MAX_VOLUME_SAFE
-    // : MAX_VOLUME_LOUD;
-    Serial.print("Volume boost set to ");
-    Serial.println(maxVolumeIsSafe ? "SAFE" : "LOUD");
-  }
-
   maxVolume = maxVolumeIsSafe ? player.songMaxVolume > 0 &&
                                         player.songMaxVolume <= MAX_VOLUME_LOUD
                                     ? player.songMaxVolume

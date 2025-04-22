@@ -223,6 +223,11 @@ class Player {
     }
     file.close();
 
+    if(fileName.length() == 0) {
+      Serial.println(albumDir + LAST_PLAYED_FILE_NAME + " is empty");
+      return playlist.get(0);
+    }
+
     if (SD.exists(fileName)) {
       return fileName;
     } else {

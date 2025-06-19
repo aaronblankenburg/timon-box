@@ -17,6 +17,7 @@ DNSServer dnsServer;
 AsyncWebServer server(80);
 String webServerFolderPath = "/";
 std::vector<String> filesInDir;
+float *batteryAdcValueManagementServer;
 
 String getLastPlayedFileName() {
   if (!SD.exists(webServerFolderPath + LAST_PLAYED_FILE_NAME)) {
@@ -150,11 +151,13 @@ void css(AsyncWebServerRequest *request) {
 }
 
 void home(AsyncWebServerRequest *request) {
+  float voltage = ::map((uint)*batteryAdcValueManagementServer, 2258, 2390, 4100, 4322);
   AsyncResponseStream *response = request->beginResponseStream("text/html");
 
   response->printf("<link rel='stylesheet' href='/css' />");
   response->printf("<h1>Timon-Box</h1>");
   response->printf("<h2>Album directory: %s</h2><br>", webServerFolderPath.c_str());
+  response->printf("<h3>Battery Voltage: %s mV (ADC: %s)</h3>", String(voltage).c_str(), String(*batteryAdcValueManagementServer).c_str());
 
   response->printf("<nav><ul><li><a href='/'>Files</a></li></ul></nav>");
 

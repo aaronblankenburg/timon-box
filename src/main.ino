@@ -1,5 +1,6 @@
 // will play many audio file formats, mp3,aac,flac etc.
 // See github page : https://github.com/schreibfaul1/ESP32-audioI2S
+#include <Adafruit_NeoPixel.h>
 #include <MFRC522.h>
 #include <Preferences.h>
 #include <WiFi.h>
@@ -25,6 +26,7 @@
 #define RKS_PIN GPIO_NUM_34
 #define SWITCH_TOKEN_PRESENT GPIO_NUM_32
 #define VOLTAGE_PIN GPIO_NUM_39
+#define NEO_PIXEL_PIN GPIO_NUM_2
 
 #define MAX_VOLUME_LOUD 21
 #define MAX_VOLUME_SAFE 13
@@ -33,8 +35,9 @@
 #define MAX_PLAY_TIME_IN_S 120 * 60
 #define LEFT_AND_RIGHT_SIMULTANOUS_PRESS_TIMEOUT_IN_MS 750
 
-KnockSensor leftKnockSensor(RKS_PIN, 30000);
-KnockSensor rightKnockSensor(LKS_PIN, 40000);
+KnockSensor leftKnockSensor(RKS_PIN, 500);
+KnockSensor rightKnockSensor(LKS_PIN, 5000);
+Adafruit_NeoPixel pixel(1, NEO_PIXEL_PIN, NEO_RGB + NEO_KHZ800);
 
 BluetoothA2DPSink a2dp_sink;
 MFRC522 rfid(CR_CS, CR_RST);
@@ -50,6 +53,14 @@ enum State { paused,
              bluetoothPaused,
              managementServerWaitForTag,
              managementServerRunning };
+const uint32_t stateColors[] = {
+    /* paused */ pixel.Color(255, 165, 0),                      // Orange
+    /* playing */ pixel.Color(0, 255, 0),                       // Green
+    /* bluetoothPlaying */ pixel.Color(0, 0, 255),              // Blue
+    /* bluetoothPaused */ pixel.Color(75, 0, 130),              // Indigo
+    /* managementServerWaitForTag */ pixel.Color(255, 255, 0),  // Yellow
+    /* managementServerRunning */ pixel.Color(255, 165, 0)      // Orange (updated)
+};
 enum KnockSensorAction { noPress,
                          leftPress,
                          rightPress };
@@ -66,12 +77,19 @@ bool maxVolumeIsSafe = true;
 unsigned long maxVolumeBoostTimeout = 2000;
 unsigned long maxVolumeBoostLastRead = 0;
 unsigned int maxVolume = MAX_VOLUME_SAFE;
+float batteryAdcValue = 2390.;  // start with full value
 
 void setup() {
   pinMode(POWER_SUPPLY_PIN, OUTPUT);
   digitalWrite(POWER_SUPPLY_PIN, HIGH);
   esp_task_wdt_init(200, true);  // enable panic so ESP32 restarts
   esp_task_wdt_add(NULL);        // add current thread to WDT watch
+
+  pixel.begin();                                 // Initialize the NeoPixel
+  pixel.setBrightness(20);                       // Optional: 0-255
+  pixel.setPixelColor(0, pixel.Color(0, 0, 0));  // Set to off (black)
+  pixel.show();                                  // Send the color data
+
   Serial.begin(115200);
   settings.begin("settings", false);
   restoreToneSettings();
@@ -89,11 +107,18 @@ void setup() {
   SPI.begin(CR_SCK, CR_MISO, CR_MOSI, CR_CS);
   rfid.PCD_Init(CR_CS, CR_RST);
   rfid.PCD_SetAntennaGain(rfid.RxGain_max);
+  // Erhöhe die ASK‑Modulation auf 100 %:
+  // rfid.PCD_WriteRegister(MFRC522::TxASKReg, B01000000);
+  // Optional: niedrigere Empfangsschwelle
+  // rfid.PCD_WriteRegister(MFRC522::RxThresholdReg, B00000000);
+  // rfid.PCD_WriteRegister(MFRC522::RFCfgReg, B01110000);
+  batteryAdcValueManagementServer = &batteryAdcValue;
 }
 
 void loop() {
   esp_task_wdt_reset();
   checkSerialForCommands();
+  updateBatteryAdc();
 
   player.loop();
 
@@ -110,13 +135,13 @@ void loop() {
           bluetoothMode = true;
           ESP.restart();
         }
-        state = bluetoothPaused;
+        changeState(bluetoothPaused);
         break;
       }
 
       if (recent_tag == MANAGEMENT_SERVER_TAG) {
         Serial.println("management server mode, waiting for token");
-        state = managementServerWaitForTag;
+        changeState(managementServerWaitForTag);
         break;
       }
 
@@ -130,7 +155,7 @@ void loop() {
           player.startOrContinueAlbum();
         }
         fileWhenTagInserted = player.currentlyPlayingFile;
-        state = playing;
+        changeState(playing);
       }
 
       if (millis() - musicStopTime > (MAX_PAUSE_TIME_IN_S * 1000)) {
@@ -147,7 +172,7 @@ void loop() {
         musicStopTime = millis();
         player.pause();
         player.savePlayingState();
-        state = paused;
+        changeState(paused);
         delay(3000);
       }
 
@@ -167,7 +192,7 @@ void loop() {
           bluetoothMode = false;
           ESP.restart();
         }
-        state = paused;
+        changeState(paused);
       }
       break;
 
@@ -177,7 +202,7 @@ void loop() {
           bluetoothMode = false;
           ESP.restart();
         }
-        state = paused;
+        changeState(paused);
       }
       if (millis() - musicStopTime > (MAX_PAUSE_TIME_IN_S * 1000)) {
         shutdown();
@@ -187,14 +212,14 @@ void loop() {
     case managementServerWaitForTag:
       if (recent_tag != "" && recent_tag != MANAGEMENT_SERVER_TAG) {
         player.setupManagementServer(recent_tag);
-        state = managementServerRunning;
+        changeState(managementServerRunning);
       }
       break;
 
     case managementServerRunning:
       if (recent_tag == "") {
         shutdown();
-        state = paused;
+        changeState(paused);
         ESP.restart();
       }
       dnsServer.processNextRequest();
@@ -205,6 +230,22 @@ void loop() {
     Serial.println("SD-Card Failure, rebooting!");
     ESP.restart();
   }
+}
+
+void changeState(State newState) {
+  if (state == newState) return;
+
+  state = newState;
+  if (getBattery() > LOW_BATTERY_THRESHOLD) {
+    setNeoPixel(stateColors[state]);
+  } else {
+    setNeoPixel(pixel.Color(255, 0, 0));
+  }
+}
+
+void setNeoPixel(uint32_t color) {
+  pixel.setPixelColor(0, color);
+  pixel.show();
 }
 
 void startPlayer() {
@@ -239,17 +280,17 @@ void startBluetooth() {
       [](esp_a2d_connection_state_t connectionState, void *ptr) {
         if (connectionState == ESP_A2D_CONNECTION_STATE_CONNECTED) {
           a2dp_sink.play();
-          state = bluetoothPlaying;
+          changeState(bluetoothPlaying);
         } else if (connectionState == ESP_A2D_CONNECTION_STATE_DISCONNECTED) {
-          state = bluetoothPaused;
+          changeState(bluetoothPaused);
           musicStopTime = millis();
         }
       });
   a2dp_sink.set_on_audio_state_changed([](esp_a2d_audio_state_t audioState, void *ptr) {
     if (audioState == ESP_A2D_AUDIO_STATE_STARTED) {
-      state = bluetoothPlaying;
+      changeState(bluetoothPlaying);
     } else if (audioState == ESP_A2D_AUDIO_STATE_STOPPED || audioState == ESP_A2D_AUDIO_STATE_REMOTE_SUSPEND) {
-      state = bluetoothPaused;
+      changeState(bluetoothPaused);
       musicStopTime = millis();
     }
   });
@@ -368,14 +409,13 @@ void checkBattery(bool playAlert) {
 }
 
 unsigned int getBattery() {
-  uint16_t acc = 0;
-  for (size_t i = 0; i < 10; i++) {
-    acc += analogRead(VOLTAGE_PIN);
-  }
-  unsigned int value = acc / 10;
   // unsigned int batteryPercent = ::map(value, 400, 3100, 0, 100);
-  unsigned int batteryPercent = ::max(0L, ::min(100L, ::map(value, 2074, 2803, 0, 100)));
+  unsigned int batteryPercent = constrain(::map(::map((uint)batteryAdcValue, 2258, 2390, 4100, 4322), 3200, 4200, 0, 100), 0, 100);
   return batteryPercent;
+}
+
+void updateBatteryAdc() {
+  batteryAdcValue = (batteryAdcValue * 0.999) + (0.001 * analogRead(VOLTAGE_PIN));
 }
 
 void checkSerialForCommands() {

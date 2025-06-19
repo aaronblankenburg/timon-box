@@ -141,11 +141,11 @@ class Player {
     File root = SD.open("/");
     File file = root.openNextFile();
     while (file) {
-      Serial.print(file.name());
-      Serial.print("  ");
-      Serial.print(String(file.name()));
-      Serial.print("  ");
-      Serial.println(file.isDirectory());
+      // Serial.print(file.name());
+      // Serial.print("  ");
+      // Serial.print(String(file.name()));
+      // Serial.print("  ");
+      // Serial.println(file.isDirectory());
       if (file.isDirectory() && String(file.name()).endsWith(tag)) {
         albumDir = file.name();
         albumDir = "/" + albumDir;

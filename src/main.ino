@@ -106,7 +106,7 @@ void setup() {
   }
   SPI.begin(CR_SCK, CR_MISO, CR_MOSI, CR_CS);
   rfid.PCD_Init(CR_CS, CR_RST);
-  rfid.PCD_SetAntennaGain(rfid.RxGain_max);
+  rfid.PCD_SetAntennaGain(rfid.RxGain_23dB);
   // Erhöhe die ASK‑Modulation auf 100 %:
   // rfid.PCD_WriteRegister(MFRC522::TxASKReg, B01000000);
   // Optional: niedrigere Empfangsschwelle

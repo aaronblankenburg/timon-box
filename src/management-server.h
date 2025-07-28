@@ -318,7 +318,7 @@ void setupWebServer(String path) {
 
   prepareFilesInDir();
 
-  WiFi.softAP("Timon-Box");
+  WiFi.softAP(BOX_NAME);
   IPAddress IP = WiFi.softAPIP();
   Serial.print("AP IP address: ");
   Serial.println(IP);

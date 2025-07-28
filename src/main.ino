@@ -35,8 +35,8 @@
 #define MAX_PLAY_TIME_IN_S 120 * 60
 #define LEFT_AND_RIGHT_SIMULTANOUS_PRESS_TIMEOUT_IN_MS 750
 
-KnockSensor leftKnockSensor(RKS_PIN, 500);
-KnockSensor rightKnockSensor(LKS_PIN, 5000);
+KnockSensor leftKnockSensor(RKS_PIN, RKS_THRESHOLD);
+KnockSensor rightKnockSensor(LKS_PIN, LKS_THRESHOLD);
 Adafruit_NeoPixel pixel(1, NEO_PIXEL_PIN, NEO_RGB + NEO_KHZ800);
 
 BluetoothA2DPSink a2dp_sink;
@@ -275,7 +275,7 @@ void startBluetooth() {
   a2dp_sink.set_pin_config(my_pin_config);
   a2dp_sink.set_i2s_config(i2s_config);
   a2dp_sink.set_auto_reconnect(true);
-  a2dp_sink.start("Timon-Box");
+  a2dp_sink.start(BOX_NAME);
   a2dp_sink.set_on_connection_state_changed(
       [](esp_a2d_connection_state_t connectionState, void *ptr) {
         if (connectionState == ESP_A2D_CONNECTION_STATE_CONNECTED) {

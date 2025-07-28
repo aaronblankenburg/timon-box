@@ -29,8 +29,8 @@
 #define NEO_PIXEL_PIN GPIO_NUM_2
 
 #define MAX_VOLUME_LOUD 21
-#define MAX_VOLUME_SAFE 13
-#define LOW_BATTERY_THRESHOLD 10  // in %
+#define MAX_VOLUME_SAFE 17
+#define LOW_BATTERY_THRESHOLD 20  // in %
 #define MAX_PAUSE_TIME_IN_S 10 * 60
 #define MAX_PLAY_TIME_IN_S 120 * 60
 #define LEFT_AND_RIGHT_SIMULTANOUS_PRESS_TIMEOUT_IN_MS 750
@@ -399,18 +399,19 @@ void checkBattery(bool playAlert) {
   int batteryPercent = getBattery();
   Serial.println("Battery level is " + String(batteryPercent) + "%");
   if (playAlert) {
-    if (batteryPercent > LOW_BATTERY_THRESHOLD) {
-    }
-  } else {
     if (batteryPercent <= LOW_BATTERY_THRESHOLD) {
       player.playAlert();
     }
+  } else {
+    if (batteryPercent > LOW_BATTERY_THRESHOLD) {
+    }
   }
+  setNeoPixel(pixel.Color(255, 0, 0));
 }
 
 unsigned int getBattery() {
   // unsigned int batteryPercent = ::map(value, 400, 3100, 0, 100);
-  unsigned int batteryPercent = constrain(::map(::map((uint)batteryAdcValue, 2258, 2390, 4100, 4322), 3200, 4200, 0, 100), 0, 100);
+  unsigned int batteryPercent = constrain(::map(::map((uint)batteryAdcValue, 1994, 2390, 3685, 4322), 3200, 4200, 0, 100), 0, 100);
   return batteryPercent;
 }
 
@@ -466,5 +467,6 @@ void restoreToneSettings() {
 
 void shutdownBox() {
   Serial.println("shutting down");
+  pixel.setPixelColor(0, pixel.Color(0, 0, 0));  // Set to off (black)
   digitalWrite(POWER_SUPPLY_PIN, LOW);
 }

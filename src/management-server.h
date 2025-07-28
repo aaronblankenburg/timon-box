@@ -151,7 +151,7 @@ void css(AsyncWebServerRequest *request) {
 }
 
 void home(AsyncWebServerRequest *request) {
-  float voltage = ::map((uint)*batteryAdcValueManagementServer, 2258, 2390, 4100, 4322);
+  float voltage = ::map((uint)*batteryAdcValueManagementServer, 1994, 2390, 3685, 4322);
   AsyncResponseStream *response = request->beginResponseStream("text/html");
 
   response->printf("<link rel='stylesheet' href='/css' />");

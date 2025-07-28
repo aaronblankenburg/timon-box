@@ -159,7 +159,7 @@ void loop() {
       }
 
       if (millis() - musicStopTime > (MAX_PAUSE_TIME_IN_S * 1000)) {
-        shutdown();
+        shutdownBox();
       }
       break;
 
@@ -179,7 +179,7 @@ void loop() {
       if (millis() - musicStartTime > (MAX_PLAY_TIME_IN_S * 1000)) {
         player.pause();
         player.savePlayingState();
-        shutdown();
+        shutdownBox();
       }
       break;
 
@@ -205,7 +205,7 @@ void loop() {
         changeState(paused);
       }
       if (millis() - musicStopTime > (MAX_PAUSE_TIME_IN_S * 1000)) {
-        shutdown();
+        shutdownBox();
       }
       break;
 
@@ -218,7 +218,7 @@ void loop() {
 
     case managementServerRunning:
       if (recent_tag == "") {
-        shutdown();
+        shutdownBox();
         changeState(paused);
         ESP.restart();
       }
@@ -375,7 +375,7 @@ void audio_eof_mp3(const char *info) {  // end of file
   if (fileWhenTagInserted == player.currentlyPlayingFile) {
     // shutdown when starting file is reached again
     fileWhenTagInserted = "";
-    shutdown();
+    shutdownBox();
   }
 }
 
@@ -464,7 +464,7 @@ void restoreToneSettings() {
                        settings.getInt("high", 0));
 }
 
-void shutdown() {
+void shutdownBox() {
   Serial.println("shutting down");
   digitalWrite(POWER_SUPPLY_PIN, LOW);
 }

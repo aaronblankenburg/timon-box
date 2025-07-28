@@ -17,7 +17,7 @@ class PlayerI2S : public Player {
     if (SD.exists(path)) {
       handleParams(path);
       currentlyPlayingFile = path;
-      sdConnected = audio.connecttoSD(path.c_str());
+      sdConnected = audio.connecttoFS(SD, path.c_str());
       Serial.println("playing file: " + path);
     } else {
       Serial.println("file does not exist, flushing player cache: " + path);
@@ -62,7 +62,7 @@ class PlayerI2S : public Player {
     this->songMaxVolume = 0;
     Serial.println("playing click");
     audio.stopSong();
-    sdConnected = audio.connecttoSD("/tap.mp3");
+    sdConnected = audio.connecttoFS(SD, "/tap.mp3");
     unsigned long startTime = millis();
     while (millis() < startTime + 300) loop();
   }
@@ -71,7 +71,7 @@ class PlayerI2S : public Player {
     this->songMaxVolume = 0;
     Serial.println("playing alert");
     audio.stopSong();
-    sdConnected = audio.connecttoSD("/alert.mp3");
+    sdConnected = audio.connecttoFS(SD, "/alert.mp3");
     unsigned long startTime = millis();
     while (millis() < startTime + 4500) loop();
   }

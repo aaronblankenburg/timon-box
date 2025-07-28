@@ -246,6 +246,8 @@ void changeState(State newState) {
 void setNeoPixel(uint32_t color) {
   pixel.setPixelColor(0, color);
   pixel.show();
+  pixel.show();
+  pixel.show();
 }
 
 void startPlayer() {
@@ -350,6 +352,8 @@ String getTag() {
 
   Serial.println("Read tag");
 
+  rfid.PCD_SoftPowerUp();
+
   if (!rfid.PICC_IsNewCardPresent()) {
     return "";
   }
@@ -366,6 +370,8 @@ String getTag() {
   hexstr[i * 2] = 0;
 
   rfid.PICC_IsNewCardPresent();  // flush card
+
+  rfid.PCD_SoftPowerDown();
   return hexstr;
 }
 

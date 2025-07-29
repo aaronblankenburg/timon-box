@@ -404,15 +404,12 @@ void handleVolumeBoost() {
 void checkBattery(bool playAlert) {
   int batteryPercent = getBattery();
   Serial.println("Battery level is " + String(batteryPercent) + "%");
-  if (playAlert) {
-    if (batteryPercent <= LOW_BATTERY_THRESHOLD) {
+  if (batteryPercent <= LOW_BATTERY_THRESHOLD) {
+    if (playAlert) {
       player.playAlert();
     }
-  } else {
-    if (batteryPercent > LOW_BATTERY_THRESHOLD) {
-    }
+    setNeoPixel(pixel.Color(255, 0, 0));
   }
-  setNeoPixel(pixel.Color(255, 0, 0));
 }
 
 unsigned int getBattery() {

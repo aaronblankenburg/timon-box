@@ -79,15 +79,10 @@ unsigned long maxVolumeBoostLastRead = 0;
 unsigned int maxVolume = MAX_VOLUME_SAFE;
 float batteryAdcValue = 2390.;  // start with full value
 
-// pull up POWER_SUPPLY_PIN immediately
-extern "C" void __attribute__((constructor)) early_gpio33_on() {
-  // GPIO33 (Gruppe 1: GPIO32–39) als Ausgang setzen
-  GPIO.enable1_w1ts.val = (1 << (POWER_SUPPLY_PIN - 32));
-  // GPIO33 auf HIGH setzen
-  GPIO.out1_w1ts.val = (1 << (POWER_SUPPLY_PIN - 32));
-}
-
 void setup() {
+  pinMode(POWER_SUPPLY_PIN, OUTPUT);
+  digitalWrite(POWER_SUPPLY_PIN, HIGH);
+
   esp_task_wdt_init(200, true);  // enable panic so ESP32 restarts
   esp_task_wdt_add(NULL);        // add current thread to WDT watch
 
@@ -113,11 +108,6 @@ void setup() {
   SPI.begin(CR_SCK, CR_MISO, CR_MOSI, CR_CS);
   rfid.PCD_Init(CR_CS, CR_RST);
   rfid.PCD_SetAntennaGain(rfid.RxGain_23dB);
-  // Erhöhe die ASK‑Modulation auf 100 %:
-  // rfid.PCD_WriteRegister(MFRC522::TxASKReg, B01000000);
-  // Optional: niedrigere Empfangsschwelle
-  // rfid.PCD_WriteRegister(MFRC522::RxThresholdReg, B00000000);
-  // rfid.PCD_WriteRegister(MFRC522::RFCfgReg, B01110000);
   batteryAdcValueManagementServer = &batteryAdcValue;
 }
 

@@ -9,12 +9,12 @@ class KnockSensor {
   unsigned long threshold;
   bool actionPending = true;
   unsigned long maxKnockLengthMs = 200;
-  unsigned long timeBeforeReKnock = 500;
+  unsigned long timeBeforeReKnock = 200;
   unsigned long knockStartTime = 0;
   unsigned long accumulator = 0;
   unsigned long loopCounter = 0;
   unsigned int value;
-  const float alpha = 0.01;
+  const float alpha = 0.005;
 
  public:
   void (*action)() = []() { Serial.println("knock"); };
@@ -38,6 +38,10 @@ class KnockSensor {
       if (area > threshold && actionPending) {
         action();
         actionPending = false;
+        Serial.print("Press detected, area: ");
+        Serial.print(area);
+        Serial.print(", timeSinceKnockStart");
+        Serial.println(timeSinceKnockStart);
       }
     } else if (isSensing) {
       if (accumulator > 0) Serial.println("area: " + String(accumulator * timeSinceKnockStart / loopCounter));

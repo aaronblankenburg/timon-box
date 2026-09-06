@@ -20,6 +20,7 @@
 #include <ESPmDNS.h>
 #include <Preferences.h>
 #include <WiFi.h>
+#include <esp_wifi.h>
 #include <freertos/FreeRTOS.h>
 #include <freertos/semphr.h>
 
@@ -360,6 +361,17 @@ NetMode netLoop() {
         connectResult = CR_OK;
         staLostSince = 0;
         WiFi.setAutoReconnect(true);
+        WiFi.setSleep(false);  // belt and braces: modem sleep would add tens of ms to every round trip
+        {
+          wifi_ps_type_t ps = WIFI_PS_NONE;
+          esp_wifi_get_ps(&ps);
+          wifi_ap_record_t ap;
+          bool apInfo = esp_wifi_sta_get_ap_info(&ap) == ESP_OK;
+          Serial.printf("[net] power save %s, ap phy %s%s%s%s, channel %d\n",
+                        ps == WIFI_PS_NONE ? "off" : ps == WIFI_PS_MIN_MODEM ? "MIN_MODEM" : "MAX_MODEM",
+                        apInfo && ap.phy_11b ? "b" : "", apInfo && ap.phy_11g ? "g" : "", apInfo && ap.phy_11n ? "n" : "",
+                        apInfo && ap.phy_lr ? "/LR" : "", apInfo ? ap.primary : 0);
+        }
         if (apActive) {  // connected from the portal: hand the client over to the home network
           apTeardownPending = true;
           apTeardownSince = millis();
@@ -595,6 +607,20 @@ void registerWifiRoutes(AsyncWebServer &server) {
   server.on("/wifi-status", HTTP_GET, wifiStatusJson);
   server.on("/wifi-connect", HTTP_POST, wifiConnectPost);
   server.on("/wifi-forget", HTTP_POST, wifiForgetPost);
+
+  // Download speed test to tell a slow radio link from a slow receive path:
+  //   curl -o /dev/null -w '%{speed_download}\n' http://<box>.local/speedtest
+  server.on("/speedtest", HTTP_GET, [](AsyncWebServerRequest *request) {
+    const size_t total = 4u * 1024u * 1024u;
+    AsyncWebServerResponse *response = request->beginChunkedResponse("application/octet-stream", [total](uint8_t *buffer, size_t maxLen, size_t index) -> size_t {
+      if (index >= total) return 0;
+      size_t n = std::min(maxLen, total - index);
+      memset(buffer, 'x', n);
+      return n;
+    });
+    response->addHeader("Cache-Control", "no-store");
+    request->send(response);
+  });
 }
 
 #endif

@@ -179,12 +179,26 @@ const char *themeFromCookie(AsyncWebServerRequest *request) {
   return "";
 }
 
+// Hash of the stylesheet, used as ?v= on the /css link so browsers fetch a new
+// stylesheet after every firmware update instead of serving a cached one.
+uint32_t cssVersion() {
+  static uint32_t hash = [] {
+    uint32_t h = 2166136261u;  // FNV-1a
+    for (const char *p = PAGE_CSS; *p; p++) {
+      h ^= (uint8_t)*p;
+      h *= 16777619u;
+    }
+    return h;
+  }();
+  return hash;
+}
+
 void pageHead(AsyncResponseStream *res, AsyncWebServerRequest *request, const char *activeNav) {
   const char *theme = themeFromCookie(request);
   String subtitle = pageSubtitle ? pageSubtitle() : String("");
   res->print("<!DOCTYPE html><html lang=\"en\"");
   if (theme[0]) res->printf(" data-theme=\"%s\"", theme);
-  res->print("><head><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width,initial-scale=1\"><title>" BOX_NAME "</title><link rel=\"stylesheet\" href=\"/css\"></head><body><main>");
+  res->printf("><head><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width,initial-scale=1\"><title>" BOX_NAME "</title><link rel=\"stylesheet\" href=\"/css?v=%08x\"></head><body><main>", cssVersion());
 
   res->print("<header><div class=\"title-row\"><h1>" BOX_NAME "</h1><div class=\"theme-ctl\">"
              "<button class=\"btn secondary small\" type=\"button\" id=\"ta\" hidden>Auto</button>"
@@ -209,7 +223,7 @@ void pageFoot(AsyncResponseStream *res) {
 
 void cssHandler(AsyncWebServerRequest *request) {
   AsyncWebServerResponse *response = request->beginResponse(200, "text/css", (const uint8_t *)PAGE_CSS, sizeof(PAGE_CSS) - 1);
-  response->addHeader("Cache-Control", "public, max-age=86400");
+  response->addHeader("Cache-Control", "public, max-age=31536000, immutable");  // URL is versioned, see cssVersion()
   request->send(response);
 }
 

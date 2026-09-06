@@ -294,7 +294,7 @@ void home(AsyncWebServerRequest *request) {
   if (folder.isEmpty()) return request->redirect("/wifi");
   uint64_t sdFree = sdTotal > sdUsed ? sdTotal - sdUsed : 0;
 
-  AsyncResponseStream *res = request->beginResponseStream("text/html");
+  AsyncResponseStream *res = request->beginResponseStream("text/html", 12288);
   pageHead(res, request, "upload");
 
   // Status card
@@ -347,7 +347,7 @@ void home(AsyncWebServerRequest *request) {
   res->print("<script>(function(){var $=function(id){return document.getElementById(id)},i=$('f'),z=$('dz'),b=$('bar'),t=$('pt'),r=$('pr'),ul=$('ul'),ph=$('ph'),u=$('ub'),rb=$('rb'),"
              "dlg=$('dlg'),mt=$('mt'),mh=$('mh'),mc=$('mc'),mx=$('mx'),ms=$('ms'),slot=$('slot'),mslot=$('mslot');");
   res->printf("var SD_FREE=%s;", sdFreeBuf);
-  res->print("var PAR=3,items=[],total=0,doneBytes=0,startAt=0,samples=[],busy=false,cancelled=false,q=[],active=0,failed=0,inflight={};"
+  res->print("var PAR=2,items=[],total=0,doneBytes=0,startAt=0,samples=[],busy=false,cancelled=false,q=[],active=0,failed=0,inflight={};"
              "function esc(s){return String(s).replace(/[&<>\"']/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;',\"'\":'&#39;'}[c]})}"
              "function fmt(n){if(n>=1073741824)return (n/1073741824).toFixed(2)+' GB';if(n>=1048576)return (n/1048576).toFixed(1)+' MB';return Math.max(1,Math.round(n/1024))+' kB'}"
              "function fmtT(s){if(s<60)return Math.ceil(s)+' s';var m=Math.floor(s/60);return m+' min '+Math.round(s-m*60)+' s'}"
@@ -424,7 +424,7 @@ void listFiles(AsyncWebServerRequest *request) {
   filesUnlock();
   if (folder.isEmpty()) return request->redirect("/wifi");
 
-  AsyncResponseStream *res = request->beginResponseStream("text/html");
+  AsyncResponseStream *res = request->beginResponseStream("text/html", 8192);
   pageHead(res, request, "files");
 
   res->print("<div class=\"card flush\"><div class=\"card-head\"><h2>Files</h2>");
@@ -489,14 +489,14 @@ void listFiles(AsyncWebServerRequest *request) {
 // Upload
 //
 // The file arrives as raw request body (no byte-wise multipart parsing). The
-// network task only copies it into 16 kB buffers from a small pool and hands
+// network task only copies it into 8 kB buffers from a small pool and hands
 // full buffers to a dedicated SD writer task; it never touches the SD card
 // itself. That keeps AsyncTCP responsive while several uploads are in flight
 // (blocked in SD writes it let its receive timeout reset the other
 // connections) and lets SD writes overlap with receiving.
 // ---------------------------------------------------------------------------
 
-#define UPLOAD_BUF_SIZE 16384
+#define UPLOAD_BUF_SIZE 8192   // 4 x 8 kB pool: the management-mode heap has ~115 kB free, pages need ~25 kB to render
 #define UPLOAD_BUF_COUNT 4          // pool shared by all uploads in flight
 #define UPLOAD_CLOSE_TIMEOUT_MS 15000
 #define UPLOAD_RX_TIMEOUT_S 60      // ESPAsyncWebServer's default of 3 s is too short for a stalled TCP stream

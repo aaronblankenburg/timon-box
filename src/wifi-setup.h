@@ -518,7 +518,7 @@ void wifiPage(AsyncWebServerRequest *request) {
   String saved = getSavedSsid();
   String hostname = String(boxHostname()) + ".local";
 
-  AsyncResponseStream *res = request->beginResponseStream("text/html");
+  AsyncResponseStream *res = request->beginResponseStream("text/html", 8192);
   pageHead(res, request, "wifi");
 
   // Connection card

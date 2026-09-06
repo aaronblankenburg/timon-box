@@ -234,6 +234,19 @@ int batteryPercent() {
   return constrain(::map(batteryMilliVolts(), 3200, 4200, 0, 100), 0, 100);
 }
 
+// 3.2 GB / 512 MB
+String formatBytes(uint64_t bytes) {
+  const double GB = 1024.0 * 1024.0 * 1024.0;
+  const double MB = 1024.0 * 1024.0;
+  char buf[24];
+  if (bytes >= GB) {
+    snprintf(buf, sizeof(buf), "%.1f GB", bytes / GB);
+  } else {
+    snprintf(buf, sizeof(buf), "%.0f MB", bytes / MB);
+  }
+  return String(buf);
+}
+
 void sendBusy(AsyncWebServerRequest *request) {
   request->send(503, "text/plain", "The box is busy, please retry.");
 }
@@ -246,8 +259,11 @@ void home(AsyncWebServerRequest *request) {
   if (!filesLock()) return sendBusy(request);
   String folder = webServerFolderPath;
   int trackCount = filesInDir.size();
+  uint64_t sdTotal = SD.totalBytes();
+  uint64_t sdUsed = SD.usedBytes();
   filesUnlock();
   if (folder.isEmpty()) return request->redirect("/wifi");
+  uint64_t sdFree = sdTotal > sdUsed ? sdTotal - sdUsed : 0;
 
   AsyncResponseStream *res = request->beginResponseStream("text/html");
   pageHead(res, request, "upload");
@@ -261,7 +277,7 @@ void home(AsyncWebServerRequest *request) {
   res->printf("<dt>Battery</dt><dd>%d mV &middot; ADC %d</dd>", batteryMilliVolts(), (int)*batteryAdcValueManagementServer);
   res->printf("<dt>Album folder</dt><dd>%s</dd>", htmlEscape(folder).c_str());
   res->printf("<dt>Tracks</dt><dd>%d</dd>", trackCount);
-  res->printf("<dt>Free memory</dt><dd>%u kB</dd>", ESP.getFreeHeap() / 1024);
+  res->printf("<dt>SD card</dt><dd>%s free of %s</dd>", formatBytes(sdFree).c_str(), formatBytes(sdTotal).c_str());
   res->print("</dl></div>");
 
   // Upload card

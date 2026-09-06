@@ -34,7 +34,7 @@
 #define MAX_PAUSE_TIME_IN_S 10 * 60
 #define MAX_PLAY_TIME_IN_S 120 * 60
 #define LEFT_AND_RIGHT_SIMULTANOUS_PRESS_TIMEOUT_IN_MS 750
-#define MANAGEMENT_NO_TOKEN_TIMEOUT_IN_S 60  // management mode without any token (e.g. while swapping) before power-off
+#define MANAGEMENT_NO_TOKEN_TIMEOUT_IN_S 60  // management token removed but no album token placed yet (swap gap) before power-off
 
 KnockSensor leftKnockSensor(RKS_PIN, RKS_THRESHOLD);
 KnockSensor rightKnockSensor(LKS_PIN, LKS_THRESHOLD);
@@ -217,8 +217,13 @@ void loop() {
     case managementServerConnecting:
     case managementServerLan: {
       if (recent_tag == "") {
-        // No token: allow time to swap tokens, then power off.
-        if (managementNoTokenSince == 0) {
+        if (managementAlbumTag != "") {
+          // Album token removed: we are done, power off right away (as before).
+          shutdownBox();
+          changeState(paused);
+          ESP.restart();
+        } else if (managementNoTokenSince == 0) {
+          // Management token removed: allow time to swap in the album token.
           managementNoTokenSince = millis();
         } else if (millis() - managementNoTokenSince > (MANAGEMENT_NO_TOKEN_TIMEOUT_IN_S * 1000)) {
           shutdownBox();
@@ -227,12 +232,8 @@ void loop() {
         }
       } else {
         managementNoTokenSince = 0;
-        if (recent_tag == MANAGEMENT_SERVER_TAG) {
-          if (managementAlbumTag != "") {  // back to the management token: Wi-Fi only
-            managementAlbumTag = "";
-            clearAlbum();
-          }
-        } else if (recent_tag != managementAlbumTag) {  // album token: manage its files
+        if (recent_tag != MANAGEMENT_SERVER_TAG && recent_tag != managementAlbumTag) {
+          // Album token placed: manage its files (Files/Upload appear in the web UI)
           managementAlbumTag = recent_tag;
           player.selectAlbumForManagement(recent_tag);
         }

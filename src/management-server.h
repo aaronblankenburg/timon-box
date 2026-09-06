@@ -199,14 +199,6 @@ void setAlbumFolder(const String &path) {
   prepareFilesInDir();
 }
 
-void clearAlbum() {
-  if (!filesLock(10000)) return;
-  webServerFolderPath = "";
-  filesInDir.clear();
-  filesUnlock();
-  Serial.println("album deselected");
-}
-
 // ---------------------------------------------------------------------------
 // Presentation helpers
 // ---------------------------------------------------------------------------

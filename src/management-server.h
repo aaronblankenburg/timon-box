@@ -1,35 +1,58 @@
 #ifndef MANAGEMENT_WEB_SERVER
 #define MANAGEMENT_WEB_SERVER
 
-#include <DNSServer.h>
 #include <ESPAsyncWebServer.h>
 #include <SD.h>
 #include <SPI.h>
 #include <WiFi.h>
 #include <esp_task_wdt.h>
+#include <freertos/FreeRTOS.h>
+#include <freertos/semphr.h>
 
 #include <algorithm>
 #include <vector>
 
 #include "web-ui.h"
+#include "wifi-setup.h"
 
 #define PAGE_SIZE 10
 #define LAST_PLAYED_FILE_NAME "/last_played.txt"
 
-DNSServer dnsServer;
-
 AsyncWebServer server(80);
-String webServerFolderPath = "/";
+String webServerFolderPath = "";  // empty until an album token is placed
 std::vector<String> filesInDir;
 float *batteryAdcValueManagementServer;
 
-String getLastPlayedFileName() {
-  if (!SD.exists(webServerFolderPath + LAST_PLAYED_FILE_NAME)) {
-    Serial.println("Failed to open file for reading");
+// The loop task switches albums (token swap) while web handlers on the AsyncTCP
+// task read the file list and touch the SD card, so both go through this mutex.
+SemaphoreHandle_t filesMutex = nullptr;
+
+bool filesLock(uint32_t waitMs = 3000) {
+  return filesMutex && xSemaphoreTake(filesMutex, pdMS_TO_TICKS(waitMs)) == pdTRUE;
+}
+
+void filesUnlock() { xSemaphoreGive(filesMutex); }
+
+// Snapshot of the selected album folder ("" = none). Safe from any task.
+String currentFolder() {
+  String copy;
+  if (filesLock()) {
+    copy = webServerFolderPath;
+    filesUnlock();
+  }
+  return copy;
+}
+
+// ---------------------------------------------------------------------------
+// SD helpers (caller holds filesMutex when running on the web server task)
+// ---------------------------------------------------------------------------
+
+String getLastPlayedFileName(const String &folder) {
+  if (!SD.exists(folder + LAST_PLAYED_FILE_NAME)) {
     return "";
   }
 
-  File file = SD.open(webServerFolderPath + LAST_PLAYED_FILE_NAME);
+  File file = SD.open(folder + LAST_PLAYED_FILE_NAME);
 
   String fileName;
   while (file.available()) {
@@ -39,15 +62,15 @@ String getLastPlayedFileName() {
   return fileName;
 }
 
-void deleteLastPlayedFile() {
-  if (SD.exists(webServerFolderPath + LAST_PLAYED_FILE_NAME)) {
-    SD.remove(webServerFolderPath + LAST_PLAYED_FILE_NAME);
+void deleteLastPlayedFile(const String &folder) {
+  if (SD.exists(folder + LAST_PLAYED_FILE_NAME)) {
+    SD.remove(folder + LAST_PLAYED_FILE_NAME);
   }
 }
 
-void deleteIndexFiles() {
-  if (SD.exists(webServerFolderPath + "/index.txt")) {
-    SD.remove(webServerFolderPath + "/index.txt");
+void deleteIndexFiles(const String &folder) {
+  if (SD.exists(folder + "/index.txt")) {
+    SD.remove(folder + "/index.txt");
   }
 }
 
@@ -147,18 +170,63 @@ bool renameFolder(const String &oldFolder, String &newFolder) {
   }
 }
 
+// Scans webServerFolderPath for .mp3 files into filesInDir. Caller holds filesMutex.
+void prepareFilesInDir() {
+  filesInDir.clear();
+  if (webServerFolderPath.isEmpty()) return;
+
+  File dir = SD.open(webServerFolderPath);
+
+  while (File file = dir.openNextFile()) {
+    esp_task_wdt_reset();
+    if (!file.isDirectory() && String(file.name()).endsWith(".mp3")) {
+      filesInDir.push_back(String(file.name()));  // Store the filesInDir
+    }
+    file.close();
+  }
+  dir.close();
+  Serial.println(String(filesInDir.size()) + " files loaded from " + webServerFolderPath);
+}
+
+// ---------------------------------------------------------------------------
+// Album selection (loop task, driven by the RFID token)
+// ---------------------------------------------------------------------------
+
+// Caller holds filesMutex (see PlayerI2S::selectAlbumForManagement, which also
+// resolves the folder on the SD card under the same lock).
+void setAlbumFolder(const String &path) {
+  webServerFolderPath = path;
+  prepareFilesInDir();
+}
+
+void clearAlbum() {
+  if (!filesLock(10000)) return;
+  webServerFolderPath = "";
+  filesInDir.clear();
+  filesUnlock();
+  Serial.println("album deselected");
+}
+
 // ---------------------------------------------------------------------------
 // Presentation helpers
 // ---------------------------------------------------------------------------
 
 // Subtitle shown under the box name on every page.
 String albumSubtitle() {
-  return "Album folder <code>" + htmlEscape(webServerFolderPath) + "</code>";
+  String folder = currentFolder();
+  if (folder.isEmpty()) return "Place an album token on the box to manage its files";
+  return "Album folder <code>" + htmlEscape(folder) + "</code>";
+}
+
+// Files and Upload only make sense with an album token in place.
+bool navVisible(const NavItem &item) {
+  if (strcmp(item.key, "wifi") == 0) return true;
+  return !currentFolder().isEmpty();
 }
 
 // "/Bibi_Blocksberg_047a8772d42a81" -> "Bibi_Blocksberg" (the token suffix is re-attached by renameFolder)
-String folderDisplayName() {
-  String name = webServerFolderPath;
+String folderDisplayName(const String &folder) {
+  String name = folder;
   if (name.startsWith("/")) name = name.substring(1);
   int underscore = name.lastIndexOf('_');
   if (underscore > 0 && name.length() - underscore - 1 == 14) name = name.substring(0, underscore);
@@ -174,13 +242,23 @@ int batteryPercent() {
   return constrain(::map(batteryMilliVolts(), 3200, 4200, 0, 100), 0, 100);
 }
 
+void sendBusy(AsyncWebServerRequest *request) {
+  request->send(503, "text/plain", "The box is busy, please retry.");
+}
+
 // ---------------------------------------------------------------------------
 // Pages
 // ---------------------------------------------------------------------------
 
 void home(AsyncWebServerRequest *request) {
+  if (!filesLock()) return sendBusy(request);
+  String folder = webServerFolderPath;
+  int trackCount = filesInDir.size();
+  filesUnlock();
+  if (folder.isEmpty()) return request->redirect("/wifi");
+
   AsyncResponseStream *res = request->beginResponseStream("text/html");
-  pageHead(res, request, "upload", albumSubtitle());
+  pageHead(res, request, "upload");
 
   // Status card
   int percent = batteryPercent();
@@ -189,8 +267,8 @@ void home(AsyncWebServerRequest *request) {
   res->printf("<span class=\"pill %s\"><span class=\"dot\"></span>Battery %d&thinsp;%%</span></div>", pillClass, percent);
   res->print("<dl class=\"kv\">");
   res->printf("<dt>Battery</dt><dd>%d mV &middot; ADC %d</dd>", batteryMilliVolts(), (int)*batteryAdcValueManagementServer);
-  res->printf("<dt>Album folder</dt><dd>%s</dd>", htmlEscape(webServerFolderPath).c_str());
-  res->printf("<dt>Tracks</dt><dd>%d</dd>", filesInDir.size());
+  res->printf("<dt>Album folder</dt><dd>%s</dd>", htmlEscape(folder).c_str());
+  res->printf("<dt>Tracks</dt><dd>%d</dd>", trackCount);
   res->printf("<dt>Free memory</dt><dd>%u kB</dd>", ESP.getFreeHeap() / 1024);
   res->print("</dl></div>");
 
@@ -206,7 +284,7 @@ void home(AsyncWebServerRequest *request) {
   res->print("<div class=\"card\"><div class=\"card-head\"><h2>Rename Folder</h2></div>"
              "<form method=\"POST\" action=\"/setFolderPath\" accept-charset=\"UTF-8\" class=\"field\">"
              "<label for=\"path\">Folder name</label><div class=\"row-inline\">");
-  res->printf("<input class=\"input\" id=\"path\" name=\"path\" type=\"text\" value=\"%s\" required spellcheck=\"false\">", htmlEscape(folderDisplayName()).c_str());
+  res->printf("<input class=\"input\" id=\"path\" name=\"path\" type=\"text\" value=\"%s\" required spellcheck=\"false\">", htmlEscape(folderDisplayName(folder)).c_str());
   res->print("<button class=\"btn secondary\" type=\"submit\">Rename</button></div>"
              "<p class=\"hint\">The token suffix stays attached automatically. Spaces and umlauts are converted.</p></form></div>");
 
@@ -224,19 +302,26 @@ void home(AsyncWebServerRequest *request) {
 }
 
 void listFiles(AsyncWebServerRequest *request) {
-  AsyncResponseStream *res = request->beginResponseStream("text/html");
-  pageHead(res, request, "files", albumSubtitle());
-
-  // Sort the filesInDir alphanumerically
-  std::sort(filesInDir.begin(), filesInDir.end());
-
   int page = 0;
   if (request->hasParam("page")) {
     page = request->getParam("page")->value().toInt();
   }
+  if (page < 0) page = 0;
+
+  // Snapshot the page of files under the lock, render afterwards.
+  if (!filesLock()) return sendBusy(request);
+  String folder = webServerFolderPath;
+  std::sort(filesInDir.begin(), filesInDir.end());
   int total = filesInDir.size();
-  int first = page * PAGE_SIZE;
+  int first = std::min(page * PAGE_SIZE, total);
   int last = std::min(first + PAGE_SIZE, total);
+  std::vector<String> pageFiles(filesInDir.begin() + first, filesInDir.begin() + last);
+  String lastPlayedFileName = folder.isEmpty() ? "" : getLastPlayedFileName(folder);
+  filesUnlock();
+  if (folder.isEmpty()) return request->redirect("/wifi");
+
+  AsyncResponseStream *res = request->beginResponseStream("text/html");
+  pageHead(res, request, "files");
 
   res->print("<div class=\"card flush\"><div class=\"card-head\"><h2>Files</h2>");
   res->printf("<span class=\"pill neutral mono\">%d track%s</span></div>", total, total == 1 ? "" : "s");
@@ -246,9 +331,7 @@ void listFiles(AsyncWebServerRequest *request) {
     res->print("<p class=\"empty\">No tracks yet. Upload some MP3 files.</p>");
   } else {
     res->print("<ul class=\"list\">");
-    String lastPlayedFileName = getLastPlayedFileName();
-    for (int i = first; i < last; i++) {
-      const String &fileName = filesInDir.at(i);
+    for (const String &fileName : pageFiles) {
       String escaped = htmlEscape(fileName);
       bool isNext = lastPlayedFileName.endsWith(fileName);
 
@@ -299,68 +382,80 @@ void listFiles(AsyncWebServerRequest *request) {
 // ---------------------------------------------------------------------------
 
 void handleUpload(AsyncWebServerRequest *request, String filename, size_t index, uint8_t *data, size_t len, bool final) {
-  String logmessage = "Client:" + request->client()->remoteIP().toString() + " " + request->url();
-  // Serial.println(logmessage);
-
   if (!index) {
-    logmessage = "Upload Start: " + String(filename);
+    Serial.println("Upload Start: " + String(filename));
     // open the file on first call and store the file handle in the request object
-    request->_tempFile = SD.open("/temp", "w");
-    Serial.println(logmessage);
+    if (filesLock()) {
+      request->_tempFile = SD.open("/temp", "w");
+      filesUnlock();
+    }
   }
 
-  if (len) {
+  if (len && request->_tempFile) {
     // stream the incoming chunk to the opened file
-    request->_tempFile.write(data, len);
-    // logmessage = "Writing file: " + String(filename) + " index=" + String(index) + " len=" + String(len);
-    // Serial.println(logmessage);
+    if (filesLock()) {
+      request->_tempFile.write(data, len);
+      filesUnlock();
+    }
   }
 
   if (final) {
-    logmessage = "Upload Complete: " + String(filename) + ",size: " + String(index + len);
+    Serial.println("Upload Complete: " + String(filename) + ",size: " + String(index + len));
     // close the file handle as the upload is now done
-    request->_tempFile.close();
     filename = sanitizeFilename(filename);
-    SD.rename("/temp", webServerFolderPath + "/" + filename);
-    filesInDir.erase(std::remove(filesInDir.begin(), filesInDir.end(), filename), filesInDir.end());
-    filesInDir.push_back(filename);
-    deleteIndexFiles();
-    Serial.println(logmessage);
+    if (filesLock()) {
+      request->_tempFile.close();
+      if (webServerFolderPath.isEmpty()) {
+        SD.remove("/temp");  // token was removed meanwhile
+      } else {
+        SD.rename("/temp", webServerFolderPath + "/" + filename);
+        filesInDir.erase(std::remove(filesInDir.begin(), filesInDir.end(), filename), filesInDir.end());
+        filesInDir.push_back(filename);
+        deleteIndexFiles(webServerFolderPath);
+      }
+      filesUnlock();
+    }
   }
 }
 
 void handleFileDelete(AsyncWebServerRequest *request) {
   if (request->hasParam("filename", true)) {
     String fileName = request->getParam("filename", true)->value();
-    String filePath = webServerFolderPath + "/" + fileName;
-    if (SD.exists(filePath)) {
-      SD.remove(filePath);
-      filesInDir.erase(std::remove(filesInDir.begin(), filesInDir.end(), fileName), filesInDir.end());
-      if (getLastPlayedFileName() == filePath) {
-        deleteLastPlayedFile();
+    if (!filesLock()) return sendBusy(request);
+    if (!webServerFolderPath.isEmpty()) {
+      String filePath = webServerFolderPath + "/" + fileName;
+      if (SD.exists(filePath)) {
+        SD.remove(filePath);
+        filesInDir.erase(std::remove(filesInDir.begin(), filesInDir.end(), fileName), filesInDir.end());
+        if (getLastPlayedFileName(webServerFolderPath) == filePath) {
+          deleteLastPlayedFile(webServerFolderPath);
+        }
       }
+      deleteIndexFiles(webServerFolderPath);
     }
+    filesUnlock();
   }
-
-  deleteIndexFiles();
   request->redirect(request->header("referer"));
 }
 
 void handleFileSelect(AsyncWebServerRequest *request) {
   if (request->hasParam("filename", true)) {
     String fileName = request->getParam("filename", true)->value();
-    String filePath = webServerFolderPath + "/" + fileName;
-    if (SD.exists(filePath)) {
-      File file = SD.open(webServerFolderPath + LAST_PLAYED_FILE_NAME, FILE_WRITE);
-      if (!file) {
-        Serial.println("Failed to open file for writing");
-        return;
+    if (!filesLock()) return sendBusy(request);
+    if (!webServerFolderPath.isEmpty()) {
+      String filePath = webServerFolderPath + "/" + fileName;
+      if (SD.exists(filePath)) {
+        File file = SD.open(webServerFolderPath + LAST_PLAYED_FILE_NAME, FILE_WRITE);
+        if (file) {
+          file.print(filePath);
+          file.close();
+          Serial.println(filePath);
+        } else {
+          Serial.println("Failed to open file for writing");
+        }
       }
-      if (file.print(filePath)) {
-        Serial.println(filePath);
-      }
-      file.close();
     }
+    filesUnlock();
   }
   request->redirect(request->header("referer"));
 }
@@ -368,41 +463,31 @@ void handleFileSelect(AsyncWebServerRequest *request) {
 void handleFolderPathChange(AsyncWebServerRequest *request) {
   if (request->hasParam("path", true)) {
     String newFolderPath = request->getParam("path", true)->value();
-    if (renameFolder(webServerFolderPath, newFolderPath)) webServerFolderPath = newFolderPath;
+    if (!filesLock()) return sendBusy(request);
+    if (!webServerFolderPath.isEmpty()) {
+      if (renameFolder(webServerFolderPath, newFolderPath)) webServerFolderPath = newFolderPath;
+      deleteLastPlayedFile(webServerFolderPath);
+      deleteIndexFiles(webServerFolderPath);
+    }
+    filesUnlock();
   }
-  deleteLastPlayedFile();
-  deleteIndexFiles();
   request->redirect("/");
 }
 
-void prepareFilesInDir() {
-  if (!filesInDir.empty()) return;
+// ---------------------------------------------------------------------------
+// Server lifecycle
+// ---------------------------------------------------------------------------
 
-  File dir = SD.open(webServerFolderPath);
+// Starts network + web server without an album. Files/Upload become available via selectAlbum().
+void setupWebServer() {
+  filesMutex = xSemaphoreCreateMutex();
+  pageSubtitle = albumSubtitle;
+  navItemVisible = navVisible;
 
-  while (File file = dir.openNextFile()) {
-    esp_task_wdt_reset();
-    if (!file.isDirectory() && String(file.name()).endsWith(".mp3")) {
-      filesInDir.push_back(String(file.name()));  // Store the filesInDir
-    }
-    file.close();
-  }
-  dir.close();
-  Serial.println(String(filesInDir.size()) + " files loaded from " + webServerFolderPath);
-}
+  // Joins the saved home network or opens the hotspot; see wifi-setup.h.
+  netBegin();
 
-void setupWebServer(String path) {
-  webServerFolderPath = path;
-
-  prepareFilesInDir();
-
-  WiFi.softAP(BOX_NAME);
-  IPAddress IP = WiFi.softAPIP();
-  Serial.print("AP IP address: ");
-  Serial.println(IP);
   Serial.println("starting management server");
-  dnsServer.setErrorReplyCode(DNSReplyCode::NoError);
-  dnsServer.start(53, "*", IP);
   server.on("/home", HTTP_GET, home);
   server.on("/", HTTP_GET, listFiles);
   server.on("/css", HTTP_GET, cssHandler);
@@ -411,11 +496,17 @@ void setupWebServer(String path) {
   server.on("/select", HTTP_POST, handleFileSelect);
   server.on("/delete", HTTP_POST, handleFileDelete);
   server.on("/setFolderPath", HTTP_POST, handleFolderPathChange);
+  registerWifiRoutes(server);
   server.onNotFound([](AsyncWebServerRequest *request) {
     request->redirect("/home");
   });
 
   server.begin();
+}
+
+// Call every loop() iteration while the management server runs; returns the current network mode.
+NetMode managementServerLoop() {
+  return netLoop();
 }
 
 #endif

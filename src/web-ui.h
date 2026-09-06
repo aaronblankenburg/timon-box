@@ -138,7 +138,13 @@ struct NavItem {
 static NavItem NAV_ITEMS[] = {
     {"files", "/", "Files"},
     {"upload", "/home", "Upload"},
+    {"wifi", "/wifi", "Wi&#8209;Fi"},
 };
+
+// Set by the management server; produces the line under the box name (album folder).
+String (*pageSubtitle)() = nullptr;
+// Set by the management server; hides tabs that make no sense yet (Files/Upload without an album token).
+bool (*navItemVisible)(const NavItem &item) = nullptr;
 
 String htmlEscape(const String &in) {
   String out;
@@ -172,8 +178,9 @@ const char *themeFromCookie(AsyncWebServerRequest *request) {
   return "";
 }
 
-void pageHead(AsyncResponseStream *res, AsyncWebServerRequest *request, const char *activeNav, const String &subtitle) {
+void pageHead(AsyncResponseStream *res, AsyncWebServerRequest *request, const char *activeNav) {
   const char *theme = themeFromCookie(request);
+  String subtitle = pageSubtitle ? pageSubtitle() : String("");
   res->print("<!DOCTYPE html><html lang=\"en\"");
   if (theme[0]) res->printf(" data-theme=\"%s\"", theme);
   res->print("><head><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width,initial-scale=1\"><title>" BOX_NAME "</title><link rel=\"stylesheet\" href=\"/css\"></head><body><main>");
@@ -186,6 +193,7 @@ void pageHead(AsyncResponseStream *res, AsyncWebServerRequest *request, const ch
 
   res->print("<nav class=\"seg\" aria-label=\"Sections\">");
   for (const NavItem &item : NAV_ITEMS) {
+    if (navItemVisible && !navItemVisible(item)) continue;
     bool active = strcmp(item.key, activeNav) == 0;
     res->printf("<a href=\"%s\"%s>%s</a>", item.href, active ? " aria-current=\"page\"" : "", item.label);
   }

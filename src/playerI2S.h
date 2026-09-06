@@ -37,11 +37,24 @@ class PlayerI2S : public Player {
     audio.forceMono(true);
   }
 
-  void setupManagementServer(String tag) {
+  // Frees the audio engine and playlist (RAM for WiFi) and starts the web server
+  // with the Wi-Fi setup page. Files/Upload appear once an album is selected.
+  void startManagementServer() {
     audio.~Audio();
     playlist.~LList();
+    setupWebServer();
+  }
+
+  // Resolves the album folder for the token and publishes it to the web UI.
+  // Both touch the SD card, so this runs under the web server's file lock.
+  void selectAlbumForManagement(String tag) {
+    if (!filesLock(10000)) {
+      Serial.println("selectAlbumForManagement: file lock busy");
+      return;
+    }
     determineAlbumDir(tag);
-    setupWebServer(this->albumDir);
+    setAlbumFolder(this->albumDir);
+    filesUnlock();
   }
 
   void loop() { audio.loop(); }

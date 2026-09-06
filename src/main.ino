@@ -34,6 +34,7 @@
 #define MAX_PAUSE_TIME_IN_S 10 * 60
 #define MAX_PLAY_TIME_IN_S 120 * 60
 #define LEFT_AND_RIGHT_SIMULTANOUS_PRESS_TIMEOUT_IN_MS 750
+#define MANAGEMENT_NO_TOKEN_TIMEOUT_IN_S 60  // management mode without any token (e.g. while swapping) before power-off
 
 KnockSensor leftKnockSensor(RKS_PIN, RKS_THRESHOLD);
 KnockSensor rightKnockSensor(LKS_PIN, LKS_THRESHOLD);
@@ -51,15 +52,17 @@ enum State { paused,
              playing,
              bluetoothPlaying,
              bluetoothPaused,
-             managementServerWaitForTag,
-             managementServerRunning };
+             managementServerRunning,     // web UI reachable via the box's own hotspot
+             managementServerConnecting,  // joining the saved home network
+             managementServerLan };       // web UI reachable via the home network (<box>.local)
 const uint32_t stateColors[] = {
-    /* paused */ pixel.Color(255, 165, 0),                      // Orange
-    /* playing */ pixel.Color(0, 255, 0),                       // Green
-    /* bluetoothPlaying */ pixel.Color(0, 0, 255),              // Blue
-    /* bluetoothPaused */ pixel.Color(75, 0, 130),              // Indigo
-    /* managementServerWaitForTag */ pixel.Color(255, 255, 0),  // Yellow
-    /* managementServerRunning */ pixel.Color(255, 165, 0)      // Orange (updated)
+    /* paused */ pixel.Color(255, 165, 0),                        // Orange
+    /* playing */ pixel.Color(0, 255, 0),                         // Green
+    /* bluetoothPlaying */ pixel.Color(0, 0, 255),                // Blue
+    /* bluetoothPaused */ pixel.Color(75, 0, 130),                // Indigo
+    /* managementServerRunning */ pixel.Color(255, 165, 0),       // Orange (hotspot)
+    /* managementServerConnecting */ pixel.Color(255, 255, 255),  // White
+    /* managementServerLan */ pixel.Color(0, 255, 255)            // Cyan (home network)
 };
 enum KnockSensorAction { noPress,
                          leftPress,
@@ -78,6 +81,8 @@ unsigned long maxVolumeBoostTimeout = 2000;
 unsigned long maxVolumeBoostLastRead = 0;
 unsigned int maxVolume = MAX_VOLUME_SAFE;
 float batteryAdcValue = 2390.;  // start with full value
+String managementAlbumTag = "";        // album token currently selected in management mode
+unsigned long managementNoTokenSince = 0;
 
 void setup() {
   pinMode(POWER_SUPPLY_PIN, OUTPUT);
@@ -136,8 +141,11 @@ void loop() {
       }
 
       if (recent_tag == MANAGEMENT_SERVER_TAG) {
-        Serial.println("management server mode, waiting for token");
-        changeState(managementServerWaitForTag);
+        Serial.println("management server mode");
+        player.startManagementServer();
+        managementAlbumTag = "";
+        managementNoTokenSince = 0;
+        changeState(managementServerRunning);
         break;
       }
 
@@ -205,21 +213,36 @@ void loop() {
       }
       break;
 
-    case managementServerWaitForTag:
-      if (recent_tag != "" && recent_tag != MANAGEMENT_SERVER_TAG) {
-        player.setupManagementServer(recent_tag);
-        changeState(managementServerRunning);
-      }
-      break;
-
     case managementServerRunning:
+    case managementServerConnecting:
+    case managementServerLan: {
       if (recent_tag == "") {
-        shutdownBox();
-        changeState(paused);
-        ESP.restart();
+        // No token: allow time to swap tokens, then power off.
+        if (managementNoTokenSince == 0) {
+          managementNoTokenSince = millis();
+        } else if (millis() - managementNoTokenSince > (MANAGEMENT_NO_TOKEN_TIMEOUT_IN_S * 1000)) {
+          shutdownBox();
+          changeState(paused);
+          ESP.restart();
+        }
+      } else {
+        managementNoTokenSince = 0;
+        if (recent_tag == MANAGEMENT_SERVER_TAG) {
+          if (managementAlbumTag != "") {  // back to the management token: Wi-Fi only
+            managementAlbumTag = "";
+            clearAlbum();
+          }
+        } else if (recent_tag != managementAlbumTag) {  // album token: manage its files
+          managementAlbumTag = recent_tag;
+          player.selectAlbumForManagement(recent_tag);
+        }
       }
-      dnsServer.processNextRequest();
+      NetMode netMode = managementServerLoop();
+      changeState(netMode == NET_STATION ? managementServerLan
+                  : netMode == NET_CONNECTING ? managementServerConnecting
+                                              : managementServerRunning);
       break;
+    }
   }
 
   if (!player.sdConnected && (state == playing || state == paused)) {

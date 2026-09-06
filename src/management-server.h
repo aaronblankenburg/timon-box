@@ -20,6 +20,7 @@
 
 AsyncWebServer server(80);
 String webServerFolderPath = "";  // empty until an album token is placed
+String webServerAlbumTag = "";    // RFID id of that token; folders are named <name>_<tag>
 std::vector<String> filesInDir;
 float *batteryAdcValueManagementServer;
 
@@ -114,9 +115,11 @@ String sanitizeFilename(const String &input) {
   return result;
 }
 
+// Moves the album folder to "<newFolder>_<tag>"; the token id is always appended
+// here, the UI never shows it. Caller holds filesMutex.
 bool renameFolder(const String &oldFolder, String &newFolder) {
-  String tag = oldFolder.substring(max(oldFolder.lastIndexOf("_"), (int)oldFolder.length() - 14));
-  if (!newFolder.endsWith(tag)) {
+  const String &tag = webServerAlbumTag;
+  if (!tag.isEmpty() && !newFolder.endsWith(tag)) {
     newFolder += "_" + tag;
   }
 
@@ -194,8 +197,9 @@ void prepareFilesInDir() {
 
 // Caller holds filesMutex (see PlayerI2S::selectAlbumForManagement, which also
 // resolves the folder on the SD card under the same lock).
-void setAlbumFolder(const String &path) {
+void setAlbumFolder(const String &path, const String &tag) {
   webServerFolderPath = path;
+  webServerAlbumTag = tag;
   prepareFilesInDir();
 }
 
@@ -236,8 +240,9 @@ void albumJson(AsyncWebServerRequest *request) {
   request->send(response);
 }
 
-// "/Bibi_Blocksberg_047a8772d42a81" -> "Bibi_Blocksberg" (the token suffix is re-attached by renameFolder)
-String folderDisplayName(const String &folder) {
+// "/Bibi_Blocksberg_047a8772d42a81" -> "Bibi_Blocksberg", "/047a8772d42a81" -> "" (unnamed album).
+// The token id never shows up in the UI; renameFolder re-attaches it.
+String folderDisplayName(const String &folder, const String &tag) {
   String name = folder;
   if (name.startsWith("/")) name = name.substring(1);
   int underscore = name.lastIndexOf('_');
@@ -278,6 +283,7 @@ void sendBusy(AsyncWebServerRequest *request) {
 void home(AsyncWebServerRequest *request) {
   if (!filesLock()) return sendBusy(request);
   String folder = webServerFolderPath;
+  String tag = webServerAlbumTag;
   int trackCount = filesInDir.size();
   uint64_t sdTotal = SD.totalBytes();
   uint64_t sdUsed = SD.usedBytes();
@@ -313,9 +319,9 @@ void home(AsyncWebServerRequest *request) {
   res->print("<div class=\"card\"><div class=\"card-head\"><h2>Rename Folder</h2></div>"
              "<form method=\"POST\" action=\"/setFolderPath\" accept-charset=\"UTF-8\" class=\"field\">"
              "<label for=\"path\">Folder name</label><div class=\"row-inline\">");
-  res->printf("<input class=\"input\" id=\"path\" name=\"path\" type=\"text\" value=\"%s\" required spellcheck=\"false\">", htmlEscape(folderDisplayName(folder)).c_str());
+  res->printf("<input class=\"input\" id=\"path\" name=\"path\" type=\"text\" value=\"%s\" placeholder=\"Album name\" required spellcheck=\"false\">", htmlEscape(folderDisplayName(folder, tag)).c_str());
   res->print("<button class=\"btn secondary\" type=\"submit\">Rename</button></div>"
-             "<p class=\"hint\">The token suffix stays attached automatically. Spaces and umlauts are converted.</p></form></div>");
+             "<p class=\"hint\">The token id is kept out of sight and attached automatically. Spaces and umlauts are converted.</p></form></div>");
 
   // Upload modal (the file list <ul> moves in here while uploading and back afterwards)
   res->print("<dialog class=\"modal\" id=\"dlg\"><div class=\"card\">"
@@ -555,8 +561,9 @@ void handleFileSelect(AsyncWebServerRequest *request) {
 void handleFolderPathChange(AsyncWebServerRequest *request) {
   if (request->hasParam("path", true)) {
     String newFolderPath = request->getParam("path", true)->value();
+    newFolderPath.trim();
     if (!filesLock()) return sendBusy(request);
-    if (!webServerFolderPath.isEmpty()) {
+    if (!webServerFolderPath.isEmpty() && !newFolderPath.isEmpty()) {
       if (renameFolder(webServerFolderPath, newFolderPath)) webServerFolderPath = newFolderPath;
       deleteLastPlayedFile(webServerFolderPath);
       deleteIndexFiles(webServerFolderPath);

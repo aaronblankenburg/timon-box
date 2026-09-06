@@ -53,7 +53,7 @@ class PlayerI2S : public Player {
       return;
     }
     determineAlbumDir(tag);
-    setAlbumFolder(this->albumDir);
+    setAlbumFolder(this->albumDir, tag);
     filesUnlock();
   }
 

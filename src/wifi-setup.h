@@ -67,6 +67,10 @@ volatile bool scanRequested = false;
 volatile bool scanInProgress = false;
 volatile bool scanDone = false;
 volatile bool scanFailed = false;
+uint8_t scanAttempt = 0;          // loop task: retries before a scan counts as failed
+unsigned long scanRetryAt = 0;    // loop task: earliest millis() for the next attempt
+#define SCAN_MAX_ATTEMPTS 3
+#define SCAN_RETRY_DELAY_MS 800
 bool apActive = false;  // loop task only
 unsigned long connectStart = 0;
 unsigned long staLostSince = 0;
@@ -192,6 +196,9 @@ void enterAccessPoint() {
   apActive = true;
   netMode = NET_ACCESS_POINT;
   Serial.printf("[net] hotspot \"%s\" at %s\n", BOX_NAME, ip.toString().c_str());
+  scanRequested = true;  // pre-warm the network list for the setup page
+  scanAttempt = 0;
+  scanRetryAt = millis() + 1500;  // give the interfaces a moment to settle
 }
 
 void onStaDisconnected(arduino_event_id_t, arduino_event_info_t info) {
@@ -255,10 +262,31 @@ void handlePendingAction() {
   }
 }
 
+// A failed attempt (driver refused the scan, or the core's 6 s scan timeout hit)
+// is retried a few times before the page gets to see a failure. The first scan
+// after enabling the station interface fails regularly, so this hides that.
+void scanAttemptFailed(const char *why) {
+  scanInProgress = false;
+  WiFi.scanDelete();
+  if (scanAttempt < SCAN_MAX_ATTEMPTS) {
+    scanRequested = true;
+    scanRetryAt = millis() + SCAN_RETRY_DELAY_MS;
+    Serial.printf("[net] scan attempt %u %s, retrying\n", scanAttempt, why);
+  } else {
+    scanFailed = true;
+    scanDone = true;
+    Serial.printf("[net] scan %s after %u attempts\n", why, scanAttempt);
+  }
+}
+
 void handleScan() {
   if (scanInProgress) {
     int16_t n = WiFi.scanComplete();
     if (n == WIFI_SCAN_RUNNING) return;
+    if (n < 0) {
+      scanAttemptFailed("failed");
+      return;
+    }
 
     std::vector<WifiNetwork> found;
     for (int i = 0; i < n; i++) {
@@ -281,25 +309,25 @@ void handleScan() {
       scanResults = found;
       netUnlock();
     }
-    scanFailed = n < 0;
+    scanFailed = false;
     scanDone = true;
     scanInProgress = false;
-    Serial.printf("[net] scan finished: %d networks\n", (int)found.size());
+    scanAttempt = 0;
+    Serial.printf("[net] scan finished: %d networks (%d entries)\n", (int)found.size(), n);
     return;
   }
 
-  if (scanRequested && netMode != NET_CONNECTING) {  // the driver refuses scans while associating
+  // the driver refuses scans while associating
+  if (scanRequested && netMode != NET_CONNECTING && (long)(millis() - scanRetryAt) >= 0) {
     scanRequested = false;
     scanDone = false;
     scanFailed = false;
     scanInProgress = true;
+    scanAttempt++;
     if (WiFi.scanNetworks(true, false) == WIFI_SCAN_FAILED) {
-      scanInProgress = false;
-      scanFailed = true;
-      scanDone = true;
-      Serial.println("[net] scan could not be started");
+      scanAttemptFailed("could not be started");
     } else {
-      Serial.println("[net] scan started");
+      Serial.printf("[net] scan attempt %u started\n", scanAttempt);
     }
   }
 }
@@ -389,7 +417,10 @@ void wifiStatusJson(AsyncWebServerRequest *request) {
 }
 
 void wifiScanJson(AsyncWebServerRequest *request) {
-  if (request->hasParam("rescan") || (!scanDone && !scanInProgress)) scanRequested = true;
+  if (request->hasParam("rescan") || (!scanDone && !scanInProgress && !scanRequested)) {
+    scanRequested = true;
+    scanAttempt = 0;  // a fresh request gets its full set of retries
+  }
 
   const char *state = "scanning";
   if (netMode == NET_CONNECTING) {
@@ -529,7 +560,7 @@ void wifiPage(AsyncWebServerRequest *request) {
              "function banner(c,h){bn.innerHTML=h?'<div class=\"banner '+c+'\">'+h+'</div>':''}"
              "function render(d){if(d.state==='done'&&d.networks.length){nl.innerHTML=d.networks.map(function(n){return '<li role=\"option\" data-ssid=\"'+esc(n.ssid)+'\" aria-selected=\"'+(n.ssid===si.value)+'\"><i class=\"ic ic-check\"></i><span class=\"ssid\">'+esc(n.ssid)+'</span><i class=\"ic ic-lock'+(n.secure?'':' open')+'\"></i><span class=\"bars\" data-level=\"'+lv(n.rssi)+'\"><i></i><i></i><i></i><i></i></span></li>'}).join('')}"
              "else if(d.state==='done')nl.innerHTML='<li class=\"status\">No networks found</li>';"
-             "else if(d.state==='failed')nl.innerHTML='<li class=\"status\">Scan failed. Try again.</li>';"
+             "else if(d.state==='failed')nl.innerHTML='<li class=\"status\">No networks found yet. Tap Rescan to look again, or type the name below.</li>';"
              "else if(d.state==='busy')nl.innerHTML='<li class=\"status\">Waiting for the connection test to finish\\u2026</li>';"
              "else nl.innerHTML='<li class=\"status\">Scanning\\u2026</li>'}"
              "var st;function scan(re){clearTimeout(st);fetch('/wifi-scan'+(re?'?rescan=1':'')).then(function(r){return r.json()}).then(function(d){render(d);if(d.state!=='done'&&d.state!=='failed')st=setTimeout(function(){scan(false)},1500)}).catch(function(){st=setTimeout(function(){scan(false)},2000)})}"

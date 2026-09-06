@@ -226,9 +226,8 @@ bool navVisible(const NavItem &item) {
 // and jumps to the file list as soon as an album token is recognised.
 void albumNotice(AsyncResponseStream *res) {
   if (!currentFolder().isEmpty()) return;
-  res->print("<div class=\"notice\"><i class=\"ic ic-warn\"></i><span><b>Which album?</b> Only the management token is on the box. "
-             "Swap it for the token of the album you want to edit. Files and Upload appear here automatically.</span></div>"
-             "<script>(function(){function c(){fetch('/album',{cache:'no-store'}).then(function(r){return r.json()}).then(function(d){if(d.album)location.href='/';else setTimeout(c,2000)}).catch(function(){setTimeout(c,3000)})}setTimeout(c,2000)})()</script>");
+  res->print("<div class=\"notice\" id=\"an\"><i class=\"ic ic-warn\"></i><span><b>Which album?</b> Only the management token is on the box. "
+             "Swap it for the token of the album you want to edit. Files and Upload appear here automatically.</span></div>");
 }
 
 void sendBusy(AsyncWebServerRequest *request);
@@ -294,7 +293,7 @@ void home(AsyncWebServerRequest *request) {
   if (folder.isEmpty()) return request->redirect("/wifi");
   uint64_t sdFree = sdTotal > sdUsed ? sdTotal - sdUsed : 0;
 
-  AsyncResponseStream *res = request->beginResponseStream("text/html", 12288);
+  AsyncResponseStream *res = request->beginResponseStream("text/html", 6144);
   pageHead(res, request, "upload");
 
   // Status card
@@ -311,7 +310,8 @@ void home(AsyncWebServerRequest *request) {
 
   // Upload card: dropzone + selection summary. The upload itself runs in a modal
   // <dialog> with a backdrop so it is obvious that leaving the page cancels it.
-  res->print("<div class=\"card\"><div class=\"card-head\"><h2>Upload</h2><span class=\"muted small\">MP3 only</span></div>"
+  res->printf("<div class=\"card\" id=\"uc\" data-sdfree=\"%llu\" data-par=\"2\">", (unsigned long long)sdFree);
+  res->print("<div class=\"card-head\"><h2>Upload</h2><span class=\"muted small\">MP3 only</span></div>"
              "<label class=\"dropzone\" id=\"dz\"><input type=\"file\" id=\"f\" accept=\"audio/mpeg,.mp3\" multiple>"
              "<strong>Choose MP3 files</strong><span>or drag &amp; drop them here &middot; uploaded one after another to the album folder</span></label>"
              "<div id=\"slot\"><ul class=\"ulist\" id=\"ul\" hidden></ul></div>"
@@ -340,66 +340,6 @@ void home(AsyncWebServerRequest *request) {
              "<button class=\"btn\" type=\"button\" id=\"ms\" hidden>Show files</button>"
              "</div></div></dialog>");
 
-  // Upload script: one file per request, /temp on the SD card is shared, so uploads must not overlap.
-  // XMLHttpRequest instead of fetch because only it reports upload progress per byte.
-  char sdFreeBuf[24];
-  snprintf(sdFreeBuf, sizeof(sdFreeBuf), "%llu", (unsigned long long)sdFree);
-  res->print("<script>(function(){var $=function(id){return document.getElementById(id)},i=$('f'),z=$('dz'),b=$('bar'),t=$('pt'),r=$('pr'),ul=$('ul'),ph=$('ph'),u=$('ub'),rb=$('rb'),"
-             "dlg=$('dlg'),mt=$('mt'),mh=$('mh'),mc=$('mc'),mx=$('mx'),ms=$('ms'),slot=$('slot'),mslot=$('mslot');");
-  res->printf("var SD_FREE=%s;", sdFreeBuf);
-  res->print("var PAR=2,items=[],total=0,doneBytes=0,startAt=0,samples=[],busy=false,cancelled=false,q=[],active=0,failed=0,inflight={};"
-             "function esc(s){return String(s).replace(/[&<>\"']/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;',\"'\":'&#39;'}[c]})}"
-             "function fmt(n){if(n>=1073741824)return (n/1073741824).toFixed(2)+' GB';if(n>=1048576)return (n/1048576).toFixed(1)+' MB';return Math.max(1,Math.round(n/1024))+' kB'}"
-             "function fmtT(s){if(s<60)return Math.ceil(s)+' s';var m=Math.floor(s/60);return m+' min '+Math.round(s-m*60)+' s'}"
-             "function fp(k){return $('it'+k).querySelector('.fp')}"
-             // selection: filter to MP3, build the list, check the selection against the free SD space
-             "function setFiles(list){if(busy)return;var a=[],skipped=0;for(var k=0;k<list.length;k++){var f=list[k];if(f.type==='audio/mpeg'||/\\.mp3$/i.test(f.name))a.push(f);else skipped++}"
-             "items=a.map(function(f){return{file:f,status:'pending',loaded:0}});total=0;items.forEach(function(x){total+=x.file.size});doneBytes=0;b.style.width='0';u.textContent='Upload';"
-             "ul.hidden=!items.length;ul.innerHTML=items.map(function(x,k){return '<li id=\"it'+k+'\"><i class=\"st\"></i><span class=\"fn\">'+esc(x.file.name)+'</span><span class=\"fp\"></span><span class=\"fz\">'+fmt(x.file.size)+'</span></li>'}).join('');"
-             "if(!items.length){ph.textContent=skipped?'Only MP3 files can be uploaded':'No files selected';ph.className='hint';u.disabled=true;return}"
-             "var s=items.length+' file'+(items.length>1?'s':'')+' \\u00b7 '+fmt(total)+(skipped?' \\u00b7 '+skipped+' skipped (not MP3)':'');"
-             "if(total>SD_FREE){ph.textContent=s+' \\u00b7 not enough space on the SD card ('+fmt(SD_FREE)+' free)';ph.className='hint danger';u.disabled=true}"
-             "else{ph.textContent=s+' \\u00b7 '+fmt(SD_FREE-total)+' will stay free';ph.className='hint';u.disabled=false}}"
-             "function setSt(k,st,txt){items[k].status=st;var li=$('it'+k);li.firstChild.className='st '+({uploading:'up',saving:'sv',done:'ok',failed:'err'}[st]||'');fp(k).textContent=txt||''}"
-             // overall bar, text and rate/ETA (4 s sliding window, shown after 2.5 s) across all files in flight
-             "function progressAll(){var sent=doneBytes,done=0,act=0;items.forEach(function(x){if(x.status==='done')done++;else if(x.status==='uploading'||x.status==='saving'){act++;sent+=x.loaded}});"
-             "var pct=total?Math.min(100,Math.round(sent/total*100)):0;b.style.width=pct+'%';"
-             "t.textContent=(act?'Uploading \\u00b7 ':'')+done+' of '+items.length+' done'+(act>1?' \\u00b7 '+act+' at once':'')+' \\u00b7 '+fmt(sent)+' of '+fmt(total)+' \\u00b7 '+pct+' %';"
-             "var now=Date.now();samples.push([now,sent]);while(samples.length>2&&now-samples[0][0]>4000)samples.shift();"
-             "if(samples.length>1){var a=samples[0],e=samples[samples.length-1],rate=e[0]>a[0]?(e[1]-a[1])/((e[0]-a[0])/1000):0;"
-             "if(now-startAt>2500&&rate>0)r.textContent=fmt(rate)+'/s \\u00b7 ~'+fmtT((total-sent)/rate)+' left'}}"
-             // one file: upload.onprogress = bytes on the wire, upload.onload = all sent (box still saving), onload = box answered
-             "function uploadOne(k,cb){var x=items[k],xhr=new XMLHttpRequest();inflight[k]=xhr;x.loaded=0;xhr.open('POST','/upload?name='+encodeURIComponent(x.file.name));xhr.setRequestHeader('Content-Type','application/octet-stream');setSt(k,'uploading','0 %');"
-             "xhr.upload.onprogress=function(e){if(!e.lengthComputable)return;x.loaded=e.loaded;progressAll();fp(k).textContent=Math.round(e.loaded/e.total*100)+' %'};"
-             "xhr.upload.onload=function(){x.loaded=x.file.size;setSt(k,'saving','saving')};"
-             "function end(ok,st,txt){delete inflight[k];if(ok)doneBytes+=x.file.size;x.loaded=0;setSt(k,st,txt);progressAll();cb(ok)}"
-             "xhr.onload=function(){if(xhr.status>=200&&xhr.status<300)end(true,'done');else end(false,'failed','HTTP '+xhr.status)};"
-             "xhr.onerror=xhr.ontimeout=function(){end(false,'failed','failed')};"
-             "xhr.onabort=function(){end(false,'failed','cancelled')};"
-             "xhr.send(x.file)}"
-             // modal: the <dialog> blocks the page behind a blurred backdrop; Esc is ignored while busy
-             "function openModal(){mslot.appendChild(ul);ul.hidden=false;if(dlg.showModal){if(!dlg.open)dlg.showModal()}else dlg.setAttribute('open','')}"
-             "function closeModal(){if(dlg.close){if(dlg.open)dlg.close()}else dlg.removeAttribute('open');slot.appendChild(ul)}"
-             "dlg.addEventListener('cancel',function(e){if(busy)e.preventDefault()});dlg.addEventListener('close',function(){slot.appendChild(ul)});"
-             "window.addEventListener('beforeunload',function(e){if(busy){e.preventDefault();e.returnValue=''}});"
-             // run everything not yet done, PAR files at a time: each connection is capped by the box's
-             // small TCP receive window (5.7 kB), so parallel connections multiply the throughput
-             "function run(){q=[];items.forEach(function(x,k){if(x.status!=='done')q.push(k)});if(!q.length||busy)return;"
-             "busy=true;cancelled=false;failed=0;active=0;u.disabled=true;i.disabled=true;rb.hidden=true;mx.hidden=true;ms.hidden=true;mc.hidden=false;mh.hidden=false;"
-             "mt.textContent='Uploading';t.textContent='Starting\\u2026';r.textContent='';startAt=Date.now();samples=[];"
-             "doneBytes=0;items.forEach(function(x){if(x.status==='done')doneBytes+=x.file.size});progressAll();openModal();pump()}"
-             "function pump(){while(!cancelled&&active<PAR&&q.length){active++;uploadOne(q.shift(),function(ok){active--;if(!ok)failed++;if(active===0&&(cancelled||!q.length))finish(failed);else pump()})}}"
-             "function finish(failed){busy=false;i.disabled=false;r.textContent='';mc.hidden=true;mh.hidden=true;"
-             "var pending=items.filter(function(x){return x.status!=='done'}).length;u.disabled=!pending;u.textContent=pending&&pending<items.length?'Upload remaining':'Upload';"
-             "if(cancelled){mt.textContent='Upload cancelled';t.textContent=(items.length-pending)+' of '+items.length+' uploaded \\u00b7 '+fmt(doneBytes);rb.textContent='Continue upload';rb.hidden=false;mx.hidden=false}"
-             "else if(failed){mt.textContent='Upload incomplete';t.textContent=failed+' of '+items.length+' failed \\u00b7 '+fmt(doneBytes)+' uploaded. Check the connection, then retry.';rb.textContent='Retry failed';rb.hidden=false;mx.hidden=false}"
-             "else{mt.textContent='Done';t.textContent=items.length+' file'+(items.length>1?'s':'')+' \\u00b7 '+fmt(total)+' uploaded';ms.hidden=false;mx.hidden=false}}"
-             "i.onchange=function(){setFiles(i.files)};"
-             "['dragenter','dragover'].forEach(function(ev){z.addEventListener(ev,function(e){e.preventDefault();if(!busy)z.classList.add('over')})});"
-             "['dragleave','drop'].forEach(function(ev){z.addEventListener(ev,function(e){e.preventDefault();z.classList.remove('over')})});"
-             "z.addEventListener('drop',function(e){setFiles(e.dataTransfer.files)});"
-             "document.addEventListener('dragover',function(e){e.preventDefault()});document.addEventListener('drop',function(e){e.preventDefault()});"
-             "u.onclick=run;rb.onclick=run;mc.onclick=function(){if(!busy)return;cancelled=true;Object.keys(inflight).forEach(function(k){inflight[k].abort()})};mx.onclick=closeModal;ms.onclick=function(){location.href='/'};})()</script>");
 
   pageFoot(res);
   request->send(res);
@@ -424,7 +364,7 @@ void listFiles(AsyncWebServerRequest *request) {
   filesUnlock();
   if (folder.isEmpty()) return request->redirect("/wifi");
 
-  AsyncResponseStream *res = request->beginResponseStream("text/html", 8192);
+  AsyncResponseStream *res = request->beginResponseStream("text/html", 6144);
   pageHead(res, request, "files");
 
   res->print("<div class=\"card flush\"><div class=\"card-head\"><h2>Files</h2>");
@@ -806,9 +746,14 @@ void setupWebServer() {
   uploadBegin();
 
   Serial.println("starting management server");
+  server.addMiddleware([](AsyncWebServerRequest *request, ArMiddlewareNext next) {  // request log
+    Serial.printf("[http] %s %s from %s, heap %u\n", request->methodToString(), request->url().c_str(), request->client()->remoteIP().toString().c_str(), ESP.getFreeHeap());
+    next();
+  });
   server.on("/home", HTTP_GET, home);
   server.on("/", HTTP_GET, listFiles);
   server.on("/css", HTTP_GET, cssHandler);
+  server.on("/app.js", HTTP_GET, jsHandler);
   server.on("/album", HTTP_GET, albumJson);
 
   server.on("/upload", HTTP_POST, handleUploadDone, nullptr, handleUploadBody);  // raw body, see handleUploadBody

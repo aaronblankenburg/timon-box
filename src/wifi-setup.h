@@ -218,6 +218,7 @@ void tearDownAccessPoint() {
 
 void onStaDisconnected(arduino_event_id_t, arduino_event_info_t info) {
   lastDisconnectReason = info.wifi_sta_disconnected.reason;
+  Serial.printf("[net] station disconnected, reason %u\n", info.wifi_sta_disconnected.reason);
 }
 
 // Call once from setupWebServer(), before server.begin().
@@ -518,7 +519,7 @@ void wifiPage(AsyncWebServerRequest *request) {
   String saved = getSavedSsid();
   String hostname = String(boxHostname()) + ".local";
 
-  AsyncResponseStream *res = request->beginResponseStream("text/html", 8192);
+  AsyncResponseStream *res = request->beginResponseStream("text/html", 6144);
   pageHead(res, request, "wifi");
 
   // Connection card
@@ -556,6 +557,7 @@ void wifiPage(AsyncWebServerRequest *request) {
               hostname.c_str(), WIFI_CONNECT_TIMEOUT_MS / 1000, BOX_NAME);
 
   res->print("<div id=\"bn\"></div>");
+  res->printf("<span id=\"wf\" hidden data-host=\"%s.local\" data-station=\"%d\"></span>", boxHostname(), station ? 1 : 0);
 
   // Join card
   res->print("<div class=\"card\"><div class=\"card-head\"><h2>Join a Home Network</h2>"
@@ -582,44 +584,6 @@ void wifiPage(AsyncWebServerRequest *request) {
   }
   res->print("</form></div>");
 
-  // Page script: network list from /wifi-scan, connection result from /wifi-status.
-  res->print("<script>(function(){var q=location.search,nl=document.getElementById('nl'),si=document.getElementById('ssid'),bn=document.getElementById('bn'),jh=document.getElementById('jh'),mp=document.getElementById('mp');"
-             "function esc(s){return String(s).replace(/[&<>\"']/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;',\"'\":'&#39;'}[c]})}"
-             "function lv(r){return r>-55?4:r>-65?3:r>-75?2:1}"
-             "function banner(c,h){bn.innerHTML=h?'<div class=\"banner '+c+'\">'+h+'</div>':''}"
-             "function render(d){if(d.state==='done'&&d.networks.length){nl.innerHTML=d.networks.map(function(n){return '<li role=\"option\" data-ssid=\"'+esc(n.ssid)+'\" aria-selected=\"'+(n.ssid===si.value)+'\"><i class=\"ic ic-check\"></i><span class=\"ssid\">'+esc(n.ssid)+'</span><i class=\"ic ic-lock'+(n.secure?'':' open')+'\"></i><span class=\"bars\" data-level=\"'+lv(n.rssi)+'\"><i></i><i></i><i></i><i></i></span></li>'}).join('')}"
-             "else if(d.state==='done')nl.innerHTML='<li class=\"status\">No networks found</li>';"
-             "else if(d.state==='failed')nl.innerHTML='<li class=\"status\">No networks found yet. Tap Rescan to look again, or type the name below.</li>';"
-             "else if(d.state==='busy')nl.innerHTML='<li class=\"status\">Waiting for the connection test to finish\\u2026</li>';"
-             "else nl.innerHTML='<li class=\"status\">Scanning\\u2026</li>'}"
-             "var st;function scan(re){clearTimeout(st);fetch('/wifi-scan'+(re?'?rescan=1':'')).then(function(r){return r.json()}).then(function(d){render(d);if(d.state!=='done'&&d.state!=='failed')st=setTimeout(function(){scan(false)},1500)}).catch(function(){st=setTimeout(function(){scan(false)},2000)})}"
-             "nl.onclick=function(e){var li=e.target.closest('li[data-ssid]');if(!li)return;nl.querySelectorAll('li').forEach(function(x){x.setAttribute('aria-selected','false')});li.setAttribute('aria-selected','true');si.value=li.dataset.ssid;document.getElementById('pass').focus()};"
-             "document.getElementById('rs').onclick=function(){scan(true)};scan(false);");
-  res->print("jh.textContent='");
-  if (station) {
-    res->printf("Switching networks disconnects this page. Reach the box again via %s.local or the hotspot.", boxHostname());
-  } else {
-    res->printf("The hotspot stays up during the test. Once connected it shuts down and this page moves to %s.local.", boxHostname());
-  }
-  res->print("';");
-  // Once connected, the page hands the browser over to <hostname>.local: it probes the
-  // status endpoint there (CORS-enabled) and redirects as soon as it answers. This also
-  // covers the moment the hotspot disappears under the page.
-  res->printf("var HOST='%s.local',TARGET='http://'+HOST+'/wifi',onHost=location.hostname.toLowerCase()===HOST,done=false;", boxHostname());
-  res->print("function tryHost(fail){if(onHost)return fail();fetch('http://'+HOST+'/wifi-status',{cache:'no-store'}).then(function(r){if(r.ok)location.href=TARGET;else fail()}).catch(fail)}"
-             "function hop(){tryHost(function(){setTimeout(hop,2000)})}"
-             "function poll(){fetch('/wifi-status',{cache:'no-store'}).then(function(r){return r.json()}).then(function(d){"
-             "if(d.result==='ok'){done=true;banner('ok','<span>&#10003;</span><span><b>Connected</b> to '+esc(d.ssid)+' as <span class=\"mono\">'+d.ip+'</span>. '"
-             "+(d.hotspotClosing?'The hotspot shuts down now. Rejoin your home network; this page then moves to <a href=\"'+TARGET+'\">'+HOST+'</a>. If that does not happen, open <a href=\"http://'+d.ip+'/wifi\">http://'+d.ip+'/wifi</a>.':'Reachable at <a href=\"'+TARGET+'\">'+HOST+'</a>.')+'</span>');"
-             "mp.className='pill ok';mp.innerHTML='<span class=\"dot\"></span>Home network';document.getElementById('k-mode').innerHTML='Home network'+(d.hotspotClosing?' <span class=\"muted\">(hotspot shutting down)</span>':'');document.getElementById('k-net').textContent=d.ssid+' \\u00b7 '+d.rssi+' dBm';document.getElementById('k-ip').textContent=d.ip;document.getElementById('k-saved').textContent=d.saved;"
-             "if(!onHost)setTimeout(hop,3000)}"
-             "else if(d.result==='failed'){banner('fail','<span>&#10007;</span><span><b>Could not connect.</b> '+esc(d.hint)+' The network is saved anyway; correct the password and try again.</span>');document.getElementById('k-saved').textContent=d.saved}"
-             "else setTimeout(poll,1000)}).catch(function(){if(done)return;tryHost(function(){setTimeout(poll,1500)})})}"
-             "if(/connecting=1/.test(q)){banner('','<span class=\"spinner\"></span><span>Connecting\\u2026 this page keeps checking.</span>');poll()}"
-             "if(/forgot=1/.test(q))banner('','<span>Saved network removed. The box runs as its own hotspot again.</span>');"
-             "if(/err=1/.test(q))banner('fail','<span>Please enter a network name (1\\u201332 characters) and a password of 8\\u201363 characters, or none for an open network.</span>');"
-             "if(/err=2/.test(q))banner('fail','<span>The box is busy, please try again.</span>');"
-             "})()</script>");
 
   pageFoot(res);
   request->send(res);

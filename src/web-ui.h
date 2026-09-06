@@ -157,8 +157,107 @@ html,.ulist,dialog.modal .card{scrollbar-width:thin;scrollbar-color:var(--text3)
 @media (max-width:420px){h1{font-size:30px}.card{padding:16px}.card.flush{padding:0}.card.flush .card-head,.card.flush .lead{padding-left:16px;padding-right:16px}.card.flush .card-head{padding-top:16px}.list li{padding:8px 16px}.pager{padding:12px 16px}}
 )CSS";
 
-// Appearance toggle: cookie "theme=light|dark" overrides the system setting, no cookie = auto.
-static const char THEME_JS[] = R"JS(<script>(function(){var r=document.documentElement,t=document.getElementById('tb'),a=document.getElementById('ta');function rc(){var m=document.cookie.match(/(?:^|; )theme=(light|dark)/);return m?m[1]:null}function wc(v){document.cookie='theme='+(v||'')+';path=/;max-age='+(v?31536000:0)+';SameSite=Lax'}function ef(){var v=r.getAttribute('data-theme');if(v==='light'||v==='dark')return v;return matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light'}function ap(v){if(v)r.setAttribute('data-theme',v);else r.removeAttribute('data-theme');a.hidden=!v;t.setAttribute('aria-label',ef()==='dark'?'Switch to light mode':'Switch to dark mode')}ap(rc());t.onclick=function(){var n=ef()==='dark'?'light':'dark';wc(n);ap(n)};a.onclick=function(){wc(null);ap(null)}})()</script>)JS";
+// Page script for all pages, served as /app.js (versioned, cached, straight from flash so
+// pages stay small and need little heap to render). Each part activates itself when its
+// elements exist: theme toggle, album notice poll, upload page, Wi-Fi page.
+static const char PAGE_JS[] = R"APPJS((function(){
+var $=function(id){return document.getElementById(id)};
+function esc(s){return String(s).replace(/[&<>"']/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})}
+
+// Appearance: cookie "theme=light|dark" overrides the system setting, no cookie = auto.
+(function(){var r=document.documentElement,t=$('tb'),a=$('ta');if(!t||!a)return;
+function rc(){var m=document.cookie.match(/(?:^|; )theme=(light|dark)/);return m?m[1]:null}
+function wc(v){document.cookie='theme='+(v||'')+';path=/;max-age='+(v?31536000:0)+';SameSite=Lax'}
+function ef(){var v=r.getAttribute('data-theme');if(v==='light'||v==='dark')return v;return matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light'}
+function ap(v){if(v)r.setAttribute('data-theme',v);else r.removeAttribute('data-theme');a.hidden=!v;t.setAttribute('aria-label',ef()==='dark'?'Switch to light mode':'Switch to dark mode')}
+ap(rc());t.onclick=function(){var n=ef()==='dark'?'light':'dark';wc(n);ap(n)};a.onclick=function(){wc(null);ap(null)}})();
+
+// "Which album?" notice: poll until an album token is recognised, then show its files.
+if($('an')){(function(){function c(){fetch('/album',{cache:'no-store'}).then(function(r){return r.json()}).then(function(d){if(d.album)location.href='/';else setTimeout(c,2000)}).catch(function(){setTimeout(c,3000)})}setTimeout(c,2000)})()}
+
+// Upload page: selection, modal dialog, PAR uploads at a time (each connection is capped by the
+// box's small TCP window), byte-accurate progress, per-file status, retry.
+if($('f')){(function(){
+var i=$('f'),z=$('dz'),b=$('bar'),t=$('pt'),r=$('pr'),ul=$('ul'),ph=$('ph'),u=$('ub'),rb=$('rb'),dlg=$('dlg'),mt=$('mt'),mh=$('mh'),mc=$('mc'),mx=$('mx'),ms=$('ms'),slot=$('slot'),mslot=$('mslot');
+var SD_FREE=+($('uc').dataset.sdfree||0),PAR=+($('uc').dataset.par||2);
+var items=[],total=0,doneBytes=0,startAt=0,samples=[],busy=false,cancelled=false,q=[],active=0,failed=0,inflight={};
+function fmt(n){if(n>=1073741824)return (n/1073741824).toFixed(2)+' GB';if(n>=1048576)return (n/1048576).toFixed(1)+' MB';return Math.max(1,Math.round(n/1024))+' kB'}
+function fmtT(s){if(s<60)return Math.ceil(s)+' s';var m=Math.floor(s/60);return m+' min '+Math.round(s-m*60)+' s'}
+function fp(k){return $('it'+k).querySelector('.fp')}
+function setFiles(list){if(busy)return;var a=[],skipped=0;for(var k=0;k<list.length;k++){var f=list[k];if(f.type==='audio/mpeg'||/\.mp3$/i.test(f.name))a.push(f);else skipped++}
+items=a.map(function(f){return{file:f,status:'pending',loaded:0}});total=0;items.forEach(function(x){total+=x.file.size});doneBytes=0;b.style.width='0';u.textContent='Upload';
+ul.hidden=!items.length;ul.innerHTML=items.map(function(x,k){return '<li id="it'+k+'"><i class="st"></i><span class="fn">'+esc(x.file.name)+'</span><span class="fp"></span><span class="fz">'+fmt(x.file.size)+'</span></li>'}).join('');
+if(!items.length){ph.textContent=skipped?'Only MP3 files can be uploaded':'No files selected';ph.className='hint';u.disabled=true;return}
+var s=items.length+' file'+(items.length>1?'s':'')+' · '+fmt(total)+(skipped?' · '+skipped+' skipped (not MP3)':'');
+if(total>SD_FREE){ph.textContent=s+' · not enough space on the SD card ('+fmt(SD_FREE)+' free)';ph.className='hint danger';u.disabled=true}
+else{ph.textContent=s+' · '+fmt(SD_FREE-total)+' will stay free';ph.className='hint';u.disabled=false}}
+function setSt(k,st,txt){items[k].status=st;var li=$('it'+k);li.firstChild.className='st '+({uploading:'up',saving:'sv',done:'ok',failed:'err'}[st]||'');fp(k).textContent=txt||''}
+function progressAll(){var sent=doneBytes,done=0,act=0;items.forEach(function(x){if(x.status==='done')done++;else if(x.status==='uploading'||x.status==='saving'){act++;sent+=x.loaded}});
+var pct=total?Math.min(100,Math.round(sent/total*100)):0;b.style.width=pct+'%';
+t.textContent=(act?'Uploading · ':'')+done+' of '+items.length+' done'+(act>1?' · '+act+' at once':'')+' · '+fmt(sent)+' of '+fmt(total)+' · '+pct+' %';
+var now=Date.now();samples.push([now,sent]);while(samples.length>2&&now-samples[0][0]>4000)samples.shift();
+if(samples.length>1){var a=samples[0],e=samples[samples.length-1],rate=e[0]>a[0]?(e[1]-a[1])/((e[0]-a[0])/1000):0;
+if(now-startAt>2500&&rate>0)r.textContent=fmt(rate)+'/s · ~'+fmtT((total-sent)/rate)+' left'}}
+function uploadOne(k,cb){var x=items[k],xhr=new XMLHttpRequest();inflight[k]=xhr;x.loaded=0;xhr.open('POST','/upload?name='+encodeURIComponent(x.file.name));xhr.setRequestHeader('Content-Type','application/octet-stream');setSt(k,'uploading','0 %');
+xhr.upload.onprogress=function(e){if(!e.lengthComputable)return;x.loaded=e.loaded;progressAll();fp(k).textContent=Math.round(e.loaded/e.total*100)+' %'};
+xhr.upload.onload=function(){x.loaded=x.file.size;setSt(k,'saving','saving')};
+function end(ok,st,txt){delete inflight[k];if(ok)doneBytes+=x.file.size;x.loaded=0;setSt(k,st,txt);progressAll();cb(ok)}
+xhr.onload=function(){if(xhr.status>=200&&xhr.status<300)end(true,'done');else end(false,'failed','HTTP '+xhr.status)};
+xhr.onerror=xhr.ontimeout=function(){end(false,'failed','failed')};
+xhr.onabort=function(){end(false,'failed','cancelled')};
+xhr.send(x.file)}
+function openModal(){mslot.appendChild(ul);ul.hidden=false;if(dlg.showModal){if(!dlg.open)dlg.showModal()}else dlg.setAttribute('open','')}
+function closeModal(){if(dlg.close){if(dlg.open)dlg.close()}else dlg.removeAttribute('open');slot.appendChild(ul)}
+dlg.addEventListener('cancel',function(e){if(busy)e.preventDefault()});dlg.addEventListener('close',function(){slot.appendChild(ul)});
+window.addEventListener('beforeunload',function(e){if(busy){e.preventDefault();e.returnValue=''}});
+function run(){q=[];items.forEach(function(x,k){if(x.status!=='done')q.push(k)});if(!q.length||busy)return;
+busy=true;cancelled=false;failed=0;active=0;u.disabled=true;i.disabled=true;rb.hidden=true;mx.hidden=true;ms.hidden=true;mc.hidden=false;mh.hidden=false;
+mt.textContent='Uploading';t.textContent='Starting…';r.textContent='';startAt=Date.now();samples=[];
+doneBytes=0;items.forEach(function(x){if(x.status==='done')doneBytes+=x.file.size});progressAll();openModal();pump()}
+function pump(){while(!cancelled&&active<PAR&&q.length){active++;uploadOne(q.shift(),function(ok){active--;if(!ok)failed++;if(active===0&&(cancelled||!q.length))finish(failed);else pump()})}}
+function finish(failed){busy=false;i.disabled=false;r.textContent='';mc.hidden=true;mh.hidden=true;
+var pending=items.filter(function(x){return x.status!=='done'}).length;u.disabled=!pending;u.textContent=pending&&pending<items.length?'Upload remaining':'Upload';
+if(cancelled){mt.textContent='Upload cancelled';t.textContent=(items.length-pending)+' of '+items.length+' uploaded · '+fmt(doneBytes);rb.textContent='Continue upload';rb.hidden=false;mx.hidden=false}
+else if(failed){mt.textContent='Upload incomplete';t.textContent=failed+' of '+items.length+' failed · '+fmt(doneBytes)+' uploaded. Check the connection, then retry.';rb.textContent='Retry failed';rb.hidden=false;mx.hidden=false}
+else{mt.textContent='Done';t.textContent=items.length+' file'+(items.length>1?'s':'')+' · '+fmt(total)+' uploaded';ms.hidden=false;mx.hidden=false}}
+i.onchange=function(){setFiles(i.files)};
+['dragenter','dragover'].forEach(function(ev){z.addEventListener(ev,function(e){e.preventDefault();if(!busy)z.classList.add('over')})});
+['dragleave','drop'].forEach(function(ev){z.addEventListener(ev,function(e){e.preventDefault();z.classList.remove('over')})});
+z.addEventListener('drop',function(e){setFiles(e.dataTransfer.files)});
+document.addEventListener('dragover',function(e){e.preventDefault()});document.addEventListener('drop',function(e){e.preventDefault()});
+u.onclick=run;rb.onclick=run;mc.onclick=function(){if(!busy)return;cancelled=true;Object.keys(inflight).forEach(function(k){inflight[k].abort()})};mx.onclick=closeModal;ms.onclick=function(){location.href='/'};
+})()}
+
+// Wi-Fi page: network list from /wifi-scan, connection result from /wifi-status, hand-over to <box>.local.
+if($('nl')){(function(){
+var q=location.search,nl=$('nl'),si=$('ssid'),bn=$('bn'),jh=$('jh'),mp=$('mp');
+var cfg=$('wf'),HOST=cfg.dataset.host,station=cfg.dataset.station==='1',TARGET='http://'+HOST+'/wifi',onHost=location.hostname.toLowerCase()===HOST,done=false;
+function lv(r){return r>-55?4:r>-65?3:r>-75?2:1}
+function banner(c,h){bn.innerHTML=h?'<div class="banner '+c+'">'+h+'</div>':''}
+function render(d){if(d.state==='done'&&d.networks.length){nl.innerHTML=d.networks.map(function(n){return '<li role="option" data-ssid="'+esc(n.ssid)+'" aria-selected="'+(n.ssid===si.value)+'"><i class="ic ic-check"></i><span class="ssid">'+esc(n.ssid)+'</span><i class="ic ic-lock'+(n.secure?'':' open')+'"></i><span class="bars" data-level="'+lv(n.rssi)+'"><i></i><i></i><i></i><i></i></span></li>'}).join('')}
+else if(d.state==='done')nl.innerHTML='<li class="status">No networks found</li>';
+else if(d.state==='failed')nl.innerHTML='<li class="status">No networks found yet. Tap Rescan to look again, or type the name below.</li>';
+else if(d.state==='busy')nl.innerHTML='<li class="status">Waiting for the connection test to finish…</li>';
+else nl.innerHTML='<li class="status">Scanning…</li>'}
+var st;function scan(re){clearTimeout(st);fetch('/wifi-scan'+(re?'?rescan=1':'')).then(function(r){return r.json()}).then(function(d){render(d);if(d.state!=='done'&&d.state!=='failed')st=setTimeout(function(){scan(false)},1500)}).catch(function(){st=setTimeout(function(){scan(false)},2000)})}
+nl.onclick=function(e){var li=e.target.closest('li[data-ssid]');if(!li)return;nl.querySelectorAll('li').forEach(function(x){x.setAttribute('aria-selected','false')});li.setAttribute('aria-selected','true');si.value=li.dataset.ssid;$('pass').focus()};
+$('rs').onclick=function(){scan(true)};scan(false);
+jh.textContent=station?'Switching networks disconnects this page. Reach the box again via '+HOST+' or the hotspot.':'The hotspot stays up during the test. Once connected it shuts down and this page moves to '+HOST+'.';
+function tryHost(fail){if(onHost)return fail();fetch('http://'+HOST+'/wifi-status',{cache:'no-store'}).then(function(r){if(r.ok)location.href=TARGET;else fail()}).catch(fail)}
+function hop(){tryHost(function(){setTimeout(hop,2000)})}
+function poll(){fetch('/wifi-status',{cache:'no-store'}).then(function(r){return r.json()}).then(function(d){
+if(d.result==='ok'){done=true;banner('ok','<span>&#10003;</span><span><b>Connected</b> to '+esc(d.ssid)+' as <span class="mono">'+d.ip+'</span>. '+(d.hotspotClosing?'The hotspot shuts down now. Rejoin your home network; this page then moves to <a href="'+TARGET+'">'+HOST+'</a>. If that does not happen, open <a href="http://'+d.ip+'/wifi">http://'+d.ip+'/wifi</a>.':'Reachable at <a href="'+TARGET+'">'+HOST+'</a>.')+'</span>');
+mp.className='pill ok';mp.innerHTML='<span class="dot"></span>Home network';$('k-mode').innerHTML='Home network'+(d.hotspotClosing?' <span class="muted">(hotspot shutting down)</span>':'');$('k-net').textContent=d.ssid+' · '+d.rssi+' dBm';$('k-ip').textContent=d.ip;$('k-saved').textContent=d.saved;
+if(!onHost)setTimeout(hop,3000)}
+else if(d.result==='failed'){banner('fail','<span>&#10007;</span><span><b>Could not connect.</b> '+esc(d.hint)+' The network is saved anyway; correct the password and try again.</span>');$('k-saved').textContent=d.saved}
+else setTimeout(poll,1000)}).catch(function(){if(done)return;tryHost(function(){setTimeout(poll,1500)})})}
+if(/connecting=1/.test(q)){banner('','<span class="spinner"></span><span>Connecting… this page keeps checking.</span>');poll()}
+if(/forgot=1/.test(q))banner('','<span>Saved network removed. The box runs as its own hotspot again.</span>');
+if(/err=1/.test(q))banner('fail','<span>Please enter a network name (1–32 characters) and a password of 8–63 characters, or none for an open network.</span>');
+if(/err=2/.test(q))banner('fail','<span>The box is busy, please try again.</span>');
+})()}
+})();
+)APPJS";
 
 struct NavItem {
   const char *key;
@@ -212,17 +311,24 @@ const char *themeFromCookie(AsyncWebServerRequest *request) {
   return "";
 }
 
-// Hash of the stylesheet, used as ?v= on the /css link so browsers fetch a new
-// stylesheet after every firmware update instead of serving a cached one.
+// Content hashes used as ?v= on the /css and /app.js links so browsers fetch fresh
+// copies after every firmware update while caching them for a year otherwise.
+static uint32_t fnv1a(const char *p) {
+  uint32_t h = 2166136261u;
+  for (; *p; p++) {
+    h ^= (uint8_t)*p;
+    h *= 16777619u;
+  }
+  return h;
+}
+
 uint32_t cssVersion() {
-  static uint32_t hash = [] {
-    uint32_t h = 2166136261u;  // FNV-1a
-    for (const char *p = PAGE_CSS; *p; p++) {
-      h ^= (uint8_t)*p;
-      h *= 16777619u;
-    }
-    return h;
-  }();
+  static uint32_t hash = fnv1a(PAGE_CSS);
+  return hash;
+}
+
+uint32_t jsVersion() {
+  static uint32_t hash = fnv1a(PAGE_JS);
   return hash;
 }
 
@@ -251,13 +357,19 @@ void pageHead(AsyncResponseStream *res, AsyncWebServerRequest *request, const ch
 
 void pageFoot(AsyncResponseStream *res) {
   res->print("</section><footer>" BOX_NAME " &middot; management mode</footer>");
-  res->print(THEME_JS);
+  res->printf("<script src=\"/app.js?v=%08x\"></script>", jsVersion());
   res->print("</main></body></html>");
 }
 
 void cssHandler(AsyncWebServerRequest *request) {
   AsyncWebServerResponse *response = request->beginResponse(200, "text/css", (const uint8_t *)PAGE_CSS, sizeof(PAGE_CSS) - 1);
   response->addHeader("Cache-Control", "public, max-age=31536000, immutable");  // URL is versioned, see cssVersion()
+  request->send(response);
+}
+
+void jsHandler(AsyncWebServerRequest *request) {
+  AsyncWebServerResponse *response = request->beginResponse(200, "application/javascript", (const uint8_t *)PAGE_JS, sizeof(PAGE_JS) - 1);
+  response->addHeader("Cache-Control", "public, max-age=31536000, immutable");  // URL is versioned, see jsVersion()
   request->send(response);
 }
 

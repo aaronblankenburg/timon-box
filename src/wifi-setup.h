@@ -33,6 +33,7 @@
 #endif
 #define STA_LOST_TIMEOUT_MS 30000  // station link gone for this long -> hotspot
 #define NET_ACTION_GRACE_MS 400    // let the HTTP response reach the browser before touching the radio
+#define AP_TEARDOWN_GRACE_MS 5000  // after a successful connect from the portal: let the page see the result, then drop the hotspot
 
 enum NetMode { NET_CONNECTING,
                NET_STATION,
@@ -72,6 +73,8 @@ unsigned long scanRetryAt = 0;    // loop task: earliest millis() for the next a
 #define SCAN_MAX_ATTEMPTS 3
 #define SCAN_RETRY_DELAY_MS 800
 bool apActive = false;  // loop task only
+volatile bool apTeardownPending = false;  // hotspot goes down once the grace period is over
+unsigned long apTeardownSince = 0;
 unsigned long connectStart = 0;
 unsigned long staLostSince = 0;
 
@@ -194,11 +197,23 @@ void enterAccessPoint() {
   dnsServer.setErrorReplyCode(DNSReplyCode::NoError);
   dnsServer.start(53, "*", ip);
   apActive = true;
+  apTeardownPending = false;
   netMode = NET_ACCESS_POINT;
   Serial.printf("[net] hotspot \"%s\" at %s\n", BOX_NAME, ip.toString().c_str());
   scanRequested = true;  // pre-warm the network list for the setup page
   scanAttempt = 0;
   scanRetryAt = millis() + 1500;  // give the interfaces a moment to settle
+}
+
+// Switches the hotspot off once the box is on the home network; clients rejoin
+// their own network and reach the box as <hostname>.local.
+void tearDownAccessPoint() {
+  dnsServer.stop();
+  WiFi.softAPdisconnect(false);
+  WiFi.mode(WIFI_STA);
+  apActive = false;
+  apTeardownPending = false;
+  Serial.printf("[net] hotspot closed, box reachable as %s.local (%s)\n", boxHostname(), WiFi.localIP().toString().c_str());
 }
 
 void onStaDisconnected(arduino_event_id_t, arduino_event_info_t info) {
@@ -344,6 +359,10 @@ NetMode netLoop() {
         connectResult = CR_OK;
         staLostSince = 0;
         WiFi.setAutoReconnect(true);
+        if (apActive) {  // connected from the portal: hand the client over to the home network
+          apTeardownPending = true;
+          apTeardownSince = millis();
+        }
         Serial.printf("[net] connected to \"%s\" ip=%s rssi=%d after %lu ms, reachable as %s.local, free heap %u\n",
                       WiFi.SSID().c_str(), WiFi.localIP().toString().c_str(), WiFi.RSSI(),
                       millis() - connectStart, boxHostname(), ESP.getFreeHeap());
@@ -381,6 +400,9 @@ NetMode netLoop() {
       break;
   }
 
+  if (apTeardownPending && netMode == NET_STATION && millis() - apTeardownSince > AP_TEARDOWN_GRACE_MS) {
+    tearDownAccessPoint();
+  }
   if (apActive) dnsServer.processNextRequest();  // captive DNS only while the hotspot is up
   return netMode;
 }
@@ -412,8 +434,15 @@ void wifiStatusJson(AsyncWebServerRequest *request) {
   json += "\",\"reason\":" + String(reason);
   json += ",\"hint\":\"" + jsonEscape(result == CR_FAILED ? disconnectHint(reason) : "") + "\"";
   json += ",\"saved\":\"" + jsonEscape(getSavedSsid()) + "\"";
+  json += ",\"hotspotClosing\":";
+  json += apTeardownPending ? "true" : "false";
   json += ",\"heap\":" + String(ESP.getFreeHeap()) + "}";
-  request->send(200, "application/json", json);
+  // CORS: the setup page served by the hotspot probes this endpoint on <hostname>.local
+  // to find out when the box is reachable via the home network.
+  AsyncWebServerResponse *response = request->beginResponse(200, "application/json", json);
+  response->addHeader("Access-Control-Allow-Origin", "*");
+  response->addHeader("Cache-Control", "no-store");
+  request->send(response);
 }
 
 void wifiScanJson(AsyncWebServerRequest *request) {
@@ -570,14 +599,22 @@ void wifiPage(AsyncWebServerRequest *request) {
   if (station) {
     res->printf("Switching networks disconnects this page. Reach the box again via %s.local or the hotspot.", boxHostname());
   } else {
-    res->print("The hotspot stays up while testing. The network is saved even if the test fails.");
+    res->printf("The hotspot stays up during the test. Once connected it shuts down and this page moves to %s.local.", boxHostname());
   }
   res->print("';");
-  res->print("function poll(){fetch('/wifi-status').then(function(r){return r.json()}).then(function(d){"
-             "if(d.result==='ok'){banner('ok','<span>&#10003;</span><span><b>Connected</b> to '+esc(d.ssid)+' as <span class=\"mono\">'+d.ip+'</span> \\u00b7 reachable at <span class=\"mono\">'+d.hostname+'</span>. The next management session joins this network directly.</span>');"
-             "mp.className='pill ok';mp.innerHTML='<span class=\"dot\"></span>Home network';document.getElementById('k-mode').innerHTML='Home network'+(d.apActive?' <span class=\"muted\">(hotspot still up)</span>':'');document.getElementById('k-net').textContent=d.ssid+' \\u00b7 '+d.rssi+' dBm';document.getElementById('k-ip').textContent=d.ip+(d.apActive?' \\u00b7 hotspot '+d.apIp:'');document.getElementById('k-saved').textContent=d.saved}"
+  // Once connected, the page hands the browser over to <hostname>.local: it probes the
+  // status endpoint there (CORS-enabled) and redirects as soon as it answers. This also
+  // covers the moment the hotspot disappears under the page.
+  res->printf("var HOST='%s.local',TARGET='http://'+HOST+'/wifi',onHost=location.hostname.toLowerCase()===HOST,done=false;", boxHostname());
+  res->print("function tryHost(fail){if(onHost)return fail();fetch('http://'+HOST+'/wifi-status',{cache:'no-store'}).then(function(r){if(r.ok)location.href=TARGET;else fail()}).catch(fail)}"
+             "function hop(){tryHost(function(){setTimeout(hop,2000)})}"
+             "function poll(){fetch('/wifi-status',{cache:'no-store'}).then(function(r){return r.json()}).then(function(d){"
+             "if(d.result==='ok'){done=true;banner('ok','<span>&#10003;</span><span><b>Connected</b> to '+esc(d.ssid)+' as <span class=\"mono\">'+d.ip+'</span>. '"
+             "+(d.hotspotClosing?'The hotspot shuts down now. Rejoin your home network; this page then moves to <a href=\"'+TARGET+'\">'+HOST+'</a>. If that does not happen, open <a href=\"http://'+d.ip+'/wifi\">http://'+d.ip+'/wifi</a>.':'Reachable at <a href=\"'+TARGET+'\">'+HOST+'</a>.')+'</span>');"
+             "mp.className='pill ok';mp.innerHTML='<span class=\"dot\"></span>Home network';document.getElementById('k-mode').innerHTML='Home network'+(d.hotspotClosing?' <span class=\"muted\">(hotspot shutting down)</span>':'');document.getElementById('k-net').textContent=d.ssid+' \\u00b7 '+d.rssi+' dBm';document.getElementById('k-ip').textContent=d.ip;document.getElementById('k-saved').textContent=d.saved;"
+             "if(!onHost)setTimeout(hop,3000)}"
              "else if(d.result==='failed'){banner('fail','<span>&#10007;</span><span><b>Could not connect.</b> '+esc(d.hint)+' The network is saved anyway; correct the password and try again.</span>');document.getElementById('k-saved').textContent=d.saved}"
-             "else setTimeout(poll,1000)}).catch(function(){setTimeout(poll,1500)})}"
+             "else setTimeout(poll,1000)}).catch(function(){if(done)return;tryHost(function(){setTimeout(poll,1500)})})}"
              "if(/connecting=1/.test(q)){banner('','<span class=\"spinner\"></span><span>Connecting\\u2026 this page keeps checking.</span>');poll()}"
              "if(/forgot=1/.test(q))banner('','<span>Saved network removed. The box runs as its own hotspot again.</span>');"
              "if(/err=1/.test(q))banner('fail','<span>Please enter a network name (1\\u201332 characters) and a password of 8\\u201363 characters, or none for an open network.</span>');"

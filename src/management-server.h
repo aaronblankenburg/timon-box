@@ -5,9 +5,13 @@
 #include <ESPAsyncWebServer.h>
 #include <SD.h>
 #include <SPI.h>
+#include <WiFi.h>
+#include <esp_task_wdt.h>
 
-#include <unordered_map>
+#include <algorithm>
 #include <vector>
+
+#include "web-ui.h"
 
 #define PAGE_SIZE 10
 #define LAST_PLAYED_FILE_NAME "/last_played.txt"
@@ -143,51 +147,85 @@ bool renameFolder(const String &oldFolder, String &newFolder) {
   }
 }
 
-void css(AsyncWebServerRequest *request) {
-  AsyncResponseStream *response = request->beginResponseStream("text/css");
-  response->printf("*,::after,::before{box-sizing:border-box}html{font-family:system-ui,'Segoe UI',Roboto,Helvetica,Arial,sans-serif,'Apple Color Emoji','Segoe UI Emoji';line-height:1.15;-webkit-text-size-adjust:100%%;-moz-tab-size:4;tab-size:4}body{margin:0}table{text-indent:0;border-color:inherit}button,input,select{font-family:inherit;font-size:100%%;line-height:1.15;margin:0}button,select{text-transform:none}[type=button],[type=reset],[type=submit],button{-webkit-appearance:button}::-moz-focus-inner{border-style:none;padding:0}:-moz-focusring{outline:1px dotted ButtonText}:-moz-ui-invalid{box-shadow:none}progress{vertical-align:baseline}::-webkit-inner-spin-button,::-webkit-outer-spin-button{height:auto}[type=search]{-webkit-appearance:textfield;outline-offset:-2px}::-webkit-search-decoration{-webkit-appearance:none}::-webkit-file-upload-button{-webkit-appearance:button;font:inherit}[type=button],[type=color],[type=file],[type=range],[type=reset],[type=submit],button,label>[type=checkbox]:enabled,label>[type=radio]:enabled{cursor:pointer}[readonly]{cursor:default}:disabled,[aria-disabled=true],[type=checkbox][id]:disabled+[for],[type=radio][id]:disabled+[for]{cursor:not-allowed}[draggable=true]{cursor:grab}[draggable=true]:active{cursor:grabbing}:root{--max-body-width:48rem}html{height:100%%;line-height:1.4}h1,h2,h3{line-height:1.15}body{display:flex;flex-direction:column;width:calc(100%% - 1rem);max-width:var(--max-body-width);min-height:100%%;margin:0 auto;overflow-wrap:break-word}table{display:block;overflow-x:auto}audio{width:100%%}[type=range],progress{display:block;width:100%%;height:2.25rem}[type=color]{height:2.25rem;vertical-align:top}[type=button],[type=reset],[type=submit],button,td{padding:.5rem}[type=email],[type=hidden],[type=number],[type=password],[type=search],[type=tel],[type=text],[type=url],input:not([type]){display:block;width:100%%;height:2.25rem;padding:.5rem}[type=file]{display:block;width:100%%;height:2.25rem;padding-top:.35rem}[type=date],[type=datetime-local],[type=month],[type=time],[type=week]{display:block;width:100%%;height:2.25rem;padding:.4rem .5rem}select{display:block;width:100%%;min-height:2.25rem;padding:.45rem .5rem}[type=image]{vertical-align:bottom}label>[type=color]{margin-left:.25rem}label{display:flex;flex-wrap:wrap;column-gap:.25rem;align-items:center;width:100%%;margin-top:1rem}[type=checkbox]+label,[type=radio]+label{display:inline-flex;width:unset;vertical-align:text-bottom}label>[type=checkbox],label>[type=radio]{min-height:1rem}[aria-current=date],[aria-current=location],[aria-current=page],[aria-current=step],[aria-current=time],[aria-current=true]{font-weight:700}li{margin-top:.5rem;margin-bottom:.5rem}@media (width <= 50rem){table{width:calc(100%% + 1rem);margin-left:-.5rem}}@media (hover:hover){body{overflow-x:hidden}nav{display:flex;background-color:var(--background-color);border-bottom:var(--border-width) solid var(--border-color)}body>nav{position:relative;left:calc(-50vw + 50%%);width:100vw}nav ul{padding-left:0}body>nav>ul{width:calc(var(--max-body-width) + 2rem);padding-right:.5rem;padding-left:.5rem;margin:.5rem auto}nav ul li{position:relative;display:inline-block}nav>ul>li{padding:.5rem;margin:0}nav ul li a{text-decoration:none;white-space:nowrap}nav ul li ul{position:absolute;left:-9999px;z-index:1;min-width:calc(100%% + var(--border-width) * 2);padding:.25rem .5rem;margin-top:.5rem;margin-left:calc(-.5rem - var(--border-width));background-color:var(--background-color);border:var(--border-width) solid var(--border-color);border-radius:var(--border-radius)}nav ul li ul li{width:100%%}nav ul li ul li ul{min-width:calc(100%% + 1rem + var(--border-width) * 2);margin-top:.75rem}nav :focus~ul,nav :focus~ul ul,nav ul li:hover ul,nav ul ul:focus-within{left:initial}nav li>:not(ul,a,:only-child){cursor:default}nav li>:not(ul,:only-child)::after{content:\" ▾\"}}@media not all and (hover:hover){nav{position:relative;left:calc(-50vw + 50%%);width:100vw;padding-top:2rem;background-image:url(data:image/svg+xml;utf8,SVG_REPLACED);background-repeat:no-repeat;background-position:top;border-bottom:var(--border-width) solid var(--border-color)}nav>*{display:none}nav:hover>ul{display:inherit}nav:hover>:not(ul){display:unset}@media (prefers-color-scheme:dark){nav{background-image:url(data:image/svg+xml;utf8,SVG_REPLACED)}}}:root{color-scheme:light dark;--border-radius:0.25rem;--border-width:1px;--light-border-color:#dbdbdb;--light-border-hover-color:#b5b5b5;--light-background-color:#fff;--light-highlighted-background-color:#f5f5f5;--light-text-color:#363636;--light-danger-color:#f14668;--light-danger-text-color:#fff;--light-danger-hover-color:#f03a5f;--light-success-color:#48c774;--light-success-text-color:#fff;--light-success-hover-color:#3ec46d;--light-danger-text-background-color:#fde0e6;--light-success-text-background-color:#effaf3;--light-code-text-color:#f14668;--light-code-background-color:#f5f5f5;--light-link-color:#3273dc;--light-link-visited-color:#b86bff;--light-link-hover-color:#363636;--light-link-active-color:#363636;--dark-border-color:#5f6267;--dark-border-hover-color:#bcbebd;--dark-background-color:#202124;--dark-highlighted-background-color:#292b2e;--dark-text-color:#fff;--dark-danger-color:#770018;--dark-danger-text-color:#fff;--dark-danger-hover-color:#6b0015;--dark-success-color:#006624;--dark-success-text-color:#fff;--dark-success-hover-color:#006122;--dark-danger-text-background-color:#770018;--dark-success-text-background-color:#006624;--dark-code-text-color:#f1a0b0;--dark-code-background-color:#292b2e;--dark-link-color:#90b3ed;--dark-link-visited-color:#cb93ff;--dark-link-hover-color:#fff;--dark-link-active-color:#fff;--border-color:var(--light-border-color);--border-hover-color:var(--light-border-hover-color);--background-color:var(--light-background-color);--highlighted-background-color:var(--light-highlighted-background-color);--text-color:var(--light-text-color);--danger-color:var(--light-danger-color);--danger-text-color:var(--light-danger-text-color);--danger-hover-color:var(--light-danger-hover-color);--success-color:var(--light-success-color);--success-text-color:var(--light-success-text-color);--success-hover-color:var(--light-success-hover-color);--danger-text-background-color:var(--light-danger-text-background-color);--success-text-background-color:var(--light-success-text-background-color);--code-text-color:var(--light-code-text-color);--code-background-color:var(--light-code-background-color);--link-color:var(--light-link-color);--link-visited-color:var(--light-link-visited-color);--link-hover-color:var(--light-link-hover-color);--link-active-color:var(--light-link-active-color)}@media (prefers-color-scheme:dark){:root{--border-color:var(--dark-border-color);--border-hover-color:var(--dark-border-hover-color);--background-color:var(--dark-background-color);--highlighted-background-color:var(--dark-highlighted-background-color);--text-color:var(--dark-text-color);--danger-color:var(--dark-danger-color);--danger-text-color:var(--dark-danger-text-color);--danger-hover-color:var(--dark-danger-hover-color);--success-color:var(--dark-success-color);--success-text-color:var(--dark-success-text-color);--success-hover-color:var(--dark-success-hover-color);--danger-text-background-color:var(--dark-danger-text-background-color);--success-text-background-color:var(--dark-success-text-background-color);--code-text-color:var(--dark-code-text-color);--code-background-color:var(--dark-code-background-color);--link-color:var(--dark-link-color);--link-visited-color:var(--dark-link-visited-color);--link-hover-color:var(--dark-link-hover-color);--link-active-color:var(--dark-link-active-color)}}input{border-radius:var(--border-radius)}body{color:var(--text-color);background-color:var(--background-color)}a{color:var(--link-color);text-decoration:none}a:visited{color:var(--link-visited-color)}a:hover,a[aria-current=page]{color:var(--link-hover-color)}a:active{color:var(--link-active-color)}button,select{color:var(--text-color);background-color:var(--background-color);border:var(--border-width) solid var(--border-color);border-radius:var(--border-radius)}[type=button],[type=color],[type=date],[type=datetime-local],[type=email],[type=hidden],[type=month],[type=number],[type=password],[type=search],[type=tel],[type=text],[type=time],[type=url],[type=week],input:not([type]){color:var(--text-color);background-color:var(--background-color);border:var(--border-width) solid var(--border-color)}[type=reset]{color:var(--danger-text-color);background-color:var(--danger-color);border:var(--border-width) solid transparent}[type=submit],button:not([type]){color:var(--success-text-color);background-color:var(--success-color);border:var(--border-width) solid transparent}[type=date]:disabled,[type=datetime-local]:disabled,[type=email]:disabled,[type=hidden]:disabled,[type=month]:disabled,[type=number]:disabled,[type=password]:disabled,[type=search]:disabled,[type=tel]:disabled,[type=text]:disabled,[type=time]:disabled,[type=url]:disabled,[type=week]:disabled,input:not([type]):disabled,select:disabled{background-color:var(--highlighted-background-color)}[type=date]:enabled,[type=datetime-local]:enabled,[type=month]:enabled,[type=time]:enabled,[type=week]:enabled,select:enabled{background-color:var(--background-color)}[type=button]:focus,[type=color]:focus,[type=date]:focus,[type=datetime-local]:focus,[type=email]:focus,[type=hidden]:focus,[type=image]:focus,[type=month]:focus,[type=number]:focus,[type=password]:focus,[type=reset]:focus,[type=search]:focus,[type=submit]:focus,[type=tel]:focus,[type=text]:focus,[type=time]:focus,[type=url]:focus,[type=week]:focus,button:focus,button:not([type]):focus,input:not([type]):focus,select:focus{border-color:var(--border-hover-color);outline:0;box-shadow:0 0 .2rem .01rem var(--border-hover-color)}[type=image]:enabled:hover{filter:brightness(95%%)}[type=button]:enabled:hover,[type=color]:enabled:hover,[type=date]:enabled:hover,[type=datetime-local]:enabled:hover,[type=email]:enabled:hover,[type=hidden]:enabled:hover,[type=month]:enabled:hover,[type=number]:enabled:hover,[type=password]:enabled:hover,[type=range]:enabled:hover,[type=search]:enabled:hover,[type=tel]:enabled:hover,[type=text]:enabled:hover,[type=time]:enabled:hover,[type=url]:enabled:hover,[type=week]:enabled:hover,button:enabled:hover,input:not([type]):enabled:hover,select:enabled:hover{border-color:var(--border-hover-color)}[type=reset]:enabled:hover{background-color:var(--danger-hover-color);border-color:transparent}[type=submit]:enabled:hover,button:not([type]):enabled:hover{background-color:var(--success-hover-color);border-color:transparent}table{border-collapse:collapse}tbody>tr:not(:first-child){border-top:var(--border-width) solid var(--border-color)}tbody>tr:nth-child(2n){background-color:var(--highlighted-background-color)}:disabled,[aria-disabled=true],[type=checkbox][id]:disabled+[for],[type=radio][id]:disabled+[for]{opacity:.5}:invalid:not(form){border-color:var(--danger-color);border-style:solid;border-width:var(--border-width)}:disabled :disabled,[aria-disabled=true] [aria-disabled=true]{opacity:unset}:invalid:not([type=checkbox],:focus){box-shadow:none}:invalid:not([type=checkbox]):focus{border-color:var(--danger-hover-color);outline:0;box-shadow:0 0 .2rem .05rem var(--danger-hover-color)}:invalid:not(form):enabled:hover{border-color:var(--danger-hover-color)}");
+// ---------------------------------------------------------------------------
+// Presentation helpers
+// ---------------------------------------------------------------------------
 
-  request->send(response);
+// Subtitle shown under the box name on every page.
+String albumSubtitle() {
+  return "Album folder <code>" + htmlEscape(webServerFolderPath) + "</code>";
 }
 
+// "/Bibi_Blocksberg_047a8772d42a81" -> "Bibi_Blocksberg" (the token suffix is re-attached by renameFolder)
+String folderDisplayName() {
+  String name = webServerFolderPath;
+  if (name.startsWith("/")) name = name.substring(1);
+  int underscore = name.lastIndexOf('_');
+  if (underscore > 0 && name.length() - underscore - 1 == 14) name = name.substring(0, underscore);
+  return name;
+}
+
+// Same conversion as getBattery() in main.ino, kept here because only the raw ADC value is shared.
+int batteryMilliVolts() {
+  return ::map((uint)*batteryAdcValueManagementServer, 1994, 2390, 3685, 4322);
+}
+
+int batteryPercent() {
+  return constrain(::map(batteryMilliVolts(), 3200, 4200, 0, 100), 0, 100);
+}
+
+// ---------------------------------------------------------------------------
+// Pages
+// ---------------------------------------------------------------------------
+
 void home(AsyncWebServerRequest *request) {
-  float voltage = ::map((uint)*batteryAdcValueManagementServer, 1994, 2390, 3685, 4322);
-  AsyncResponseStream *response = request->beginResponseStream("text/html");
+  AsyncResponseStream *res = request->beginResponseStream("text/html");
+  pageHead(res, request, "upload", albumSubtitle());
 
-  response->printf("<link rel='stylesheet' href='/css' />");
-  response->printf("<h1>Timon-Box</h1>");
-  response->printf("<h2>Album directory: %s</h2><br>", webServerFolderPath.c_str());
-  response->printf("<h3>Battery Voltage: %s mV (ADC: %s)</h3>", String(voltage).c_str(), String(*batteryAdcValueManagementServer).c_str());
+  // Status card
+  int percent = batteryPercent();
+  const char *pillClass = percent > 50 ? "ok" : percent > 20 ? "warn" : "danger";
+  res->print("<div class=\"card\"><div class=\"card-head\"><h2>Status</h2>");
+  res->printf("<span class=\"pill %s\"><span class=\"dot\"></span>Battery %d&thinsp;%%</span></div>", pillClass, percent);
+  res->print("<dl class=\"kv\">");
+  res->printf("<dt>Battery</dt><dd>%d mV &middot; ADC %d</dd>", batteryMilliVolts(), (int)*batteryAdcValueManagementServer);
+  res->printf("<dt>Album folder</dt><dd>%s</dd>", htmlEscape(webServerFolderPath).c_str());
+  res->printf("<dt>Tracks</dt><dd>%d</dd>", filesInDir.size());
+  res->printf("<dt>Free memory</dt><dd>%u kB</dd>", ESP.getFreeHeap() / 1024);
+  res->print("</dl></div>");
 
-  response->printf("<nav><ul><li><a href='/'>Files</a></li></ul></nav>");
+  // Upload card
+  res->print("<div class=\"card\"><div class=\"card-head\"><h2>Upload</h2><span class=\"muted small\">MP3 only</span></div>"
+             "<label class=\"dropzone\"><input type=\"file\" id=\"f\" accept=\"audio/mpeg\" multiple>"
+             "<strong>Choose MP3 files</strong><span>uploaded one after another to the album folder</span></label>"
+             "<div class=\"progress\"><i id=\"bar\"></i></div>"
+             "<div class=\"actions between\"><span class=\"hint mono\" id=\"pt\">No files selected</span>"
+             "<button class=\"btn\" type=\"button\" id=\"ub\">Upload</button></div></div>");
 
-  response->printf("<h3>Rename Folder</h3>");
+  // Rename card
+  res->print("<div class=\"card\"><div class=\"card-head\"><h2>Rename Folder</h2></div>"
+             "<form method=\"POST\" action=\"/setFolderPath\" accept-charset=\"UTF-8\" class=\"field\">"
+             "<label for=\"path\">Folder name</label><div class=\"row-inline\">");
+  res->printf("<input class=\"input\" id=\"path\" name=\"path\" type=\"text\" value=\"%s\" required spellcheck=\"false\">", htmlEscape(folderDisplayName()).c_str());
+  res->print("<button class=\"btn secondary\" type=\"submit\">Rename</button></div>"
+             "<p class=\"hint\">The token suffix stays attached automatically. Spaces and umlauts are converted.</p></form></div>");
 
-  response->printf("<form method='POST' action='/setFolderPath' accept-charset='UTF-8'>");
-  response->printf("<input type='text' name='path' value='%s' required> ", webServerFolderPath.c_str());
-  response->printf("<button type='submit'>Rename Folder</button>");
-  response->printf("</form><br>");
+  // Upload script: one file per request, /temp on the SD card is shared, so uploads must not overlap.
+  res->print("<script>(function(){var i=document.getElementById('f'),b=document.getElementById('bar'),t=document.getElementById('pt'),u=document.getElementById('ub'),fs=[],n=0;"
+             "i.onchange=function(){fs=i.files;t.textContent=fs.length?fs.length+' file'+(fs.length>1?'s':'')+' selected':'No files selected'};"
+             "u.onclick=function(){if(!fs.length){t.textContent='Choose files first';return}n=0;u.disabled=true;i.disabled=true;nx()};"
+             "function nx(){if(n>=fs.length){t.textContent='Done';location.href='/';return}var d=new FormData();d.append('files',fs[n]);"
+             "t.textContent='Uploading '+(n+1)+' / '+fs.length+' \\u00b7 '+fs[n].name;"
+             "fetch('/upload',{method:'POST',body:d}).then(function(r){if(!r.ok)throw new Error('HTTP '+r.status);n++;b.style.width=(n/fs.length*100)+'%';nx()})"
+             ".catch(function(e){t.textContent='Upload failed: '+e.message;u.disabled=false;i.disabled=false})}})()</script>");
 
-  response->printf("<h3>File Upload</h3>");
-
-  response->printf("<form id='uploadForm' enctype='multipart/form-data'>");
-  response->printf("<input type='file' id='fileInput' accept='audio/mpeg' multiple>");
-  response->printf("<button type='button' onclick='uploadFiles()'>Upload</button><br><br>");
-  response->printf("<progress id='progress' value='0' max='0'></progress>");
-
-  response->printf("<script>");
-  response->printf("let files=[],uploaded=0;function uploadFiles(){const input=document.getElementById('fileInput');files=input.files;uploaded=0;if(files.length===0)return alert('No files selected!');document.getElementById('progress').removeAttribute('value');document.getElementById('progress').max=files.length;uploadNextFile()}function uploadNextFile(){if(uploaded>=files.length){location.reload();return}const formData=new FormData();formData.append('files',files[uploaded]);fetch('/upload',{method:'POST',body:formData}).then(()=>{uploaded++;document.getElementById('progress').value=uploaded;document.getElementById('progress').max=files.length;uploadNextFile()}).catch(err=>{alert('Upload failed: '+err)})}");
-  response->printf("</script>");
-
-  request->send(response);
+  pageFoot(res);
+  request->send(res);
 }
 
 void listFiles(AsyncWebServerRequest *request) {
-  AsyncResponseStream *response = request->beginResponseStream("text/html");
-
-  response->printf("<link rel='stylesheet' href='/css' />");
-  response->printf("<h1>Timon-Box</h1>");
-  response->printf("<h2>Album directory: %s</h2><br>", webServerFolderPath.c_str());
+  AsyncResponseStream *res = request->beginResponseStream("text/html");
+  pageHead(res, request, "files", albumSubtitle());
 
   // Sort the filesInDir alphanumerically
   std::sort(filesInDir.begin(), filesInDir.end());
@@ -196,28 +234,69 @@ void listFiles(AsyncWebServerRequest *request) {
   if (request->hasParam("page")) {
     page = request->getParam("page")->value().toInt();
   }
-  response->printf("<nav><ul><li><a href='/home'>Upload</a></li>");
+  int total = filesInDir.size();
+  int first = page * PAGE_SIZE;
+  int last = std::min(first + PAGE_SIZE, total);
 
-  if (page > 0) {
-    response->printf("<li><a class='button' href='/?page=%d'>Previous</a></li> ", page - 1);
-  }
-  if (filesInDir.size() > (page + 1) * PAGE_SIZE) {
-    response->printf("<li><a class='button' href='/?page=%d'>Next</a></li>", page + 1);
-  }
-  response->printf("</ul></nav>");
-  response->printf("<h3>File Management</h3>");
+  res->print("<div class=\"card flush\"><div class=\"card-head\"><h2>Files</h2>");
+  res->printf("<span class=\"pill neutral mono\">%d track%s</span></div>", total, total == 1 ? "" : "s");
+  res->print("<p class=\"muted small lead\">Tap &#9654; to make a track the one that plays next when the token is placed.</p>");
 
-  response->printf("<table><caption>%d files</caption><thead><tr><th>Playing</th><th>Name</th><th>Delete</th></tr></thead><tbody>", filesInDir.size());
-  String lastPlayedFileName = getLastPlayedFileName();
-  for (int i = (page * PAGE_SIZE); i < std::min((page + 1) * PAGE_SIZE, (int)filesInDir.size()); i++) {
-    String fileName = filesInDir.at(i);
-    String selectButtonLabel = lastPlayedFileName.endsWith(fileName) ? "&#x25B6;" : "&#x25B7;";
-    response->printf("<tr><td><form method='POST' action='/select' style='margin:0'><input type='hidden' name='filename' value='%s'><button type='submit'>%s</button></form></td><td>%s</td><td style='text-align:right'><form method='POST' action='/delete' style='margin:0'><input type='hidden' name='filename' value='%s'><button type='submit' style='background-color:red'>&#x274C;</button></form></td></tr>", fileName.c_str(), selectButtonLabel, fileName.c_str(), fileName.c_str());
-  }
-  response->printf("</tbody></table>");
+  if (total == 0) {
+    res->print("<p class=\"empty\">No tracks yet. Upload some MP3 files.</p>");
+  } else {
+    res->print("<ul class=\"list\">");
+    String lastPlayedFileName = getLastPlayedFileName();
+    for (int i = first; i < last; i++) {
+      const String &fileName = filesInDir.at(i);
+      String escaped = htmlEscape(fileName);
+      bool isNext = lastPlayedFileName.endsWith(fileName);
 
-  request->send(response);
+      String display = fileName;
+      String ext = "";
+      int dot = display.lastIndexOf('.');
+      if (dot > 0) {
+        ext = display.substring(dot);
+        display = display.substring(0, dot);
+      }
+      display.replace('_', ' ');
+
+      res->printf("<li><form method=\"POST\" action=\"/select\"><input type=\"hidden\" name=\"filename\" value=\"%s\">"
+                  "<button class=\"icon-btn%s\" type=\"submit\" aria-label=\"Play next\"><i class=\"ic ic-play\"></i></button></form>",
+                  escaped.c_str(), isNext ? " playing" : "");
+      res->printf("<span class=\"name\">%s<span class=\"ext\">%s</span>%s</span>",
+                  htmlEscape(display).c_str(), htmlEscape(ext).c_str(), isNext ? "<span class=\"meta\">Plays next</span>" : "");
+      res->printf("<form method=\"POST\" action=\"/delete\" onsubmit=\"return confirm('Delete %s?')\"><input type=\"hidden\" name=\"filename\" value=\"%s\">"
+                  "<button class=\"icon-btn destructive\" type=\"submit\" aria-label=\"Delete\"><i class=\"ic ic-trash\"></i></button></form></li>",
+                  escaped.c_str(), escaped.c_str());
+    }
+    res->print("</ul>");
+  }
+
+  if (total > PAGE_SIZE) {
+    res->print("<div class=\"pager\">");
+    if (page > 0) {
+      res->printf("<a class=\"btn secondary small\" href=\"/?page=%d\">Previous</a>", page - 1);
+    } else {
+      res->print("<span class=\"btn secondary small\" aria-disabled=\"true\">Previous</span>");
+    }
+    res->printf("<span class=\"mono\">%d&ndash;%d of %d</span>", total ? first + 1 : 0, last, total);
+    if (last < total) {
+      res->printf("<a class=\"btn secondary small\" href=\"/?page=%d\">Next</a>", page + 1);
+    } else {
+      res->print("<span class=\"btn secondary small\" aria-disabled=\"true\">Next</span>");
+    }
+    res->print("</div>");
+  }
+  res->print("</div>");
+
+  pageFoot(res);
+  request->send(res);
 }
+
+// ---------------------------------------------------------------------------
+// Actions
+// ---------------------------------------------------------------------------
 
 void handleUpload(AsyncWebServerRequest *request, String filename, size_t index, uint8_t *data, size_t len, bool final) {
   String logmessage = "Client:" + request->client()->remoteIP().toString() + " " + request->url();
@@ -239,7 +318,7 @@ void handleUpload(AsyncWebServerRequest *request, String filename, size_t index,
 
   if (final) {
     logmessage = "Upload Complete: " + String(filename) + ",size: " + String(index + len);
-    // close the file handle as the upload is now doneu
+    // close the file handle as the upload is now done
     request->_tempFile.close();
     filename = sanitizeFilename(filename);
     SD.rename("/temp", webServerFolderPath + "/" + filename);
@@ -247,7 +326,6 @@ void handleUpload(AsyncWebServerRequest *request, String filename, size_t index,
     filesInDir.push_back(filename);
     deleteIndexFiles();
     Serial.println(logmessage);
-    request->send(200, "text/plain", "File uploaded successfully");
   }
 }
 
@@ -327,9 +405,9 @@ void setupWebServer(String path) {
   dnsServer.start(53, "*", IP);
   server.on("/home", HTTP_GET, home);
   server.on("/", HTTP_GET, listFiles);
-  server.on("/css", HTTP_GET, css);
+  server.on("/css", HTTP_GET, cssHandler);
 
-  server.on("/upload", HTTP_POST, [](AsyncWebServerRequest *request) { request->send(200); }, handleUpload);
+  server.on("/upload", HTTP_POST, [](AsyncWebServerRequest *request) { request->send(200, "text/plain", "File uploaded successfully"); }, handleUpload);
   server.on("/select", HTTP_POST, handleFileSelect);
   server.on("/delete", HTTP_POST, handleFileDelete);
   server.on("/setFolderPath", HTTP_POST, handleFolderPathChange);

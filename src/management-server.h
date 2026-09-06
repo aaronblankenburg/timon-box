@@ -381,7 +381,7 @@ void home(AsyncWebServerRequest *request) {
              "var pending=items.filter(function(x){return x.status!=='done'}).length;u.disabled=!pending;u.textContent=pending&&pending<items.length?'Upload remaining':'Upload';"
              "if(cancelled){mt.textContent='Upload cancelled';t.textContent=(items.length-pending)+' of '+items.length+' uploaded \\u00b7 '+fmt(doneBytes);rb.textContent='Continue upload';rb.hidden=false;mx.hidden=false}"
              "else if(failed){mt.textContent='Upload incomplete';t.textContent=failed+' of '+items.length+' failed \\u00b7 '+fmt(doneBytes)+' uploaded. Check the connection, then retry.';rb.textContent='Retry failed';rb.hidden=false;mx.hidden=false}"
-             "else{mt.textContent='Done';t.textContent=items.length+' file'+(items.length>1?'s':'')+' \\u00b7 '+fmt(total)+' uploaded';ms.hidden=false;setTimeout(function(){location.href='/'},1500)}}"
+             "else{mt.textContent='Done';t.textContent=items.length+' file'+(items.length>1?'s':'')+' \\u00b7 '+fmt(total)+' uploaded';ms.hidden=false;mx.hidden=false}}"
              "i.onchange=function(){setFiles(i.files)};"
              "['dragenter','dragover'].forEach(function(ev){z.addEventListener(ev,function(e){e.preventDefault();if(!busy)z.classList.add('over')})});"
              "['dragleave','drop'].forEach(function(ev){z.addEventListener(ev,function(e){e.preventDefault();z.classList.remove('over')})});"

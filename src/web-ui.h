@@ -171,6 +171,8 @@ static NavItem NAV_ITEMS[] = {
 String (*pageSubtitle)() = nullptr;
 // Set by the management server; hides tabs that make no sense yet (Files/Upload without an album token).
 bool (*navItemVisible)(const NavItem &item) = nullptr;
+// Set by the management server; prints a notice above the page content (e.g. "place an album token").
+void (*pageNotice)(AsyncResponseStream *res) = nullptr;
 
 String htmlEscape(const String &in) {
   String out;
@@ -238,6 +240,7 @@ void pageHead(AsyncResponseStream *res, AsyncWebServerRequest *request, const ch
     res->printf("<a href=\"%s\"%s>%s</a>", item.href, active ? " aria-current=\"page\"" : "", item.label);
   }
   res->print("</nav><section>");
+  if (pageNotice) pageNotice(res);
 }
 
 void pageFoot(AsyncResponseStream *res) {

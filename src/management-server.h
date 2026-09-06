@@ -216,6 +216,26 @@ bool navVisible(const NavItem &item) {
   return !currentFolder().isEmpty();
 }
 
+// Shown on every page while only the management token is on the box. Polls /album
+// and jumps to the file list as soon as an album token is recognised.
+void albumNotice(AsyncResponseStream *res) {
+  if (!currentFolder().isEmpty()) return;
+  res->print("<div class=\"notice\"><i class=\"ic ic-warn\"></i><span><b>Which album?</b> Only the management token is on the box. "
+             "Swap it for the token of the album you want to edit. Files and Upload appear here automatically.</span></div>"
+             "<script>(function(){function c(){fetch('/album',{cache:'no-store'}).then(function(r){return r.json()}).then(function(d){if(d.album)location.href='/';else setTimeout(c,2000)}).catch(function(){setTimeout(c,3000)})}setTimeout(c,2000)})()</script>");
+}
+
+void sendBusy(AsyncWebServerRequest *request);
+
+void albumJson(AsyncWebServerRequest *request) {
+  if (!filesLock()) return sendBusy(request);
+  String json = "{\"album\":\"" + jsonEscape(webServerFolderPath) + "\",\"tracks\":" + String(filesInDir.size()) + "}";
+  filesUnlock();
+  AsyncWebServerResponse *response = request->beginResponse(200, "application/json", json);
+  response->addHeader("Cache-Control", "no-store");
+  request->send(response);
+}
+
 // "/Bibi_Blocksberg_047a8772d42a81" -> "Bibi_Blocksberg" (the token suffix is re-attached by renameFolder)
 String folderDisplayName(const String &folder) {
   String name = folder;
@@ -555,6 +575,7 @@ void setupWebServer() {
   filesMutex = xSemaphoreCreateMutex();
   pageSubtitle = albumSubtitle;
   navItemVisible = navVisible;
+  pageNotice = albumNotice;
 
   // Joins the saved home network or opens the hotspot; see wifi-setup.h.
   netBegin();
@@ -563,6 +584,7 @@ void setupWebServer() {
   server.on("/home", HTTP_GET, home);
   server.on("/", HTTP_GET, listFiles);
   server.on("/css", HTTP_GET, cssHandler);
+  server.on("/album", HTTP_GET, albumJson);
 
   server.on("/upload", HTTP_POST, [](AsyncWebServerRequest *request) { request->send(200, "text/plain", "File uploaded successfully"); }, handleUpload);
   server.on("/select", HTTP_POST, handleFileSelect);

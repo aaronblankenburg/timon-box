@@ -7,7 +7,9 @@
 #include <WiFi.h>
 #include <esp_task_wdt.h>
 #include <freertos/FreeRTOS.h>
+#include <freertos/queue.h>
 #include <freertos/semphr.h>
+#include <freertos/task.h>
 
 #include <algorithm>
 #include <vector>
@@ -484,129 +486,251 @@ void listFiles(AsyncWebServerRequest *request) {
 // ---------------------------------------------------------------------------
 
 // ---------------------------------------------------------------------------
-// Upload: the file arrives as raw request body (no byte-wise multipart parsing)
-// and is collected in a large buffer that is written to the SD card in
-// UPLOAD_BUF_SIZE pieces instead of one write per TCP chunk. Both together make
-// uploads several times faster on the ESP32.
+// Upload
+//
+// The file arrives as raw request body (no byte-wise multipart parsing). The
+// network task only copies it into 16 kB buffers from a small pool and hands
+// full buffers to a dedicated SD writer task; it never touches the SD card
+// itself. That keeps AsyncTCP responsive while several uploads are in flight
+// (blocked in SD writes it let its receive timeout reset the other
+// connections) and lets SD writes overlap with receiving.
 // ---------------------------------------------------------------------------
 
-#define UPLOAD_BUF_SIZE 16384  // per connection; the page uploads up to three files at once
+#define UPLOAD_BUF_SIZE 16384
+#define UPLOAD_BUF_COUNT 4          // pool shared by all uploads in flight
+#define UPLOAD_CLOSE_TIMEOUT_MS 15000
+#define UPLOAD_RX_TIMEOUT_S 60      // ESPAsyncWebServer's default of 3 s is too short for a stalled TCP stream
 
-// Lives in request->_tempObject, which ESPAsyncWebServer free()s together with
-// the request, so it has to stay a plain block of memory. The File handle stays
-// in request->_tempFile, whose destructor closes it even if the client vanishes.
-struct UploadBuf {
-  size_t cap;
-  size_t fill;
-  size_t written;
-  unsigned long startedAt;
-  bool failed;
-  char tmpPath[20];  // own temp file per connection, uploads run in parallel
-  uint8_t data[];
+// One upload. Owned by the writer task from OPEN until it hands it back with
+// the CLOSE result (then the request deletes it) or cleans it up after ABORT.
+struct UploadCtx {
+  File file;
+  String tmpPath;
+  String filename;
+  size_t written = 0;
+  unsigned long startedAt = 0;
+  unsigned long sdMs = 0;  // time the writer spent on the SD card for this file
+  volatile bool failed = false;
+  int result = 500;
+  const char *message = "Upload failed";
+  SemaphoreHandle_t done = nullptr;
 };
 
+enum UploadOp { UP_OPEN,
+                UP_DATA,
+                UP_CLOSE,
+                UP_ABORT };
+
+struct UploadJob {
+  UploadOp op;
+  UploadCtx *ctx;
+  uint8_t *buf;
+  size_t len;
+};
+
+// Per request, kept in request->_tempObject (a plain malloc block the server free()s).
+struct UploadReq {
+  UploadCtx *ctx;
+  uint8_t *buf;  // buffer currently being filled, nullptr if none
+  size_t fill;
+  bool finished;  // CLOSE or ABORT already posted
+};
+
+QueueHandle_t uploadJobs = nullptr;
+QueueHandle_t uploadFreeBufs = nullptr;
 static uint32_t uploadSeq = 0;  // AsyncTCP task only
 
-static UploadBuf *allocUploadBuf() {
-  for (size_t cap = UPLOAD_BUF_SIZE; cap >= 4096; cap /= 2) {
-    UploadBuf *ub = (UploadBuf *)malloc(sizeof(UploadBuf) + cap);
-    if (ub) {
-      ub->cap = cap;
-      ub->fill = 0;
-      ub->written = 0;
-      ub->startedAt = millis();
-      ub->failed = false;
-      snprintf(ub->tmpPath, sizeof(ub->tmpPath), "/temp_%u", (unsigned)(++uploadSeq));
-      return ub;
+static void uploadPost(UploadOp op, UploadCtx *ctx, uint8_t *buf, size_t len) {
+  UploadJob job = {op, ctx, buf, len};
+  xQueueSend(uploadJobs, &job, portMAX_DELAY);
+}
+
+static void uploadReleaseBuf(uint8_t *buf) {
+  if (buf) xQueueSend(uploadFreeBufs, &buf, 0);
+}
+
+// Runs on its own task: the only place that writes upload data to the SD card.
+static void uploadWriterTask(void *) {
+  UploadJob job;
+  for (;;) {
+    if (xQueueReceive(uploadJobs, &job, portMAX_DELAY) != pdTRUE) continue;
+    UploadCtx *c = job.ctx;
+    unsigned long t0 = millis();
+    switch (job.op) {
+      case UP_OPEN:
+        if (filesLock(10000)) {
+          c->file = SD.open(c->tmpPath, FILE_WRITE);
+          filesUnlock();
+        }
+        if (!c->file) c->failed = true;
+        break;
+
+      case UP_DATA:
+        if (!c->failed) {
+          bool ok = false;
+          if (filesLock(10000)) {
+            ok = c->file.write(job.buf, job.len) == job.len;
+            filesUnlock();
+          }
+          if (ok) c->written += job.len;
+          else c->failed = true;
+        }
+        uploadReleaseBuf(job.buf);
+        break;
+
+      case UP_CLOSE:
+        if (filesLock(10000)) {
+          c->file.close();
+          String target = webServerFolderPath + "/" + c->filename;
+          if (c->failed) {
+            SD.remove(c->tmpPath);
+            c->result = 500;
+            c->message = "Writing to the SD card failed";
+          } else if (webServerFolderPath.isEmpty()) {
+            SD.remove(c->tmpPath);  // token was removed meanwhile
+            c->result = 409;
+            c->message = "No album selected";
+          } else if ((SD.exists(target) && !SD.remove(target)) || !SD.rename(c->tmpPath, target)) {  // overwrite an existing track
+            SD.remove(c->tmpPath);
+            c->result = 500;
+            c->message = "Could not move the file into the album folder";
+          } else {
+            filesInDir.erase(std::remove(filesInDir.begin(), filesInDir.end(), c->filename), filesInDir.end());
+            filesInDir.push_back(c->filename);
+            deleteIndexFiles(webServerFolderPath);
+            c->result = 200;
+            c->message = "File uploaded successfully";
+          }
+          filesUnlock();
+        } else {
+          c->result = 503;
+          c->message = "The box is busy, please retry.";
+        }
+        c->sdMs += millis() - t0;
+        xSemaphoreGive(c->done);  // the request owns c from here on
+        continue;
+
+      case UP_ABORT:  // client vanished: nobody waits for this one
+        if (filesLock(10000)) {
+          c->file.close();
+          SD.remove(c->tmpPath);
+          filesUnlock();
+        }
+        Serial.printf("Upload aborted: %s after %u bytes\n", c->filename.c_str(), (unsigned)c->written);
+        vSemaphoreDelete(c->done);
+        delete c;
+        continue;
     }
+    c->sdMs += millis() - t0;
   }
-  return nullptr;
 }
 
-static bool flushUploadBuf(AsyncWebServerRequest *request, UploadBuf *ub) {
-  if (ub->fill == 0) return true;
-  bool ok = false;
-  if (filesLock()) {
-    ok = request->_tempFile.write(ub->data, ub->fill) == ub->fill;
-    filesUnlock();
+// Call once from setupWebServer(): buffer pool + writer task.
+void uploadBegin() {
+  uploadJobs = xQueueCreate(UPLOAD_BUF_COUNT + 16, sizeof(UploadJob));
+  uploadFreeBufs = xQueueCreate(UPLOAD_BUF_COUNT, sizeof(uint8_t *));
+  int buffers = 0;
+  for (; buffers < UPLOAD_BUF_COUNT; buffers++) {
+    uint8_t *buf = (uint8_t *)malloc(UPLOAD_BUF_SIZE);
+    if (!buf) break;
+    xQueueSend(uploadFreeBufs, &buf, 0);
   }
-  if (!ok) ub->failed = true;
-  ub->written += ub->fill;
-  ub->fill = 0;
-  return ok;
+  xTaskCreatePinnedToCore(uploadWriterTask, "sdwriter", 6144, nullptr, 3, nullptr, 1);
+  Serial.printf("upload: %d buffers of %u bytes, free heap %u\n", buffers, (unsigned)UPLOAD_BUF_SIZE, ESP.getFreeHeap());
 }
 
-// Body handler: called with every chunk of the raw upload (AsyncTCP task).
+// Body handler (AsyncTCP task): copy into the current buffer, hand full buffers to the writer.
 void handleUploadBody(AsyncWebServerRequest *request, uint8_t *data, size_t len, size_t index, size_t total) {
   if (index == 0) {
-    UploadBuf *ub = allocUploadBuf();
-    if (!ub) return;  // reported by handleUploadDone
-    request->_tempObject = ub;
-    if (filesLock()) {
-      request->_tempFile = SD.open(ub->tmpPath, FILE_WRITE);
-      filesUnlock();
+    request->client()->setRxTimeout(UPLOAD_RX_TIMEOUT_S);
+    UploadReq *r = (UploadReq *)calloc(1, sizeof(UploadReq));
+    if (!r || !uploadJobs) {
+      free(r);
+      return;  // reported by handleUploadDone
     }
-    if (!request->_tempFile) ub->failed = true;
-    Serial.printf("Upload start: %s (%u bytes, %u byte buffer)\n",
-                  request->hasParam("name") ? request->getParam("name")->value().c_str() : "?", (unsigned)total, (unsigned)ub->cap);
+    UploadCtx *c = new UploadCtx();
+    c->tmpPath = "/temp_" + String(++uploadSeq);
+    c->filename = request->hasParam("name") ? sanitizeFilename(request->getParam("name")->value()) : "";
+    c->startedAt = millis();
+    c->done = xSemaphoreCreateBinary();
+    r->ctx = c;
+    request->_tempObject = r;
+    request->onDisconnect([r]() {  // fires on every disconnect, also after a normal response
+      if (r->finished) return;
+      r->finished = true;
+      uploadReleaseBuf(r->buf);
+      r->buf = nullptr;
+      uploadPost(UP_ABORT, r->ctx, nullptr, 0);
+    });
+    uploadPost(UP_OPEN, c, nullptr, 0);
+    Serial.printf("Upload start: %s (%u bytes), free heap %u, largest block %u\n",
+                  c->filename.c_str(), (unsigned)total, ESP.getFreeHeap(), ESP.getMaxAllocHeap());
   }
 
-  UploadBuf *ub = (UploadBuf *)request->_tempObject;
-  if (!ub || ub->failed) return;
+  UploadReq *r = (UploadReq *)request->_tempObject;
+  if (!r || r->finished || r->ctx->failed) return;
 
   while (len) {
-    size_t n = std::min(len, ub->cap - ub->fill);
-    memcpy(ub->data + ub->fill, data, n);
-    ub->fill += n;
+    if (!r->buf) {
+      if (xQueueReceive(uploadFreeBufs, &r->buf, pdMS_TO_TICKS(5000)) != pdTRUE) {  // writer cannot keep up
+        r->buf = nullptr;
+        r->ctx->failed = true;
+        return;
+      }
+      r->fill = 0;
+    }
+    size_t n = std::min(len, (size_t)UPLOAD_BUF_SIZE - r->fill);
+    memcpy(r->buf + r->fill, data, n);
+    r->fill += n;
     data += n;
     len -= n;
-    if (ub->fill == ub->cap && !flushUploadBuf(request, ub)) return;
+    if (r->fill == UPLOAD_BUF_SIZE) {
+      uploadPost(UP_DATA, r->ctx, r->buf, r->fill);
+      r->buf = nullptr;
+      r->fill = 0;
+    }
   }
 }
 
-// Request handler: runs once the whole body arrived. Flush, close, move into the album.
+// Request handler: runs once the whole body arrived. Flush the rest, let the writer close and move the file.
 void handleUploadDone(AsyncWebServerRequest *request) {
-  UploadBuf *ub = (UploadBuf *)request->_tempObject;
-  String filename = request->hasParam("name") ? sanitizeFilename(request->getParam("name")->value()) : "";
-
-  if (!ub || filename.isEmpty()) {
-    if (request->_tempFile) request->_tempFile.close();
-    request->send(ub ? 400 : 507, "text/plain", ub ? "Missing file name" : "Not enough memory or empty upload");
+  UploadReq *r = (UploadReq *)request->_tempObject;
+  if (!r) {
+    request->send(507, "text/plain", "Empty upload or not enough memory");
     return;
   }
-  if (!ub->failed) flushUploadBuf(request, ub);
+  r->finished = true;
+  UploadCtx *c = r->ctx;
 
-  if (!filesLock()) {
-    request->_tempFile.close();
-    return sendBusy(request);
+  if (c->filename.isEmpty()) {
+    uploadReleaseBuf(r->buf);
+    r->buf = nullptr;
+    uploadPost(UP_ABORT, c, nullptr, 0);
+    request->send(400, "text/plain", "Missing file name");
+    return;
   }
-  request->_tempFile.close();
-  int code = 200;
-  const char *message = "File uploaded successfully";
-  String target = webServerFolderPath + "/" + filename;
-  if (ub->failed) {
-    SD.remove(ub->tmpPath);
-    code = 500;
-    message = "Writing to the SD card failed";
-  } else if (webServerFolderPath.isEmpty()) {
-    SD.remove(ub->tmpPath);  // token was removed meanwhile
-    code = 409;
-    message = "No album selected";
-  } else if ((SD.exists(target) && !SD.remove(target)) || !SD.rename(ub->tmpPath, target)) {  // overwrite an existing track
-    SD.remove(ub->tmpPath);
-    code = 500;
-    message = "Could not move the file into the album folder";
-  } else {
-    filesInDir.erase(std::remove(filesInDir.begin(), filesInDir.end(), filename), filesInDir.end());
-    filesInDir.push_back(filename);
-    deleteIndexFiles(webServerFolderPath);
-  }
-  filesUnlock();
 
-  unsigned long ms = millis() - ub->startedAt;
-  Serial.printf("Upload %s: %s, %u bytes in %lu ms (%.2f MB/s)\n", code == 200 ? "complete" : "failed",
-                filename.c_str(), (unsigned)ub->written, ms, ms ? ub->written / 1048.576 / ms : 0.0);
-  request->send(code, "text/plain", message);
+  if (r->buf) {
+    if (r->fill && !c->failed) uploadPost(UP_DATA, c, r->buf, r->fill);
+    else uploadReleaseBuf(r->buf);
+    r->buf = nullptr;
+  }
+  uploadPost(UP_CLOSE, c, nullptr, 0);
+
+  if (xSemaphoreTake(c->done, pdMS_TO_TICKS(UPLOAD_CLOSE_TIMEOUT_MS)) != pdTRUE) {
+    // Writer is stuck; the context stays allocated rather than risking a use after free.
+    Serial.printf("Upload %s: writer did not finish in time\n", c->filename.c_str());
+    request->send(503, "text/plain", "SD card is busy, please retry");
+    return;
+  }
+
+  unsigned long ms = millis() - c->startedAt;
+  Serial.printf("Upload %s: %s, %u bytes in %lu ms (%.2f MB/s), SD busy %lu ms, free heap %u\n",
+                c->result == 200 ? "complete" : "failed", c->filename.c_str(), (unsigned)c->written, ms,
+                ms ? c->written / 1048.576 / ms : 0.0, c->sdMs, ESP.getFreeHeap());
+  request->send(c->result, "text/plain", c->message);
+  vSemaphoreDelete(c->done);
+  delete c;
 }
 
 void handleFileDelete(AsyncWebServerRequest *request) {
@@ -679,6 +803,7 @@ void setupWebServer() {
 
   // Joins the saved home network or opens the hotspot; see wifi-setup.h.
   netBegin();
+  uploadBegin();
 
   Serial.println("starting management server");
   server.on("/home", HTTP_GET, home);

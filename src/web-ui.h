@@ -147,6 +147,12 @@ dialog.modal .ulist{max-height:36vh}
 .spinner{width:18px;height:18px;border-radius:50%;border:2px solid var(--accent-ring);border-top-color:var(--accent);animation:spin .8s linear infinite;flex:none}
 @keyframes spin{to{transform:rotate(360deg)}}
 footer{text-align:center;font-size:13px;color:var(--text3);padding-top:8px}
+html,.ulist,dialog.modal .card{scrollbar-width:thin;scrollbar-color:var(--text3) transparent}
+::-webkit-scrollbar{width:8px;height:8px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:var(--text3);border-radius:980px;border:2px solid transparent;background-clip:padding-box}
+::-webkit-scrollbar-thumb:hover{background:var(--text2);background-clip:padding-box}
+::-webkit-scrollbar-corner{background:transparent}
 @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
 @media (max-width:420px){h1{font-size:30px}.card{padding:16px}.card.flush{padding:0}.card.flush .card-head,.card.flush .lead{padding-left:16px;padding-right:16px}.card.flush .card-head{padding-top:16px}.list li{padding:8px 16px}.pager{padding:12px 16px}}
 )CSS";

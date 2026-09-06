@@ -242,6 +242,7 @@ void loop() {
       changeState(netMode == NET_STATION ? managementServerLan
                   : netMode == NET_CONNECTING ? managementServerConnecting
                                               : managementServerRunning);
+      delay(1);  // nothing here is time critical; give the WiFi and web server tasks the core
       break;
     }
   }
@@ -439,7 +440,12 @@ unsigned int getBattery() {
 }
 
 void updateBatteryAdc() {
-  batteryAdcValue = (batteryAdcValue * 0.999) + (0.001 * analogRead(VOLTAGE_PIN));
+  // Sample every 10 ms instead of on every loop iteration: analogRead() at several kHz keeps
+  // toggling the SAR ADC power domain that the WiFi PHY shares. Filter time constant ~0.5 s.
+  static unsigned long lastSample = 0;
+  if (millis() - lastSample < 10) return;
+  lastSample = millis();
+  batteryAdcValue = (batteryAdcValue * 0.98) + (0.02 * analogRead(VOLTAGE_PIN));
 }
 
 void checkSerialForCommands() {

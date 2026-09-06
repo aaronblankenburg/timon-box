@@ -99,8 +99,33 @@ section{display:flex;flex-direction:column;gap:16px}
 .pager{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:14px 20px;border-top:1px solid var(--sep);font-size:15px;color:var(--text2)}
 .progress{position:relative;height:6px;border-radius:980px;background:var(--seg);overflow:hidden}
 .progress>i{position:absolute;top:0;bottom:0;left:0;width:0;background:var(--accent);border-radius:980px;transition:width .3s}
-.dropzone{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;padding:26px 16px;border:1.5px dashed var(--sep);border-radius:14px;background:var(--bg);text-align:center;color:var(--text2);font-size:15px;cursor:pointer}
+.dropzone{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;padding:26px 16px;border:1.5px dashed var(--sep);border-radius:14px;background:var(--bg);text-align:center;color:var(--text2);font-size:15px;cursor:pointer;transition:border-color .15s,background .15s}
 .dropzone strong{color:var(--text);font-weight:600}
+.dropzone.over{border-color:var(--accent);border-style:solid;background:var(--accent-tint);color:var(--accent)}
+.dropzone.over strong{color:var(--accent)}
+.ulist{list-style:none;margin:0;padding:0;border:1px solid var(--sep);border-radius:14px;overflow-x:hidden;overflow-y:auto;max-height:260px}
+.ulist li{display:flex;align-items:center;gap:10px;padding:8px 12px;border-bottom:1px solid var(--sep);font-size:15px}
+.ulist li:last-child{border-bottom:0}
+.ulist .fn{flex:1;min-width:0;overflow-wrap:anywhere}
+.ulist .fp{color:var(--text2);font-size:13px;font-variant-numeric:tabular-nums;white-space:nowrap}
+.ulist .fz{color:var(--text3);font-size:13px;font-variant-numeric:tabular-nums;white-space:nowrap;min-width:4.5em;text-align:right}
+.st{width:18px;height:18px;flex:none;border-radius:50%;border:1.5px solid var(--sep);display:flex;align-items:center;justify-content:center}
+.st.up{border:2px solid var(--accent-ring);border-top-color:var(--accent);animation:spin .8s linear infinite}
+.st.sv{border:2px solid var(--ok-tint);border-top-color:var(--ok);animation:spin .8s linear infinite}
+.st.ok{border:0;background:var(--ok-tint);color:var(--ok)}
+.st.err{border:0;background:var(--danger-tint);color:var(--danger)}
+.st.ok::after,.st.err::after{content:"";width:11px;height:11px;background:currentColor;-webkit-mask:var(--m) center/contain no-repeat;mask:var(--m) center/contain no-repeat}
+.st.ok::after{--m:url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 18 18' fill='none' stroke='black' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'><path d='M3.5 9.5l3.5 3.5 7.5-8'/></svg>")}
+.st.err::after{--m:url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 18 18' fill='none' stroke='black' stroke-width='2.4' stroke-linecap='round'><path d='M5 5l8 8M13 5l-8 8'/></svg>")}
+.hint.danger{color:var(--danger)}
+.actions.end{justify-content:flex-end}
+dialog.modal{border:0;padding:0;margin:auto;background:transparent;color:var(--text);width:min(560px,calc(100vw - 32px));max-height:calc(100vh - 32px);overflow:visible}
+dialog.modal::backdrop{background:rgba(0,0,0,.45);-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px)}
+dialog.modal .card{box-shadow:0 24px 64px rgba(0,0,0,.35);max-height:calc(100vh - 32px);overflow:auto}
+dialog.modal .ulist{max-height:36vh}
+.notice{display:flex;gap:10px;align-items:flex-start;padding:12px 14px;border-radius:12px;background:var(--warn-tint);color:var(--text);font-size:14px;line-height:1.4}
+.notice .ic{width:18px;height:18px;flex:none;color:var(--warn);margin-top:1px}
+.ic-warn{--m:url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 18 18' fill='none' stroke='black' stroke-width='1.7' stroke-linecap='round' stroke-linejoin='round'><path d='M9 2.5l7 12.5H2z'/><path d='M9 7v4M9 13.2v.1'/></svg>")}
 .dropzone input{display:none}
 .nets{list-style:none;margin:0;padding:0;border:1px solid var(--sep);border-radius:14px;overflow:hidden}
 .nets li{display:flex;align-items:center;gap:12px;padding:12px 14px;border-bottom:1px solid var(--sep);cursor:pointer;font-size:17px}

@@ -280,13 +280,14 @@ void home(AsyncWebServerRequest *request) {
   res->printf("<dt>SD card</dt><dd>%s free of %s</dd>", formatBytes(sdFree).c_str(), formatBytes(sdTotal).c_str());
   res->print("</dl></div>");
 
-  // Upload card
+  // Upload card: dropzone + selection summary. The upload itself runs in a modal
+  // <dialog> with a backdrop so it is obvious that leaving the page cancels it.
   res->print("<div class=\"card\"><div class=\"card-head\"><h2>Upload</h2><span class=\"muted small\">MP3 only</span></div>"
-             "<label class=\"dropzone\"><input type=\"file\" id=\"f\" accept=\"audio/mpeg\" multiple>"
-             "<strong>Choose MP3 files</strong><span>uploaded one after another to the album folder</span></label>"
-             "<div class=\"progress\"><i id=\"bar\"></i></div>"
-             "<div class=\"actions between\"><span class=\"hint mono\" id=\"pt\">No files selected</span>"
-             "<button class=\"btn\" type=\"button\" id=\"ub\">Upload</button></div></div>");
+             "<label class=\"dropzone\" id=\"dz\"><input type=\"file\" id=\"f\" accept=\"audio/mpeg,.mp3\" multiple>"
+             "<strong>Choose MP3 files</strong><span>or drag &amp; drop them here &middot; uploaded one after another to the album folder</span></label>"
+             "<div id=\"slot\"><ul class=\"ulist\" id=\"ul\" hidden></ul></div>"
+             "<div class=\"actions between\"><span class=\"hint\" id=\"ph\">No files selected</span>"
+             "<button class=\"btn\" type=\"button\" id=\"ub\" disabled>Upload</button></div></div>");
 
   // Rename card
   res->print("<div class=\"card\"><div class=\"card-head\"><h2>Rename Folder</h2></div>"
@@ -296,14 +297,77 @@ void home(AsyncWebServerRequest *request) {
   res->print("<button class=\"btn secondary\" type=\"submit\">Rename</button></div>"
              "<p class=\"hint\">The token suffix stays attached automatically. Spaces and umlauts are converted.</p></form></div>");
 
+  // Upload modal (the file list <ul> moves in here while uploading and back afterwards)
+  res->print("<dialog class=\"modal\" id=\"dlg\"><div class=\"card\">"
+             "<div class=\"card-head\"><h2 id=\"mt\">Uploading</h2><span class=\"hint mono\" id=\"pr\"></span></div>"
+             "<div class=\"progress\"><i id=\"bar\"></i></div>"
+             "<p class=\"hint mono\" id=\"pt\"></p>"
+             "<div id=\"mslot\"></div>"
+             "<div class=\"notice\" id=\"mh\"><i class=\"ic ic-warn\"></i><span>Keep this page open. Navigating away or closing the browser cancels the upload.</span></div>"
+             "<div class=\"actions end\">"
+             "<button class=\"btn destructive\" type=\"button\" id=\"mc\">Cancel upload</button>"
+             "<button class=\"btn secondary\" type=\"button\" id=\"mx\" hidden>Close</button>"
+             "<button class=\"btn\" type=\"button\" id=\"rb\" hidden>Retry failed</button>"
+             "<button class=\"btn\" type=\"button\" id=\"ms\" hidden>Show files</button>"
+             "</div></div></dialog>");
+
   // Upload script: one file per request, /temp on the SD card is shared, so uploads must not overlap.
-  res->print("<script>(function(){var i=document.getElementById('f'),b=document.getElementById('bar'),t=document.getElementById('pt'),u=document.getElementById('ub'),fs=[],n=0;"
-             "i.onchange=function(){fs=i.files;t.textContent=fs.length?fs.length+' file'+(fs.length>1?'s':'')+' selected':'No files selected'};"
-             "u.onclick=function(){if(!fs.length){t.textContent='Choose files first';return}n=0;u.disabled=true;i.disabled=true;nx()};"
-             "function nx(){if(n>=fs.length){t.textContent='Done';location.href='/';return}var d=new FormData();d.append('files',fs[n]);"
-             "t.textContent='Uploading '+(n+1)+' / '+fs.length+' \\u00b7 '+fs[n].name;"
-             "fetch('/upload',{method:'POST',body:d}).then(function(r){if(!r.ok)throw new Error('HTTP '+r.status);n++;b.style.width=(n/fs.length*100)+'%';nx()})"
-             ".catch(function(e){t.textContent='Upload failed: '+e.message;u.disabled=false;i.disabled=false})}})()</script>");
+  // XMLHttpRequest instead of fetch because only it reports upload progress per byte.
+  char sdFreeBuf[24];
+  snprintf(sdFreeBuf, sizeof(sdFreeBuf), "%llu", (unsigned long long)sdFree);
+  res->print("<script>(function(){var $=function(id){return document.getElementById(id)},i=$('f'),z=$('dz'),b=$('bar'),t=$('pt'),r=$('pr'),ul=$('ul'),ph=$('ph'),u=$('ub'),rb=$('rb'),"
+             "dlg=$('dlg'),mt=$('mt'),mh=$('mh'),mc=$('mc'),mx=$('mx'),ms=$('ms'),slot=$('slot'),mslot=$('mslot');");
+  res->printf("var SD_FREE=%s;", sdFreeBuf);
+  res->print("var items=[],total=0,doneBytes=0,startAt=0,samples=[],busy=false,cur=null,cancelled=false;"
+             "function esc(s){return String(s).replace(/[&<>\"']/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;',\"'\":'&#39;'}[c]})}"
+             "function fmt(n){if(n>=1073741824)return (n/1073741824).toFixed(2)+' GB';if(n>=1048576)return (n/1048576).toFixed(1)+' MB';return Math.max(1,Math.round(n/1024))+' kB'}"
+             "function fmtT(s){if(s<60)return Math.ceil(s)+' s';var m=Math.floor(s/60);return m+' min '+Math.round(s-m*60)+' s'}"
+             "function fp(k){return $('it'+k).querySelector('.fp')}"
+             // selection: filter to MP3, build the list, check the selection against the free SD space
+             "function setFiles(list){if(busy)return;var a=[],skipped=0;for(var k=0;k<list.length;k++){var f=list[k];if(f.type==='audio/mpeg'||/\\.mp3$/i.test(f.name))a.push(f);else skipped++}"
+             "items=a.map(function(f){return{file:f,status:'pending'}});total=0;items.forEach(function(x){total+=x.file.size});doneBytes=0;b.style.width='0';u.textContent='Upload';"
+             "ul.hidden=!items.length;ul.innerHTML=items.map(function(x,k){return '<li id=\"it'+k+'\"><i class=\"st\"></i><span class=\"fn\">'+esc(x.file.name)+'</span><span class=\"fp\"></span><span class=\"fz\">'+fmt(x.file.size)+'</span></li>'}).join('');"
+             "if(!items.length){ph.textContent=skipped?'Only MP3 files can be uploaded':'No files selected';ph.className='hint';u.disabled=true;return}"
+             "var s=items.length+' file'+(items.length>1?'s':'')+' \\u00b7 '+fmt(total)+(skipped?' \\u00b7 '+skipped+' skipped (not MP3)':'');"
+             "if(total>SD_FREE){ph.textContent=s+' \\u00b7 not enough space on the SD card ('+fmt(SD_FREE)+' free)';ph.className='hint danger';u.disabled=true}"
+             "else{ph.textContent=s+' \\u00b7 '+fmt(SD_FREE-total)+' will stay free';ph.className='hint';u.disabled=false}}"
+             "function setSt(k,st,txt){items[k].status=st;var li=$('it'+k);li.firstChild.className='st '+({uploading:'up',saving:'sv',done:'ok',failed:'err'}[st]||'');fp(k).textContent=txt||''}"
+             // overall bar plus rate/ETA from a 4 s sliding window, shown after 2.5 s
+             "function progress(c){var sent=doneBytes+c,pct=total?Math.min(100,Math.round(sent/total*100)):0;b.style.width=pct+'%';"
+             "var now=Date.now();samples.push([now,sent]);while(samples.length>2&&now-samples[0][0]>4000)samples.shift();"
+             "if(samples.length>1){var a=samples[0],e=samples[samples.length-1],rate=e[0]>a[0]?(e[1]-a[1])/((e[0]-a[0])/1000):0;"
+             "if(now-startAt>2500&&rate>0)r.textContent=fmt(rate)+'/s \\u00b7 ~'+fmtT((total-sent)/rate)+' left'}"
+             "return pct}"
+             // one file: upload.onprogress = bytes on the wire, upload.onload = all sent (box still saving), onload = box answered
+             "function uploadOne(k,cb){var x=items[k],xhr=new XMLHttpRequest();cur=xhr;xhr.open('POST','/upload');setSt(k,'uploading','0 %');"
+             "xhr.upload.onprogress=function(e){if(!e.lengthComputable)return;var pct=progress(e.loaded);t.textContent='Uploading '+(k+1)+' / '+items.length+' \\u00b7 '+fmt(doneBytes+e.loaded)+' of '+fmt(total)+' \\u00b7 '+pct+' %';fp(k).textContent=Math.round(e.loaded/e.total*100)+' %'};"
+             "xhr.upload.onload=function(){setSt(k,'saving','saving');t.textContent='Saving '+(k+1)+' / '+items.length+' on the SD card\\u2026'};"
+             "xhr.onload=function(){cur=null;if(xhr.status>=200&&xhr.status<300){doneBytes+=x.file.size;setSt(k,'done');progress(0);cb(true)}else{setSt(k,'failed','HTTP '+xhr.status);cb(false)}};"
+             "xhr.onerror=xhr.ontimeout=function(){cur=null;setSt(k,'failed','failed');cb(false)};"
+             "xhr.onabort=function(){cur=null;setSt(k,'failed','cancelled');cb(false)};"
+             "var d=new FormData();d.append('files',x.file);xhr.send(d)}"
+             // modal: the <dialog> blocks the page behind a blurred backdrop; Esc is ignored while busy
+             "function openModal(){mslot.appendChild(ul);ul.hidden=false;if(dlg.showModal){if(!dlg.open)dlg.showModal()}else dlg.setAttribute('open','')}"
+             "function closeModal(){if(dlg.close){if(dlg.open)dlg.close()}else dlg.removeAttribute('open');slot.appendChild(ul)}"
+             "dlg.addEventListener('cancel',function(e){if(busy)e.preventDefault()});dlg.addEventListener('close',function(){slot.appendChild(ul)});"
+             "window.addEventListener('beforeunload',function(e){if(busy){e.preventDefault();e.returnValue=''}});"
+             // run everything not yet done, sequentially; failed files stay in the list for a retry
+             "function run(){var q=[];items.forEach(function(x,k){if(x.status!=='done')q.push(k)});if(!q.length||busy)return;"
+             "busy=true;cancelled=false;u.disabled=true;i.disabled=true;rb.hidden=true;mx.hidden=true;ms.hidden=true;mc.hidden=false;mh.hidden=false;"
+             "mt.textContent='Uploading';t.textContent='Starting\\u2026';r.textContent='';startAt=Date.now();samples=[];"
+             "doneBytes=0;items.forEach(function(x){if(x.status==='done')doneBytes+=x.file.size});progress(0);openModal();"
+             "var failed=0;(function next(){if(cancelled){finish(failed);return}var k=q.shift();if(k===undefined){finish(failed);return}uploadOne(k,function(ok){if(!ok)failed++;next()})})()}"
+             "function finish(failed){busy=false;i.disabled=false;r.textContent='';mc.hidden=true;mh.hidden=true;"
+             "var pending=items.filter(function(x){return x.status!=='done'}).length;u.disabled=!pending;u.textContent=pending&&pending<items.length?'Upload remaining':'Upload';"
+             "if(cancelled){mt.textContent='Upload cancelled';t.textContent=(items.length-pending)+' of '+items.length+' uploaded \\u00b7 '+fmt(doneBytes);rb.textContent='Continue upload';rb.hidden=false;mx.hidden=false}"
+             "else if(failed){mt.textContent='Upload incomplete';t.textContent=failed+' of '+items.length+' failed \\u00b7 '+fmt(doneBytes)+' uploaded. Check the connection, then retry.';rb.textContent='Retry failed';rb.hidden=false;mx.hidden=false}"
+             "else{mt.textContent='Done';t.textContent=items.length+' file'+(items.length>1?'s':'')+' \\u00b7 '+fmt(total)+' uploaded';ms.hidden=false;setTimeout(function(){location.href='/'},1500)}}"
+             "i.onchange=function(){setFiles(i.files)};"
+             "['dragenter','dragover'].forEach(function(ev){z.addEventListener(ev,function(e){e.preventDefault();if(!busy)z.classList.add('over')})});"
+             "['dragleave','drop'].forEach(function(ev){z.addEventListener(ev,function(e){e.preventDefault();z.classList.remove('over')})});"
+             "z.addEventListener('drop',function(e){setFiles(e.dataTransfer.files)});"
+             "document.addEventListener('dragover',function(e){e.preventDefault()});document.addEventListener('drop',function(e){e.preventDefault()});"
+             "u.onclick=run;rb.onclick=run;mc.onclick=function(){if(!busy)return;cancelled=true;if(cur)cur.abort()};mx.onclick=closeModal;ms.onclick=function(){location.href='/'};})()</script>");
 
   pageFoot(res);
   request->send(res);

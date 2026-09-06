@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Timon-Box Zustandsautomat</title>
+<!-- Mermaid wird vom CDN geladen; zum Rendern ist also Internetzugang nötig. -->
+<script src="https://cdn.jsdelivr.net/npm/mermaid@11.4.1/dist/mermaid.min.js"></script>
+<style>
+:root{--bg:#f5f5f7;--card:#fff;--text:#1d1d1f;--text2:#6e6e73;--text3:#86868b;--accent:#0071e3;--sep:rgba(0,0,0,.08);--shadow:0 2px 12px rgba(0,0,0,.06)}
+*,*::before,*::after{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--text);font:16px/1.5 -apple-system,BlinkMacSystemFont,"SF Pro Text","Helvetica Neue",Helvetica,Arial,sans-serif;-webkit-font-smoothing:antialiased;overflow-x:hidden}
+main{max-width:1180px;margin:0 auto;padding:36px 20px 64px;display:flex;flex-direction:column;gap:28px}
+header{display:flex;flex-direction:column;gap:6px;padding:0 4px}
+h1{margin:0;font-size:36px;line-height:1.1;font-weight:700;letter-spacing:-.02em}
+.sub{margin:0;color:var(--text2);font-size:17px;max-width:75ch}
+code{font:inherit;font-variant-numeric:tabular-nums;background:#e8e8ed;padding:1px 6px;border-radius:6px}
+.card{background:var(--card);border-radius:18px;box-shadow:var(--shadow);padding:24px;display:flex;flex-direction:column;gap:14px}
+.card-head{display:flex;align-items:baseline;justify-content:space-between;gap:12px;flex-wrap:wrap}
+h2{margin:0;font-size:22px;line-height:1.2;font-weight:600;letter-spacing:-.01em}
+.eyebrow{font-size:12px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--text2)}
+.pill{display:inline-flex;align-items:center;gap:6px;padding:4px 10px;border-radius:980px;font-size:13px;font-weight:600;background:#e8e8ed;color:var(--text2);white-space:nowrap}
+.pill.accent{background:rgba(0,113,227,.12);color:var(--accent)}
+p{margin:0}
+.lead{color:var(--text2);font-size:15px;max-width:80ch}
+.diagram{overflow-x:auto;padding:8px 0}
+.diagram pre.mermaid{margin:0;min-width:640px;display:flex;justify-content:center;background:transparent}
+.legend{display:flex;flex-wrap:wrap;gap:8px 18px;font-size:14px;color:var(--text2);padding:4px 0 0}
+.legend span{display:inline-flex;align-items:center;gap:7px}
+.dot{width:12px;height:12px;border-radius:50%;border:1px solid rgba(0,0,0,.18);flex:none}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:20px;align-items:start}
+@media (max-width:900px){.two{grid-template-columns:1fr}}
+table{border-collapse:collapse;font-size:15px;width:100%}
+th,td{text-align:left;padding:8px 10px;border-bottom:1px solid var(--sep);vertical-align:top}
+th{font-size:12px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--text2)}
+tr:last-child td{border-bottom:0}
+td.mono,th.mono{font-variant-numeric:tabular-nums;white-space:nowrap}
+footer{text-align:center;font-size:13px;color:var(--text3)}
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <p class="eyebrow">Firmware · src/main.ino · src/wifi-setup.h</p>
+    <h1>Timon-Box Zustandsautomat</h1>
+    <p class="sub">Die Zustände tragen die Farbe, die die LED in diesem Zustand zeigt. <code>[*]</code> am Ende bedeutet: die Box schaltet ab (Versorgung getrennt; am USB-Kabel stattdessen Neustart). Die Übergänge stehen in <code>loop()</code> in <code>src/main.ino</code>, der Netzmodus des Management-Modus in <code>netLoop()</code> in <code>src/wifi-setup.h</code>.</p>
+  </header>
+
+  <div class="card">
+    <div class="card-head">
+      <h2>Hauptautomat</h2>
+      <span class="pill accent">7 Zustände, Management als Gruppe</span>
+    </div>
+    <p class="lead">Der RFID-Token bestimmt den Modus: Album-Token spielt, Bluetooth-Token macht die Box zum A2DP-Lautsprecher, Management-Token startet Netz und Webserver. Die drei Management-Zustände unterscheiden nur den Netzmodus, den die LED anzeigt; welche Tabs die Web-UI zeigt, hängt vom aufliegenden Token ab (Diagramm unten).</p>
+    <div class="diagram">
+<pre class="mermaid">
+stateDiagram-v2
+    direction LR
+    classDef orange fill:#ffb340,stroke:#d9901a,color:#1d1d1f
+    classDef green fill:#34c759,stroke:#248a3d,color:#1d1d1f
+    classDef blue fill:#0a84ff,stroke:#0060c0,color:#ffffff
+    classDef indigo fill:#5e5ce6,stroke:#3634a3,color:#ffffff
+    classDef white fill:#ffffff,stroke:#8e8e93,color:#1d1d1f
+    classDef cyan fill:#5ac8fa,stroke:#1a9ed6,color:#1d1d1f
+
+    state "paused" as P
+    state "playing" as PL
+    state "bluetoothPaused" as BP
+    state "bluetoothPlaying" as BL
+
+    [*] --> P: Einschalten
+    P --> PL: Album-Token (gleicher Token wie zuvor: weiter, sonst Playlist laden)
+    PL --> P: Token raus (Position speichern, 3 s Pause)
+    P --> [*]: 10 min ohne Token
+    PL --> [*]: 120 min Spielzeit oder Album einmal durch
+
+    P --> BP: Bluetooth-Token (Neustart in A2DP)
+    BP --> BL: Gerät verbunden / spielt
+    BL --> BP: Wiedergabe gestoppt
+    BL --> P: Token raus (Neustart)
+    BP --> P: Token raus (Neustart)
+    BP --> [*]: 10 min ohne Verbindung
+
+    P --> M: Management-Token (Audio zerstört, Netz + Webserver starten)
+
+    state "Management · LED = Netzmodus" as M {
+        direction LR
+        state "managementServerConnecting" as MC
+        state "managementServerLan" as ML
+        state "managementServerRunning (Hotspot)" as MR
+        [*] --> MC: Zugangsdaten im NVS
+        [*] --> MR: keine Zugangsdaten
+        MC --> ML: verbunden · mDNS timon-box.local
+        MC --> MR: 15 s ohne Erfolg
+        ML --> MR: 30 s Verbindung weg
+        MR --> ML: Portal-Test ok · Hotspot nach 5 s aus
+    }
+
+    M --> [*]: Album-Token raus (sofort aus + Neustart)
+    M --> [*]: Management-Token raus, 60 s kein Token
+
+    note right of M
+      Web-UI: Wi-Fi-Setup sofort,
+      Files/Upload sobald ein
+      Album-Token aufliegt
+    end note
+
+    class P orange
+    class PL green
+    class BP indigo
+    class BL blue
+    class MC white
+    class ML cyan
+    class MR orange
+</pre>
+    </div>
+    <div class="legend">
+      <span><i class="dot" style="background:#ffb340"></i>Orange: pausiert / eigener Hotspot</span>
+      <span><i class="dot" style="background:#34c759"></i>Grün: spielt</span>
+      <span><i class="dot" style="background:#0a84ff"></i>Blau: Bluetooth spielt</span>
+      <span><i class="dot" style="background:#5e5ce6"></i>Indigo: Bluetooth pausiert</span>
+      <span><i class="dot" style="background:#ffffff"></i>Weiß: verbindet mit Heimnetz</span>
+      <span><i class="dot" style="background:#5ac8fa"></i>Cyan: im Heimnetz, timon-box.local</span>
+      <span><i class="dot" style="background:#ff3b30"></i>Rot überlagert alles bei Akku ≤ 20 %</span>
+    </div>
+  </div>
+
+  <div class="two">
+    <div class="card">
+      <div class="card-head">
+        <h2>Token-Regeln im Management</h2>
+        <span class="pill">orthogonal zum Netzmodus</span>
+      </div>
+      <p class="lead">Läuft parallel zu den drei Netzzuständen und bestimmt, welche Tabs die Web-UI zeigt und wann die Box ausgeht. Ein anderer Album-Token als der gewählte wird nicht erwartet: Token raus schaltet ab.</p>
+      <div class="diagram">
+<pre class="mermaid">
+stateDiagram-v2
+    direction TB
+    state "Kein Album · UI: nur Wi-Fi + Hinweis" as K
+    state "Album gewählt · UI: Files, Upload, Wi-Fi" as A
+    [*] --> K: Management-Token aufgelegt
+    K --> A: Album-Token aufgelegt (Ordner einlesen)
+    K --> [*]: 60 s ohne Token (Wechsel-Toleranz)
+    A --> [*]: Token raus · sofort aus + Neustart
+    note right of A
+      Nach dem Neustart: paused,
+      Token liegt auf → playing
+    end note
+</pre>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-head">
+        <h2>Zeiten und Konstanten</h2>
+      </div>
+      <table>
+        <thead><tr><th>Ereignis</th><th class="mono">Wert</th><th>Konstante</th></tr></thead>
+        <tbody>
+          <tr><td>Auto-Off in paused / bluetoothPaused</td><td class="mono">10 min</td><td><code>MAX_PAUSE_TIME_IN_S</code></td></tr>
+          <tr><td>Auto-Off nach Spielzeit</td><td class="mono">120 min</td><td><code>MAX_PLAY_TIME_IN_S</code></td></tr>
+          <tr><td>Management ohne Token, kein Album gewählt</td><td class="mono">60 s</td><td><code>MANAGEMENT_NO_TOKEN_TIMEOUT_IN_S</code></td></tr>
+          <tr><td>Verbindungsversuch Heimnetz</td><td class="mono">15 s</td><td><code>WIFI_CONNECT_TIMEOUT_MS</code></td></tr>
+          <tr><td>Heimnetz weg, dann Hotspot</td><td class="mono">30 s</td><td><code>STA_LOST_TIMEOUT_MS</code></td></tr>
+          <tr><td>Hotspot aus nach Portal-Test</td><td class="mono">5 s</td><td><code>AP_TEARDOWN_GRACE_MS</code></td></tr>
+          <tr><td>Scan-Wiederholungen</td><td class="mono">3 × 0,8 s</td><td><code>SCAN_MAX_ATTEMPTS</code>, <code>SCAN_RETRY_DELAY_MS</code></td></tr>
+          <tr><td>Rote LED ab Akkustand</td><td class="mono">20 %</td><td><code>LOW_BATTERY_THRESHOLD</code></td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <footer>Diagramme als Mermaid <code>stateDiagram-v2</code>, gerendert im Browser.</footer>
+</main>
+<script>
+  mermaid.initialize({
+    startOnLoad: true,
+    theme: 'base',
+    themeVariables: {
+      fontFamily: '-apple-system, BlinkMacSystemFont, Helvetica Neue, Helvetica, Arial, sans-serif',
+      fontSize: '14px',
+      primaryColor: '#ffffff', primaryTextColor: '#1d1d1f', primaryBorderColor: '#c7c7cc',
+      lineColor: '#6e6e73', textColor: '#1d1d1f',
+      transitionColor: '#6e6e73', transitionLabelColor: '#1d1d1f',
+      stateBkg: '#ffffff', stateBorder: '#c7c7cc',
+      compositeBackground: '#f5f5f7', compositeTitleBackground: '#e8e8ed', compositeBorder: '#c7c7cc',
+      noteBkgColor: '#f5f5f7', noteBorderColor: '#d2d2d7', noteTextColor: '#1d1d1f',
+      tertiaryColor: '#f5f5f7'
+    }
+  });
+</script>
+</body>
+</html>

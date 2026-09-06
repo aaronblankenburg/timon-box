@@ -52,6 +52,9 @@ graph TD;
 ### IDE
 Visual Studio Code with Platform IO Extension (platformio.platformio-ide)
 
+### Zustandsautomat
+[doc/state-machine.html](doc/state-machine.html) zeigt die Zustände der Firmware (Wiedergabe, Bluetooth, Management-Modus mit Netzmodus und Token-Regeln) als Mermaid-Diagramme in den LED-Farben, dazu alle Timeouts mit ihren Konstanten. Im Browser öffnen; Mermaid wird vom CDN geladen.
+
 ### MAC Fix
 
 Error with ESP Async Webserver can be fixed with changing the platformio.ini to:

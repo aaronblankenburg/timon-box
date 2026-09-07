@@ -436,8 +436,10 @@ void listFiles(AsyncWebServerRequest *request) {
 // connections) and lets SD writes overlap with receiving.
 // ---------------------------------------------------------------------------
 
-#define UPLOAD_BUF_SIZE 8192   // 4 x 8 kB pool: the management-mode heap has ~115 kB free, pages need ~25 kB to render
-#define UPLOAD_BUF_COUNT 4          // pool shared by all uploads in flight
+#define UPLOAD_BUF_SIZE 4096   // 4 kB blocks still write to the card efficiently (it is busy ~12 % of the time)
+                               // and leave the contiguous heap the pages and the TCP send path need
+#define UPLOAD_BUF_COUNT 4          // pool shared by all uploads in flight: two per connection at PAR=2.
+                                    // Every buffer is heap the pages need to render, so do not raise this lightly.
 #define UPLOAD_CLOSE_TIMEOUT_MS 15000
 #define UPLOAD_RX_TIMEOUT_S 60      // ESPAsyncWebServer's default of 3 s is too short for a stalled TCP stream
 
@@ -576,7 +578,7 @@ void uploadBegin() {
     xQueueSend(uploadFreeBufs, &buf, 0);
   }
   xTaskCreatePinnedToCore(uploadWriterTask, "sdwriter", 6144, nullptr, 3, nullptr, 1);
-  Serial.printf("upload: %d buffers of %u bytes, free heap %u\n", buffers, (unsigned)UPLOAD_BUF_SIZE, ESP.getFreeHeap());
+  Serial.printf("upload: %d buffers of %u bytes, free heap %u, largest block %u\n", buffers, (unsigned)UPLOAD_BUF_SIZE, ESP.getFreeHeap(), ESP.getMaxAllocHeap());
 }
 
 // Body handler (AsyncTCP task): copy into the current buffer, hand full buffers to the writer.
@@ -776,6 +778,7 @@ void setupWebServer() {
 
 // Call every loop() iteration while the management server runs; returns the current network mode.
 NetMode managementServerLoop() {
+  syncLoop();
   return netLoop();
 }
 

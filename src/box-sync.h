@@ -646,21 +646,38 @@ static void syncTask(void *) {
   }
 }
 
+volatile bool syncTaskWanted = false;
+TaskHandle_t syncTaskHandle = nullptr;
+
 static bool syncQueue(SyncOp op, const String &host = "") {
   if (!syncJobs) return false;
   SyncJob job;
   job.op = op;
   snprintf(job.host, sizeof(job.host), "%s", host.c_str());
-  return xQueueSend(syncJobs, &job, 0) == pdTRUE;
+  if (xQueueSend(syncJobs, &job, 0) != pdTRUE) return false;
+  syncTaskWanted = true;  // the loop task starts the worker, the job waits in the queue
+  return true;
 }
 
-// Call once from setupWebServer().
+// Called from managementServerLoop(). The worker costs 6 kB of stack, which the
+// pages need to render, so it is only created once someone actually copies.
+void syncLoop() {
+  if (!syncTaskWanted || syncTaskHandle) return;
+  syncTaskWanted = false;
+  if (xTaskCreatePinnedToCore(syncTask, "boxsync", 6144, nullptr, 2, &syncTaskHandle, 1) != pdPASS) {
+    syncTaskHandle = nullptr;
+    syncFail("Not enough memory to start the transfer.");
+    return;
+  }
+  Serial.printf("[sync] worker started, heap %u\n", ESP.getFreeHeap());
+}
+
+// Call once from setupWebServer(); the worker itself starts on demand.
 void syncBegin() {
   syncMutex = xSemaphoreCreateMutex();
   syncJobs = xQueueCreate(4, sizeof(SyncJob));
   syncPrefs.begin("sync", false);
   syncPeerInput = syncPrefs.getString("peer", "");
-  xTaskCreatePinnedToCore(syncTask, "boxsync", 8192, nullptr, 2, nullptr, 1);
 }
 
 // ---------------------------------------------------------------------------

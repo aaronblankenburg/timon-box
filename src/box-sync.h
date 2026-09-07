@@ -456,7 +456,7 @@ static bool syncDownloadOne(const String &addr, const String &tag, const String 
   WiFiClient *stream = http.getStreamPtr();
   File out;
   if (filesLock(10000)) {
-    SD.remove(SYNC_TEMP_FILE);
+    if (SD.exists(SYNC_TEMP_FILE)) SD.remove(SYNC_TEMP_FILE);  // leftover from an aborted transfer
     out = SD.open(SYNC_TEMP_FILE, FILE_WRITE);
     filesUnlock();
   }
@@ -468,9 +468,25 @@ static bool syncDownloadOne(const String &addr, const String &tag, const String 
 
   bool ok = true;
   uint32_t got = 0;
+  size_t fill = 0;
   unsigned long startedAt = millis();
   unsigned long lastData = millis();
   unsigned long sdMs = 0;
+
+  auto flush = [&]() -> bool {
+    if (!fill) return true;
+    unsigned long writeStart = millis();
+    bool written = false;
+    if (filesLock(10000)) {
+      written = out.write(buffer, fill) == fill;
+      filesUnlock();
+    }
+    sdMs += millis() - writeStart;
+    fill = 0;
+    if (!written) Serial.printf("[sync] %s: writing to the SD card failed\n", name.c_str());
+    return written;
+  };
+
   while (expected < 0 || got < (uint32_t)expected) {
     if (syncCancel) {
       ok = false;
@@ -490,24 +506,15 @@ static bool syncDownloadOne(const String &addr, const String &tag, const String 
       vTaskDelay(pdMS_TO_TICKS(2));
       continue;
     }
-    int read = stream->readBytes(buffer, std::min(available, bufferSize));
+    int read = stream->readBytes(buffer + fill, std::min(available, bufferSize - fill));
     if (read <= 0) continue;
     lastData = millis();
-    unsigned long writeStart = millis();
-    bool written = false;
-    if (filesLock(10000)) {
-      written = out.write(buffer, read) == (size_t)read;
-      filesUnlock();
-    }
-    sdMs += millis() - writeStart;
-    if (!written) {
-      Serial.printf("[sync] %s: writing to the SD card failed\n", name.c_str());
-      ok = false;
-      break;
-    }
+    fill += read;
     got += read;
     syncBytesCur = got;
+    if (fill == bufferSize && !(ok = flush())) break;
   }
+  if (ok) ok = flush();  // tail of the file
   http.end();
 
   if (ok && expected > 0 && got != (uint32_t)expected) ok = false;
@@ -523,7 +530,7 @@ static bool syncDownloadOne(const String &addr, const String &tag, const String 
         filesInDir.push_back(name);
       }
     }
-    if (!ok) SD.remove(SYNC_TEMP_FILE);
+    if (!ok && SD.exists(SYNC_TEMP_FILE)) SD.remove(SYNC_TEMP_FILE);
     filesUnlock();
   }
 

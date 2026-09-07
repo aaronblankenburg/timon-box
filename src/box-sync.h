@@ -154,6 +154,16 @@ struct PeerFileCtx {
   size_t size;
 };
 
+// Only the AsyncTCP task writes these, the loop task reads them for the LED.
+volatile int peerTransfers = 0;
+volatile unsigned long peerLastChunk = 0;
+
+// True while tracks are going out to the other box. The tail keeps the LED
+// pulsing across the gap between two files instead of blinking off.
+bool peerTransferActive() {
+  return peerTransfers > 0 || millis() - peerLastChunk < 500;
+}
+
 void peerFile(AsyncWebServerRequest *request) {
   String tag = request->hasParam("tag") ? request->getParam("tag")->value() : "";
   String name = request->hasParam("name") ? request->getParam("name")->value() : "";
@@ -182,7 +192,11 @@ void peerFile(AsyncWebServerRequest *request) {
   // Shared between the filler and the disconnect handler so the File outlives
   // whichever of the two goes away first.
   auto ctx = std::make_shared<PeerFileCtx>(PeerFileCtx{file, size});
-  request->onDisconnect([ctx]() { ctx->file.close(); });
+  peerTransfers++;
+  request->onDisconnect([ctx]() {
+    ctx->file.close();
+    peerTransfers--;
+  });
 
   // Own filler instead of request->send(SD, ...): AsyncFileResponse reads the
   // card unlocked from the AsyncTCP task, and in 3.7.10 it also drops the
@@ -192,6 +206,7 @@ void peerFile(AsyncWebServerRequest *request) {
     if (!filesLock(50)) return RESPONSE_TRY_AGAIN;  // another task owns the card right now
     int read = ctx->file.read(buffer, std::min(maxLen, ctx->size - index));
     filesUnlock();
+    peerLastChunk = millis();
     return read > 0 ? (size_t)read : 0;
   });
   response->addHeader("Cache-Control", "no-store");

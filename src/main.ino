@@ -242,6 +242,7 @@ void loop() {
       changeState(netMode == NET_STATION ? managementServerLan
                   : netMode == NET_CONNECTING ? managementServerConnecting
                                               : managementServerRunning);
+      updateTransferLed();
       delay(1);  // nothing here is time critical; give the WiFi and web server tasks the core
       break;
     }
@@ -253,15 +254,43 @@ void loop() {
   }
 }
 
+// The colour the LED shows at rest: the state colour, or red on a low battery.
+uint32_t stateColor() {
+  return getBattery() > LOW_BATTERY_THRESHOLD ? stateColors[state] : pixel.Color(255, 0, 0);
+}
+
 void changeState(State newState) {
   if (state == newState) return;
 
   state = newState;
-  if (getBattery() > LOW_BATTERY_THRESHOLD) {
-    setNeoPixel(stateColors[state]);
-  } else {
-    setNeoPixel(pixel.Color(255, 0, 0));
+  setNeoPixel(stateColor());
+}
+
+uint32_t scaleColor(uint32_t color, uint8_t percent) {
+  uint8_t r = (uint8_t)(color >> 16), g = (uint8_t)(color >> 8), b = (uint8_t)color;
+  return pixel.Color(r * percent / 100, g * percent / 100, b * percent / 100);
+}
+
+// While the other box pulls tracks from us, breathe the state colour so it is
+// obvious that this box is busy. Triangle wave, 25 % to 100 %, ~1.2 s period.
+void updateTransferLed() {
+  static bool pulsing = false;
+  static unsigned long lastFrame = 0;
+
+  if (!peerTransferActive()) {
+    if (pulsing) {
+      pulsing = false;
+      setNeoPixel(stateColor());  // back to a steady light
+    }
+    return;
   }
+  pulsing = true;
+  if (millis() - lastFrame < 40) return;  // 25 frames per second is plenty
+  lastFrame = millis();
+
+  unsigned long phase = millis() % 1200;
+  uint8_t level = phase < 600 ? 25 + (phase * 75) / 600 : 100 - ((phase - 600) * 75) / 600;
+  setNeoPixel(scaleColor(stateColor(), level));
 }
 
 void setNeoPixel(uint32_t color) {

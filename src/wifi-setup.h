@@ -245,6 +245,7 @@ void netBegin() {
   // Once per boot is enough: the IDF responder follows AP/STA interface changes itself.
   if (MDNS.begin(boxHostname())) {
     MDNS.addService("http", "tcp", 80);
+    MDNS.addServiceTxt("http", "tcp", "box", BOX_NAME);  // lets the other box tell us apart from other HTTP devices
     Serial.printf("[net] mDNS %s.local\n", boxHostname());
   } else {
     Serial.println("[net] mDNS start failed");

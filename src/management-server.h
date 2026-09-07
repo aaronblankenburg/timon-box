@@ -216,7 +216,7 @@ String albumSubtitle() {
   return "Album folder <code>" + htmlEscape(folder) + "</code>";
 }
 
-// Files and Upload only make sense with an album token in place.
+// Files, Upload and Copy only make sense with an album token in place.
 bool navVisible(const NavItem &item) {
   if (strcmp(item.key, "wifi") == 0) return true;
   return !currentFolder().isEmpty();
@@ -227,7 +227,7 @@ bool navVisible(const NavItem &item) {
 void albumNotice(AsyncResponseStream *res) {
   if (!currentFolder().isEmpty()) return;
   res->print("<div class=\"notice\" id=\"an\"><i class=\"ic ic-warn\"></i><span><b>Which album?</b> Only the management token is on the box. "
-             "Swap it for the token of the album you want to edit. Files and Upload appear here automatically.</span></div>");
+             "Swap it for the token of the album you want to edit. Files, Upload and Copy appear here automatically.</span></div>");
 }
 
 void sendBusy(AsyncWebServerRequest *request);
@@ -730,6 +730,10 @@ void handleFolderPathChange(AsyncWebServerRequest *request) {
   request->redirect("/");
 }
 
+// Peer endpoints, the copy worker and the Copy page. Included here because it
+// uses the helpers above (filesLock, renameFolder, the upload buffer pool, ...).
+#include "box-sync.h"
+
 // ---------------------------------------------------------------------------
 // Server lifecycle
 // ---------------------------------------------------------------------------
@@ -744,6 +748,7 @@ void setupWebServer() {
   // Joins the saved home network or opens the hotspot; see wifi-setup.h.
   netBegin();
   uploadBegin();
+  syncBegin();
 
   Serial.println("starting management server");
   server.addMiddleware([](AsyncWebServerRequest *request, ArMiddlewareNext next) {  // request log
@@ -761,6 +766,7 @@ void setupWebServer() {
   server.on("/delete", HTTP_POST, handleFileDelete);
   server.on("/setFolderPath", HTTP_POST, handleFolderPathChange);
   registerWifiRoutes(server);
+  registerSyncRoutes(server);
   server.onNotFound([](AsyncWebServerRequest *request) {
     request->redirect("/home");
   });

@@ -256,6 +256,46 @@ if(/forgot=1/.test(q))banner('','<span>Saved network removed. The box runs as it
 if(/err=1/.test(q))banner('fail','<span>Please enter a network name (1–32 characters) and a password of 8–63 characters, or none for an open network.</span>');
 if(/err=2/.test(q))banner('fail','<span>The box is busy, please try again.</span>');
 })()}
+
+// Copy page: pick the other box, list its album, copy the tracks missing here.
+// The transfer runs on the box, so this only queues jobs and polls the status;
+// a reload or a closed browser does not stop it.
+if($('cf')){(function(){
+var station=$('cf').dataset.station==='1',pl=$('pl'),ps=$('ps'),peer=$('peer'),cn=$('cn'),ct=$('ct'),cr=$('cr'),cp=$('cp'),cb=$('cb'),cs=$('cs'),cu=$('cu'),cc=$('cc'),cg=$('cg');
+var q=location.search,ST={pending:'',copying:'up',done:'ok',failed:'err',present:'ok'};
+function note(c,h){cn.innerHTML='<div class="banner '+c+'">'+h+'</div>'}
+if(/err=1/.test(q))note('fail','<span>Enter the name or address of the other box.</span>');
+if(/err=2/.test(q))note('fail','<span>The box is busy with another transfer.</span>');
+function label(f){return f.status==='present'?'already here':f.status==='failed'?'failed':f.status==='copying'?'copying':f.status==='done'?'copied':''}
+function render(d){
+ct.textContent=d.album?'Album: '+d.album:'Album';
+var files=d.files||[],copying=d.state==='copying';
+cu.hidden=!files.length;
+cu.innerHTML=files.map(function(f){return '<li><i class="st '+(ST[f.status]||'')+'"></i><span class="fn">'+esc(f.name)+'</span><span class="fp">'+label(f)+'</span><span class="fz">'+fmt(f.size)+'</span></li>'}).join('');
+cp.hidden=!copying;
+cr.textContent=copying?fmt(d.bytes)+' of '+fmt(d.bytesTotal):'';
+if(copying)cb.style.width=(d.bytesTotal?Math.min(100,Math.round(d.bytes/d.bytesTotal*100)):0)+'%';
+cc.hidden=!copying;
+cg.hidden=copying||!d.missing||!station;
+if(d.missing)cg.textContent=(d.failed?'Retry ':'Copy ')+d.missing+' missing file'+(d.missing>1?'s':'');
+if(d.state==='listing')cs.textContent='Loading the album from '+(d.peer||'the other box')+'…';
+else if(copying)cs.textContent='Copying '+(d.current>=0?(d.current+1)+' of '+d.total+' · ':'')+d.done+' done'+(d.failed?' · '+d.failed+' failed':'');
+else if(d.state==='failed')cs.textContent=d.error||'The transfer failed.';
+else if(d.state==='cancelled')cs.textContent='Cancelled · '+d.done+' of '+d.total+' copied.';
+else if(files.length)cs.textContent=d.missing?d.missing+' of '+d.total+' tracks are missing here':'All '+d.total+' tracks are already here.';
+else cs.textContent='No album loaded yet.';
+cs.className=d.state==='failed'?'hint danger':'hint'}
+function poll(){fetch('/copy-status',{cache:'no-store'}).then(function(r){return r.json()}).then(function(d){render(d);if(d.state==='listing'||d.state==='copying')setTimeout(poll,1000)}).catch(function(){setTimeout(poll,2000)})}
+poll();
+function scan(re){fetch('/copy-scan'+(re?'?rescan=1':'')).then(function(r){return r.json()}).then(function(d){
+if(d.state==='busy'){pl.innerHTML='<li class="status">Busy with a transfer</li>';return}
+if(d.state==='scanning'){pl.innerHTML='<li class="status">Searching…</li>';setTimeout(function(){scan(false)},1200);return}
+if(!d.boxes.length){pl.innerHTML='<li class="status">No other box found. Type its address below; it needs its management token in place.</li>';return}
+pl.innerHTML=d.boxes.map(function(b){return '<li data-host="'+esc(b.host)+'" aria-selected="'+(b.host===peer.value)+'"><i class="ic ic-check"></i><span class="ssid">'+esc(b.name)+'</span><span class="muted small">'+esc(b.host)+'</span></li>'}).join('')})
+.catch(function(){pl.innerHTML='<li class="status">Search failed</li>'})}
+ps.onclick=function(){pl.innerHTML='<li class="status">Searching…</li>';scan(true)};
+pl.onclick=function(e){var li=e.target.closest('li[data-host]');if(!li)return;peer.value=li.dataset.host;pl.querySelectorAll('li').forEach(function(x){x.setAttribute('aria-selected','false')});li.setAttribute('aria-selected','true')};
+})()}
 })();
 )APPJS";
 
@@ -269,6 +309,7 @@ struct NavItem {
 static NavItem NAV_ITEMS[] = {
     {"files", "/", "Files"},
     {"upload", "/home", "Upload"},
+    {"copy", "/copy", "Copy"},
     {"wifi", "/wifi", "Wi&#8209;Fi"},
 };
 

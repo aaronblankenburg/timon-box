@@ -271,18 +271,18 @@ if(/err=2/.test(q))note('fail','<span>The box is busy with another transfer.</sp
 function open(){if(dlg.showModal){if(!dlg.open)dlg.showModal()}else dlg.setAttribute('open','')}
 function close(){if(dlg.close){if(dlg.open)dlg.close()}else dlg.removeAttribute('open')}
 dlg.addEventListener('close',function(){closed=true;cslot.appendChild(cu)});
-function label(d,f,i){
-if(i===d.current&&f.status==='copying'&&f.size)return Math.min(99,Math.round(d.bytesCur/f.size*100))+' %';
+function label(f){
+if(f.status==='copying')return f.size?Math.min(99,Math.round((f.loaded||0)/f.size*100))+' %':'copying';
 return f.status==='present'?'already here':f.status==='failed'?'failed':f.status==='done'?'copied':''}
 function rate(d){var now=Date.now();samples.push([now,d.bytes]);while(samples.length>2&&now-samples[0][0]>8000)samples.shift();
 if(samples.length<2)return '';var a=samples[0],e=samples[samples.length-1];if(e[0]-a[0]<3000)return '';
 var r=(e[1]-a[1])/((e[0]-a[0])/1000);if(r<=0)return '';
 return fmt(r)+'/s · ~'+fmtT((d.bytesTotal-d.bytes)/r)+' left'}
 function render(d){
-var files=d.files||[],copying=d.state==='copying',pct=d.bytesTotal?Math.min(100,Math.round(d.bytes/d.bytesTotal*100)):0,job=files.filter(function(f){return f.status!=='present'}).length,tr=function(n){return n+(n===1?' track':' tracks')};
+var files=d.files||[],copying=d.state==='copying',pct=d.bytesTotal?Math.min(100,Math.round(d.bytes/d.bytesTotal*100)):0,job=files.filter(function(f){return f.status!=='present'}).length,act=files.filter(function(f){return f.status==='copying'}).length,tr=function(n){return n+(n===1?' track':' tracks')};
 ct.textContent=d.album?'Album: '+d.album:'Album';
 cu.hidden=!files.length;
-cu.innerHTML=files.map(function(f,i){return '<li><i class="st '+(ST[f.status]||'')+'"></i><span class="fn">'+esc(f.name)+'</span><span class="fp">'+label(d,f,i)+'</span><span class="fz">'+fmt(f.size)+'</span></li>'}).join('');
+cu.innerHTML=files.map(function(f){return '<li><i class="st '+(ST[f.status]||'')+'"></i><span class="fn">'+esc(f.name)+'</span><span class="fp">'+label(f)+'</span><span class="fz">'+fmt(f.size)+'</span></li>'}).join('');
 if(copying&&!wasCopying){closed=false;samples=[]}
 if(copying&&!closed){cmslot.appendChild(cu);open()}
 cw.hidden=!(copying&&closed);
@@ -301,7 +301,7 @@ cr.textContent=copying?pct+' %':'';
 // dialog
 cdb.style.width=pct+'%';
 cdr.textContent=copying?rate(d):'';
-if(copying){cdt.textContent='Copying';cds.textContent=(d.current>=0?'File '+(d.current+1)+' of '+d.total+' · ':'')+fmt(d.bytes)+' of '+fmt(d.bytesTotal)+' · '+pct+' %'}
+if(copying){cdt.textContent='Copying';cds.textContent=d.done+' of '+job+' done'+(act>1?' · '+act+' at once':'')+' · '+fmt(d.bytes)+' of '+fmt(d.bytesTotal)+' · '+pct+' %'}
 else if(d.state==='done'){cdt.textContent='Done';cds.textContent=tr(d.done)+' copied · '+fmt(d.bytesTotal)}
 else if(d.state==='failed'&&wasCopying){cdt.textContent='Copy incomplete';cds.textContent=d.error||(d.failed+' files failed.')}
 else if(d.state==='cancelled'){cdt.textContent='Copy cancelled';cds.textContent=d.done+' of '+job+' copied · '+fmt(d.bytes)}

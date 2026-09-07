@@ -163,6 +163,8 @@ html,.ulist,dialog.modal .card{scrollbar-width:thin;scrollbar-color:var(--text3)
 static const char PAGE_JS[] = R"APPJS((function(){
 var $=function(id){return document.getElementById(id)};
 function esc(s){return String(s).replace(/[&<>"']/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})}
+function fmt(n){if(n>=1073741824)return (n/1073741824).toFixed(2)+' GB';if(n>=1048576)return (n/1048576).toFixed(1)+' MB';return Math.max(1,Math.round(n/1024))+' kB'}
+function fmtT(s){if(s<60)return Math.ceil(s)+' s';var m=Math.floor(s/60);return m+' min '+Math.round(s-m*60)+' s'}
 
 // Appearance: cookie "theme=light|dark" overrides the system setting, no cookie = auto.
 (function(){var r=document.documentElement,t=$('tb'),a=$('ta');if(!t||!a)return;
@@ -181,8 +183,6 @@ if($('f')){(function(){
 var i=$('f'),z=$('dz'),b=$('bar'),t=$('pt'),r=$('pr'),ul=$('ul'),ph=$('ph'),u=$('ub'),rb=$('rb'),dlg=$('dlg'),mt=$('mt'),mh=$('mh'),mc=$('mc'),mx=$('mx'),ms=$('ms'),slot=$('slot'),mslot=$('mslot');
 var SD_FREE=+($('uc').dataset.sdfree||0),PAR=+($('uc').dataset.par||2);
 var items=[],total=0,doneBytes=0,startAt=0,samples=[],busy=false,cancelled=false,q=[],active=0,failed=0,inflight={};
-function fmt(n){if(n>=1073741824)return (n/1073741824).toFixed(2)+' GB';if(n>=1048576)return (n/1048576).toFixed(1)+' MB';return Math.max(1,Math.round(n/1024))+' kB'}
-function fmtT(s){if(s<60)return Math.ceil(s)+' s';var m=Math.floor(s/60);return m+' min '+Math.round(s-m*60)+' s'}
 function fp(k){return $('it'+k).querySelector('.fp')}
 function setFiles(list){if(busy)return;var a=[],skipped=0;for(var k=0;k<list.length;k++){var f=list[k];if(f.type==='audio/mpeg'||/\.mp3$/i.test(f.name))a.push(f);else skipped++}
 items=a.map(function(f){return{file:f,status:'pending',loaded:0}});total=0;items.forEach(function(x){total+=x.file.size});doneBytes=0;b.style.width='0';u.textContent='Upload';
@@ -262,7 +262,7 @@ if(/err=2/.test(q))banner('fail','<span>The box is busy, please try again.</span
 // a reload or a closed browser does not stop it. Progress is shown in the same
 // kind of dialog the upload uses, with the file list moved into it.
 if($('cf')){(function(){
-var station=$('cf').dataset.station==='1',pl=$('pl'),ps=$('ps'),peer=$('peer'),cn=$('cn'),ct=$('ct'),cr=$('cr'),cs=$('cs'),cu=$('cu'),cw=$('cw'),cg=$('cg'),
+var pl=$('pl'),ps=$('ps'),peer=$('peer'),cn=$('cn'),ct=$('ct'),cr=$('cr'),cs=$('cs'),cu=$('cu'),cw=$('cw'),cg=$('cg'),
 cslot=$('cslot'),dlg=$('cd'),cdt=$('cdt'),cdr=$('cdr'),cdb=$('cdb'),cds=$('cds'),cmslot=$('cmslot'),cdh=$('cdh'),cdc=$('cdc'),cdx=$('cdx'),cdg=$('cdg'),cdf=$('cdf');
 var q=location.search,ST={pending:'',copying:'up',done:'ok',failed:'err',present:'ok'},samples=[],wasCopying=false,closed=false;
 function note(c,h){cn.innerHTML='<div class="banner '+c+'">'+h+'</div>'}
@@ -279,21 +279,22 @@ if(samples.length<2)return '';var a=samples[0],e=samples[samples.length-1];if(e[
 var r=(e[1]-a[1])/((e[0]-a[0])/1000);if(r<=0)return '';
 return fmt(r)+'/s · ~'+fmtT((d.bytesTotal-d.bytes)/r)+' left'}
 function render(d){
-var files=d.files||[],copying=d.state==='copying',pct=d.bytesTotal?Math.min(100,Math.round(d.bytes/d.bytesTotal*100)):0;
+var files=d.files||[],copying=d.state==='copying',pct=d.bytesTotal?Math.min(100,Math.round(d.bytes/d.bytesTotal*100)):0,job=files.filter(function(f){return f.status!=='present'}).length,tr=function(n){return n+(n===1?' track':' tracks')};
 ct.textContent=d.album?'Album: '+d.album:'Album';
 cu.hidden=!files.length;
 cu.innerHTML=files.map(function(f,i){return '<li><i class="st '+(ST[f.status]||'')+'"></i><span class="fn">'+esc(f.name)+'</span><span class="fp">'+label(d,f,i)+'</span><span class="fz">'+fmt(f.size)+'</span></li>'}).join('');
 if(copying&&!wasCopying){closed=false;samples=[]}
 if(copying&&!closed){cmslot.appendChild(cu);open()}
 cw.hidden=!(copying&&closed);
-cg.hidden=copying||!d.missing||!station;
+cg.hidden=copying||!d.missing||!d.station;
 if(d.missing)cg.textContent=(d.failed?'Retry ':'Copy ')+d.missing+' missing file'+(d.missing>1?'s':'');
 // card summary
 if(d.state==='listing')cs.textContent='Loading the album from '+(d.peer||'the other box')+'…';
-else if(copying)cs.textContent='Copying '+d.done+' of '+(d.done+d.missing)+' · '+pct+' %';
+else if(copying)cs.textContent='Copying '+d.done+' of '+job+' · '+pct+' %';
 else if(d.state==='failed')cs.textContent=d.error||'The transfer failed.';
-else if(d.state==='cancelled')cs.textContent='Cancelled · '+d.done+' of '+(d.done+d.missing)+' copied.';
-else if(files.length)cs.textContent=d.missing?d.missing+' of '+d.total+' tracks are missing here':'All '+d.total+' tracks are already here.';
+else if(d.state==='cancelled')cs.textContent='Cancelled · '+d.done+' of '+job+' copied.';
+else if(d.done&&!d.missing)cs.textContent=tr(d.done)+' copied · the album is complete on this box.';
+else if(files.length)cs.textContent=d.missing?d.missing+' of '+tr(d.total)+' missing here':'All '+tr(d.total)+' are already here.';
 else cs.textContent='No album loaded yet.';
 cs.className=d.state==='failed'?'hint danger':'hint';
 cr.textContent=copying?pct+' %':'';
@@ -301,9 +302,9 @@ cr.textContent=copying?pct+' %':'';
 cdb.style.width=pct+'%';
 cdr.textContent=copying?rate(d):'';
 if(copying){cdt.textContent='Copying';cds.textContent=(d.current>=0?'File '+(d.current+1)+' of '+d.total+' · ':'')+fmt(d.bytes)+' of '+fmt(d.bytesTotal)+' · '+pct+' %'}
-else if(d.state==='done'){cdt.textContent='Done';cds.textContent=d.done+' file'+(d.done===1?'':'s')+' copied · '+fmt(d.bytesTotal)}
+else if(d.state==='done'){cdt.textContent='Done';cds.textContent=tr(d.done)+' copied · '+fmt(d.bytesTotal)}
 else if(d.state==='failed'&&wasCopying){cdt.textContent='Copy incomplete';cds.textContent=d.error||(d.failed+' files failed.')}
-else if(d.state==='cancelled'){cdt.textContent='Copy cancelled';cds.textContent=d.done+' of '+(d.done+d.missing)+' copied · '+fmt(d.bytes)}
+else if(d.state==='cancelled'){cdt.textContent='Copy cancelled';cds.textContent=d.done+' of '+job+' copied · '+fmt(d.bytes)}
 cdc.hidden=!copying;cdh.hidden=!copying;
 cdx.hidden=copying;
 cdg.hidden=copying||!d.missing||!wasCopying;

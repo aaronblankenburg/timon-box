@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Nur eine Huelle um den WebView: keine Titelleiste, und ein Hintergrund,
+         der dem Systemthema folgt wie die Seite selbst. -->
+    <style name="Theme.TokenSheet" parent="android:Theme.DeviceDefault.DayNight">
+        <item name="android:windowActionBar">false</item>
+        <item name="android:windowNoTitle">true</item>
+        <item name="android:windowBackground">@color/window_bg</item>
+    </style>
+</resources>

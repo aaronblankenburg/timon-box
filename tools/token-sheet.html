@@ -1,0 +1,955 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<title>Token Sheet</title>
+<!--
+  Token Sheet: builds the 10 x 15 cm print with six round token pictures using
+  the same layout as src/prepare_tokens.py (1772 x 1181 px, 515 px circles in a
+  3 x 2 grid). A single file without server or dependencies: open it in a
+  browser, put it on any web space or add it to the phone's home screen.
+  Pictures never leave the device; a session in progress is kept in the
+  browser (IndexedDB) so a reload or a discarded tab does not lose work.
+  The styling mirrors the management web UI (src/web-ui.h).
+-->
+<script>try{var t=localStorage.getItem('theme');if(t==='light'||t==='dark')document.documentElement.setAttribute('data-theme',t)}catch(e){}</script>
+<style>
+:root{color-scheme:light dark;--bg:#f5f5f7;--card:#fff;--text:#1d1d1f;--text2:#6e6e73;--text3:#86868b;--accent:#0071e3;--accent-tint:rgba(0,113,227,.12);--accent-ring:rgba(0,113,227,.3);--danger:#ff3b30;--danger-tint:rgba(255,59,48,.12);--ok:#34c759;--ok-tint:rgba(52,199,89,.14);--warn:#ff9f0a;--warn-tint:rgba(255,159,10,.16);--sep:rgba(0,0,0,.08);--seg:#e8e8ed;--seg-active:#fff;--field:#fff;--row-hover:rgba(0,0,0,.03);--shadow:0 2px 12px rgba(0,0,0,.06);--shadow-seg:0 1px 3px rgba(0,0,0,.12)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#000;--card:#1c1c1e;--text:#f5f5f7;--text2:#86868b;--text3:#6e6e73;--accent:#0a84ff;--accent-tint:rgba(10,132,255,.18);--accent-ring:rgba(10,132,255,.4);--danger:#ff453a;--danger-tint:rgba(255,69,58,.18);--ok:#30d158;--ok-tint:rgba(48,209,88,.18);--warn:#ffd60a;--warn-tint:rgba(255,214,10,.18);--sep:rgba(255,255,255,.12);--seg:#2c2c2e;--seg-active:#636366;--field:#2c2c2e;--row-hover:rgba(255,255,255,.04);--shadow:0 2px 12px rgba(0,0,0,.4);--shadow-seg:0 1px 3px rgba(0,0,0,.5)}}
+:root[data-theme="dark"]{--bg:#000;--card:#1c1c1e;--text:#f5f5f7;--text2:#86868b;--text3:#6e6e73;--accent:#0a84ff;--accent-tint:rgba(10,132,255,.18);--accent-ring:rgba(10,132,255,.4);--danger:#ff453a;--danger-tint:rgba(255,69,58,.18);--ok:#30d158;--ok-tint:rgba(48,209,88,.18);--warn:#ffd60a;--warn-tint:rgba(255,214,10,.18);--sep:rgba(255,255,255,.12);--seg:#2c2c2e;--seg-active:#636366;--field:#2c2c2e;--row-hover:rgba(255,255,255,.04);--shadow:0 2px 12px rgba(0,0,0,.4);--shadow-seg:0 1px 3px rgba(0,0,0,.5)}
+*,*::before,*::after{box-sizing:border-box}
+[hidden]{display:none!important}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--bg);color:var(--text);font:17px/1.45 -apple-system,BlinkMacSystemFont,"SF Pro Text","Helvetica Neue",Helvetica,Arial,sans-serif;-webkit-font-smoothing:antialiased;overflow-x:hidden}
+main{max-width:640px;margin:0 auto;padding:28px 16px 48px;display:flex;flex-direction:column;gap:20px}
+header{display:flex;flex-direction:column;gap:4px;padding:8px 4px 0}
+.title-row{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.theme-ctl{display:flex;align-items:center;gap:8px}
+.theme-btn{background:var(--seg);color:var(--text)}
+.theme-btn .ic-moon{display:none}
+:root[data-theme="dark"] .theme-btn .ic-sun{display:none}
+:root[data-theme="dark"] .theme-btn .ic-moon{display:block}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .theme-btn .ic-sun{display:none}:root:not([data-theme="light"]) .theme-btn .ic-moon{display:block}}
+h1{margin:0;font-size:34px;line-height:1.1;font-weight:700;letter-spacing:-.02em}
+.sub{margin:0;color:var(--text2);font-size:15px;overflow-wrap:anywhere}
+h2{margin:0;font-size:22px;line-height:1.2;font-weight:600;letter-spacing:-.01em}
+p{margin:0}
+.muted{color:var(--text2)}
+.small{font-size:15px}
+.mono{font-variant-numeric:tabular-nums}
+.seg{display:grid;grid-auto-flow:column;grid-auto-columns:1fr;gap:2px;padding:2px;background:var(--seg);border-radius:10px}
+.seg a{display:flex;align-items:center;justify-content:center;height:34px;border-radius:8px;text-decoration:none;color:var(--text);font-size:15px;font-weight:500;transition:background .2s,box-shadow .2s}
+.seg a[aria-current="page"]{background:var(--seg-active);box-shadow:var(--shadow-seg);font-weight:600}
+.seg a[aria-disabled="true"]{opacity:.45;pointer-events:none}
+.seg a:focus-visible{outline:none;box-shadow:0 0 0 3px var(--accent-ring)}
+.card{background:var(--card);border-radius:18px;box-shadow:var(--shadow);padding:20px;display:flex;flex-direction:column;gap:16px}
+.card-head{display:flex;align-items:baseline;justify-content:space-between;gap:12px;flex-wrap:wrap}
+section,.step{display:flex;flex-direction:column;gap:16px}
+.btn{appearance:none;border:0;cursor:pointer;font:inherit;font-size:17px;font-weight:500;line-height:1;padding:11px 20px;border-radius:980px;background:var(--accent);color:#fff;text-decoration:none;display:inline-flex;align-items:center;justify-content:center;transition:transform .12s,opacity .2s;white-space:nowrap}
+.btn:active{transform:scale(.97)}
+.btn:disabled,.btn[aria-disabled="true"]{opacity:.45;cursor:default;transform:none;pointer-events:none}
+.btn.secondary{background:var(--accent-tint);color:var(--accent)}
+.btn.destructive{background:var(--danger-tint);color:var(--danger)}
+.btn.small{font-size:15px;padding:8px 16px}
+.btn:focus-visible{outline:none;box-shadow:0 0 0 4px var(--accent-ring)}
+.icon-btn{appearance:none;border:0;cursor:pointer;width:36px;height:36px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;background:var(--accent-tint);color:var(--accent);transition:transform .12s;flex:none;padding:0}
+.icon-btn:active{transform:scale(.92)}
+.icon-btn:focus-visible{outline:none;box-shadow:0 0 0 4px var(--accent-ring)}
+.ic{display:block;width:16px;height:16px;background:currentColor;-webkit-mask:var(--m) center/contain no-repeat;mask:var(--m) center/contain no-repeat}
+.theme-btn .ic{width:18px;height:18px}
+.ic-sun{--m:url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='black' stroke-width='1.6' stroke-linecap='round'><circle cx='8' cy='8' r='3.2'/><path d='M8 1.5v1.6M8 12.9v1.6M1.5 8h1.6M12.9 8h1.6M3.4 3.4l1.1 1.1M11.5 11.5l1.1 1.1M3.4 12.6l1.1-1.1M11.5 4.5l1.1-1.1'/></svg>")}
+.ic-moon{--m:url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'><path d='M9.6 1.8a6.3 6.3 0 1 0 4.6 8.7A5.2 5.2 0 0 1 9.6 1.8z'/></svg>")}
+.ic-warn{--m:url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 18 18' fill='none' stroke='black' stroke-width='1.7' stroke-linecap='round' stroke-linejoin='round'><path d='M9 2.5l7 12.5H2z'/><path d='M9 7v4M9 13.2v.1'/></svg>")}
+.actions{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.actions.between{justify-content:space-between}
+.actions.end{justify-content:flex-end}
+.field{display:flex;flex-direction:column;gap:6px}
+.field label{font-size:13px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;color:var(--text2)}
+.input{width:100%;font:inherit;font-size:17px;padding:12px 14px;border-radius:12px;border:1px solid var(--sep);background:var(--field);color:var(--text);outline:none;transition:box-shadow .15s,border-color .15s}
+.input:focus{border-color:var(--accent);box-shadow:0 0 0 4px var(--accent-ring)}
+.input::placeholder{color:var(--text3)}
+.row-inline{display:flex;gap:10px;align-items:stretch}
+.row-inline .input{flex:1;min-width:0}
+.hint{font-size:13px;color:var(--text2)}
+.hint.danger{color:var(--danger)}
+.pill{display:inline-flex;align-items:center;gap:6px;padding:4px 10px;border-radius:980px;font-size:13px;font-weight:600;line-height:1.3;font-variant-numeric:tabular-nums;white-space:nowrap}
+.pill.ok{background:var(--ok-tint);color:var(--ok)}
+.pill.accent{background:var(--accent-tint);color:var(--accent)}
+.pill.neutral{background:var(--seg);color:var(--text2)}
+.dot{width:8px;height:8px;border-radius:50%;background:currentColor}
+.kv{display:grid;grid-template-columns:auto 1fr;gap:10px 20px;align-items:center;font-size:15px;margin:0}
+.kv dt{margin:0;color:var(--text2)}
+.kv dd{margin:0;text-align:right;overflow-wrap:anywhere;font-variant-numeric:tabular-nums}
+.dropzone{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;padding:26px 16px;border:1.5px dashed var(--sep);border-radius:14px;background:var(--bg);text-align:center;color:var(--text2);font-size:15px;cursor:pointer;transition:border-color .15s,background .15s}
+.dropzone strong{color:var(--text);font-weight:600}
+.dropzone.over{border-color:var(--accent);border-style:solid;background:var(--accent-tint);color:var(--accent)}
+.dropzone.over strong{color:var(--accent)}
+.dropzone input{display:none}
+.notice{display:flex;gap:10px;align-items:flex-start;padding:12px 14px;border-radius:12px;background:var(--warn-tint);color:var(--text);font-size:14px;line-height:1.4}
+.notice .ic{width:18px;height:18px;flex:none;color:var(--warn);margin-top:1px}
+.banner{display:flex;align-items:center;gap:12px;padding:14px 16px;border-radius:14px;background:var(--accent-tint);color:var(--text);font-size:15px}
+.banner.ok{background:var(--ok-tint)}
+.banner>span{flex:1;min-width:0}
+.spinner{width:18px;height:18px;border-radius:50%;border:2px solid var(--accent-ring);border-top-color:var(--accent);animation:spin .8s linear infinite;flex:none}
+@keyframes spin{to{transform:rotate(360deg)}}
+footer{text-align:center;font-size:13px;color:var(--text3);padding-top:8px}
+.vh{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+/* Step 1: the six token slots */
+.slots{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;padding:2px}
+.slot{appearance:none;position:relative;aspect-ratio:1/1;border-radius:50%;border:1.5px dashed var(--text3);background:var(--bg);padding:0;cursor:pointer;overflow:hidden;display:flex;align-items:center;justify-content:center;color:var(--text2);font:inherit;transition:transform .12s,box-shadow .15s}
+.slot:active{transform:scale(.97)}
+.slot:disabled{cursor:default;transform:none}
+.slot .plus{font-size:36px;line-height:1;font-weight:300;color:var(--text3)}
+.slot.filled{border:0}
+.slot canvas{width:100%;height:100%;display:block}
+.slot.selected{box-shadow:0 0 0 3px var(--card),0 0 0 6px var(--accent)}
+.slot:focus-visible{outline:none;box-shadow:0 0 0 4px var(--accent-ring)}
+.slot .num{position:absolute;left:50%;bottom:9%;transform:translateX(-50%);min-width:22px;height:22px;padding:0 7px;border-radius:980px;background:rgba(0,0,0,.55);color:#fff;font-size:12px;font-weight:600;display:flex;align-items:center;justify-content:center;font-variant-numeric:tabular-nums;pointer-events:none}
+.slot:not(.filled) .num{background:var(--seg);color:var(--text2)}
+/* Step 2: crop editor */
+.editor{display:flex;justify-content:center}
+#ed{display:block;border-radius:14px;background:var(--seg);touch-action:none;cursor:grab;max-width:100%}
+#ed:active{cursor:grabbing}
+.zoom{display:flex;align-items:center;gap:12px}
+.zoom input[type=range]{flex:1;min-width:0;accent-color:var(--accent);margin:0}
+.thumbs{display:flex;gap:10px;justify-content:center;flex-wrap:wrap}
+.thumb{appearance:none;width:52px;height:52px;border-radius:50%;padding:0;border:0;overflow:hidden;background:var(--seg);cursor:pointer;box-shadow:0 0 0 2px transparent;transition:box-shadow .15s}
+.thumb.active{box-shadow:0 0 0 2px var(--card),0 0 0 4px var(--accent)}
+.thumb canvas{width:100%;height:100%;display:block}
+/* Step 3: result */
+.preview img{display:block;width:100%;aspect-ratio:1772/1181;background:#fff;border-radius:6px;box-shadow:0 1px 4px rgba(0,0,0,.18)}
+.toggle{display:flex;align-items:center;gap:10px;font-size:15px;cursor:pointer}
+.toggle input{width:20px;height:20px;accent-color:var(--accent);margin:0;flex:none}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+@media (max-width:420px){h1{font-size:30px}.card{padding:16px}.slots{gap:10px}}
+</style>
+</head>
+<body><main>
+<header>
+  <div class="title-row"><h1>Token Sheet</h1><div class="theme-ctl">
+    <button class="btn secondary small" type="button" id="ta" hidden>Auto</button>
+    <button class="icon-btn theme-btn" type="button" id="tb" aria-label="Switch appearance"><i class="ic ic-sun"></i><i class="ic ic-moon"></i></button>
+  </div></div>
+  <p class="sub">Six round tokens on one 10 &times; 15 cm photo print</p>
+</header>
+<nav class="seg" aria-label="Steps" id="steps">
+  <a href="#pictures" data-step="1" aria-current="page">1 &middot; Pictures</a>
+  <a href="#crop" data-step="2" aria-disabled="true">2 &middot; Crop</a>
+  <a href="#print" data-step="3" aria-disabled="true">3 &middot; Print</a>
+</nav>
+<section>
+  <div class="banner ok" id="restored" hidden><span>Your last session was restored.</span><button class="btn destructive small" type="button" id="restart1">Start over</button></div>
+
+  <!-- Step 1: collect pictures -->
+  <div class="step" id="step1">
+    <div class="card">
+      <div class="card-head"><h2>Pictures</h2><span class="pill neutral" id="count">0 / 6</span></div>
+      <p class="hint">Tap an empty slot to add a picture. Tap a picture to move, replace or remove it. Pictures stay on this device.</p>
+      <div class="slots" id="slots"></div>
+      <div class="actions" id="slotActions" hidden>
+        <button class="btn secondary small" type="button" id="mvL">Move left</button>
+        <button class="btn secondary small" type="button" id="mvR">Move right</button>
+        <button class="btn secondary small" type="button" id="repl">Replace</button>
+        <button class="btn destructive small" type="button" id="rm">Remove</button>
+      </div>
+      <label class="dropzone" id="dz"><input type="file" id="f" accept="image/*" multiple>
+        <strong>Choose pictures</strong><span>from your photos &middot; or drag &amp; drop them here &middot; or paste a copied picture anywhere on this page</span></label>
+      <div class="actions between"><span class="hint" id="ph"></span>
+        <label class="btn secondary small" for="cam">Take photo</label><input type="file" id="cam" accept="image/*" capture="environment" class="vh"></div>
+    </div>
+    <div class="card">
+      <div class="card-head"><h2>From the web</h2></div>
+      <div class="field"><label for="url">Picture link</label>
+        <div class="row-inline"><input class="input" id="url" type="url" inputmode="url" placeholder="https://&hellip;" autocomplete="off" autocapitalize="off" spellcheck="false"><button class="btn secondary" type="button" id="addUrl">Add</button></div>
+        <p class="hint" id="uh"></p></div>
+    </div>
+    <div class="actions end"><button class="btn" type="button" id="toCrop" disabled>Crop pictures</button></div>
+  </div>
+
+  <!-- Step 2: crop each picture -->
+  <div class="step" id="step2" hidden>
+    <div class="card">
+      <div class="card-head"><h2>Crop</h2><span class="pill accent" id="cropPos">1 / 1</span></div>
+      <p class="hint" id="cropName"></p>
+      <div class="editor"><canvas id="ed" aria-label="Crop area: drag to move, pinch to zoom"></canvas></div>
+      <div class="zoom"><button class="btn secondary small" type="button" id="rot">Rotate</button>
+        <input type="range" id="zoom" min="1" max="6" step="0.01" value="1" aria-label="Zoom">
+        <button class="btn secondary small" type="button" id="reset">Reset</button></div>
+      <p class="hint">Drag to move the picture, pinch or use the slider to zoom. The bright circle is what ends up on the token.</p>
+      <div class="thumbs" id="thumbs"></div>
+    </div>
+    <div class="actions between"><button class="btn secondary" type="button" id="cropBack">Back</button><button class="btn" type="button" id="cropNext">Next</button></div>
+  </div>
+
+  <!-- Step 3: the finished sheet -->
+  <div class="step" id="step3" hidden>
+    <div class="card">
+      <div class="card-head"><h2>Token sheet</h2><span class="pill ok" id="ready" hidden><span class="dot"></span>Ready</span></div>
+      <div class="preview"><img id="out" alt="Preview of the token sheet"></div>
+      <dl class="kv"><dt>Print size</dt><dd>10 &times; 15 cm (3:2)</dd><dt>Pixels</dt><dd>1772 &times; 1181 at 300 dpi</dd><dt>Token</dt><dd>&Oslash; 43.6 mm</dd></dl>
+      <label class="toggle"><input type="checkbox" id="guide"><span>Thin cutting line around each token</span></label>
+      <div class="actions"><button class="btn" type="button" id="share" hidden>Share</button><a class="btn secondary" id="dl" download="token-sheet.jpg" aria-disabled="true">Save JPEG</a><span class="hint" id="saved" hidden></span></div>
+      <div class="banner"><span>Order it as a 10 &times; 15 cm print. The white margin leaves room for borderless trimming, so let the shop fill the paper without extra cropping.</span></div>
+    </div>
+    <div class="actions between"><button class="btn secondary" type="button" id="toCrop2">Back to crop</button><button class="btn destructive" type="button" id="restart">Start over</button></div>
+  </div>
+</section>
+<footer>Token Sheet &middot; same layout as prepare_tokens.py &middot; nothing is uploaded</footer>
+</main>
+<script>
+// Appearance toggle, same behaviour as the management UI but stored in localStorage (cookies do not work for local files).
+(function(){var r=document.documentElement,t=document.getElementById('tb'),a=document.getElementById('ta');function rc(){try{var v=localStorage.getItem('theme');return v==='light'||v==='dark'?v:null}catch(e){return null}}function wc(v){try{if(v)localStorage.setItem('theme',v);else localStorage.removeItem('theme')}catch(e){}}function ef(){var v=r.getAttribute('data-theme');if(v==='light'||v==='dark')return v;return matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light'}function ap(v){if(v)r.setAttribute('data-theme',v);else r.removeAttribute('data-theme');a.hidden=!v;t.setAttribute('aria-label',ef()==='dark'?'Switch to light mode':'Switch to dark mode')}ap(rc());t.onclick=function(){var n=ef()==='dark'?'light':'dark';wc(n);ap(n)};a.onclick=function(){wc(null);ap(null)}})();
+
+(() => {
+'use strict';
+
+// ---------------------------------------------------------------------------
+// Layout, identical to src/prepare_tokens.py
+// ---------------------------------------------------------------------------
+const OUT_W = 1772, OUT_H = 1181;   // 15 x 10 cm at 300 dpi
+const D = 515;                       // token diameter in px (43.6 mm)
+const COLS = 3, ROWS = 2, N = COLS * ROWS;
+const PAD_X = Math.floor((OUT_W - COLS * D) / (COLS + 1));
+const PAD_Y = Math.floor((OUT_H - ROWS * D) / (ROWS + 1));
+const WORK_MAX = 2048;   // working copies are scaled down to this edge length (4x the token, plenty for print)
+const ZOOM_MAX = 6;
+const URL_HINT = 'Paste one or more links. Some sites block direct access to their pictures; then open the picture in the browser, copy or save it, and add it as a file.';
+
+const $ = id => document.getElementById(id);
+const clamp = (v, a, b) => v < a ? a : v > b ? b : v;
+
+// slot: { canvas, w, h, name, crop: {z, cx, cy}, blob } or { loading: true, name } or null
+const state = { slots: Array(N).fill(null), step: 1, cur: 0, guide: false };
+let selected = -1;      // slot picked in step 1 (for move / replace / remove)
+let pendingIndex = -1;  // slot the next file picker result goes to
+let gen = 0;            // bumped by "start over" so late loads are dropped
+let result = null;      // { blob, url, name } of the rendered sheet
+
+// ---------------------------------------------------------------------------
+// Images
+// ---------------------------------------------------------------------------
+function loadImage(src) {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    const timer = setTimeout(() => { img.src = ''; reject(new Error('timeout')); }, 30000);
+    img.onload = () => { clearTimeout(timer); resolve(img); };
+    img.onerror = () => { clearTimeout(timer); reject(new Error('load')); };
+    // crossOrigin is required to draw a web picture onto a canvas; the site must allow it (CORS)
+    if (/^https?:/i.test(src)) { img.crossOrigin = 'anonymous'; img.referrerPolicy = 'no-referrer'; }
+    img.src = src;
+  });
+}
+
+function imageFromBlob(blob) {
+  const url = URL.createObjectURL(blob);
+  return loadImage(url).finally(() => URL.revokeObjectURL(url));
+}
+
+// drawImage with stepwise downscaling: a single big step aliases, and intermediate
+// canvases stay below the area limit of mobile browsers.
+function drawScaled(ctx, src, sx, sy, sw, sh, dx, dy, dw, dh) {
+  let cur = src, x = sx, y = sy, w = sw, h = sh;
+  while (w > 2 * dw && h > 2 * dh) {
+    let f = 0.5;
+    if (w * h * f * f > 12e6) f = Math.sqrt(12e6 / (w * h));
+    if (f >= 1) break;
+    const nw = Math.ceil(w * f), nh = Math.ceil(h * f);
+    const t = document.createElement('canvas');
+    t.width = nw; t.height = nh;
+    const tc = t.getContext('2d');
+    tc.imageSmoothingQuality = 'high';
+    tc.drawImage(cur, x, y, w, h, 0, 0, nw, nh);
+    cur = t; x = 0; y = 0; w = nw; h = nh;
+  }
+  ctx.imageSmoothingQuality = 'high';
+  ctx.drawImage(cur, x, y, w, h, dx, dy, dw, dh);
+}
+
+// Working copy: white background (transparent PNGs print white, like the script), at most WORK_MAX px.
+function makeSlot(img, name) {
+  const w = img.naturalWidth || img.width, h = img.naturalHeight || img.height;
+  if (!w || !h) throw new Error('empty');
+  const k = Math.min(1, WORK_MAX / Math.max(w, h));
+  const cw = Math.max(1, Math.round(w * k)), ch = Math.max(1, Math.round(h * k));
+  const c = document.createElement('canvas');
+  c.width = cw; c.height = ch;
+  const ctx = c.getContext('2d');
+  ctx.fillStyle = '#fff';
+  ctx.fillRect(0, 0, cw, ch);
+  drawScaled(ctx, img, 0, 0, w, h, 0, 0, cw, ch);
+  return { canvas: c, w: cw, h: ch, name: name || '', crop: { z: 1, cx: cw / 2, cy: ch / 2 }, blob: null };
+}
+
+// 90 degrees clockwise; the crop centre follows the picture.
+function rotateSlot(s) {
+  const c = document.createElement('canvas');
+  c.width = s.h; c.height = s.w;
+  const ctx = c.getContext('2d');
+  ctx.translate(s.h, 0);
+  ctx.rotate(Math.PI / 2);
+  ctx.drawImage(s.canvas, 0, 0);
+  const { cx, cy } = s.crop;
+  s.crop.cx = s.h - cy;
+  s.crop.cy = cx;
+  s.canvas = c;
+  [s.w, s.h] = [s.h, s.w];
+  s.blob = null;
+  clampCrop(s);
+}
+
+// Crop square in working-copy pixels: side = short edge / zoom, centred on (cx, cy), kept inside the picture.
+const side = s => Math.min(s.w, s.h) / s.crop.z;
+function clampCrop(s) {
+  s.crop.z = clamp(s.crop.z, 1, ZOOM_MAX);
+  const half = side(s) / 2;
+  s.crop.cx = clamp(s.crop.cx, half, s.w - half);
+  s.crop.cy = clamp(s.crop.cy, half, s.h - half);
+}
+
+function drawToken(ctx, s, x, y, d) {
+  const sd = side(s), sx = s.crop.cx - sd / 2, sy = s.crop.cy - sd / 2;
+  ctx.save();
+  ctx.beginPath();
+  ctx.arc(x + d / 2, y + d / 2, d / 2, 0, Math.PI * 2);
+  ctx.clip();
+  drawScaled(ctx, s.canvas, sx, sy, sd, sd, x, y, d, d);
+  ctx.restore();
+}
+
+function thumb(s, px) {
+  const dpr = Math.min(2, window.devicePixelRatio || 1);
+  const c = document.createElement('canvas');
+  c.width = c.height = Math.round(px * dpr);
+  drawToken(c.getContext('2d'), s, 0, 0, c.width);
+  return c;
+}
+
+// ---------------------------------------------------------------------------
+// Step 1: collect pictures
+// ---------------------------------------------------------------------------
+const order = () => state.slots.reduce((o, s, i) => (s && !s.loading ? o.concat(i) : o), []);
+const freeSlot = () => state.slots.indexOf(null);
+
+function setHint(id, text, danger) {
+  const el = $(id);
+  el.textContent = text;
+  el.className = 'hint' + (danger ? ' danger' : '');
+}
+
+function renderSlots() {
+  const host = $('slots');
+  host.innerHTML = '';
+  let n = 0;
+  state.slots.forEach((s, i) => {
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.className = 'slot';
+    b.dataset.i = i;
+    if (s && s.loading) {
+      b.disabled = true;
+      b.innerHTML = '<span class="spinner"></span>';
+      b.setAttribute('aria-label', 'Loading picture ' + (i + 1));
+    } else if (s) {
+      n++;
+      b.classList.add('filled');
+      if (i === selected) b.classList.add('selected');
+      b.appendChild(thumb(s, 200));
+      b.setAttribute('aria-label', 'Picture ' + (i + 1) + (s.name ? ': ' + s.name : ''));
+    } else {
+      b.innerHTML = '<span class="plus">+</span>';
+      b.setAttribute('aria-label', 'Add picture ' + (i + 1));
+    }
+    const num = document.createElement('span');
+    num.className = 'num';
+    num.textContent = i + 1;
+    b.appendChild(num);
+    host.appendChild(b);
+  });
+  $('count').textContent = n + ' / ' + N;
+  $('toCrop').disabled = n === 0;
+  const sel = state.slots[selected];
+  const acts = $('slotActions');
+  acts.hidden = !(sel && !sel.loading);
+  if (!acts.hidden) {
+    $('mvL').disabled = selected === 0;
+    $('mvR').disabled = selected === N - 1;
+  }
+  $('steps').querySelectorAll('a').forEach((a, k) => {
+    if (k === 0 || n > 0) a.removeAttribute('aria-disabled'); else a.setAttribute('aria-disabled', 'true');
+  });
+}
+
+// src: Blob/File or URL string. The slot shows a spinner while loading.
+function addSource(idx, src, name) {
+  const g = gen;
+  state.slots[idx] = { loading: true, name };
+  renderSlots();
+  const load = typeof src === 'string' ? loadUrl(src) : imageFromBlob(src);
+  return load.then(img => {
+    if (g !== gen) return;
+    state.slots[idx] = makeSlot(img, name);
+    renderSlots();
+    persist();
+  }, err => {
+    if (g !== gen) return;
+    state.slots[idx] = null;
+    renderSlots();
+    throw err;
+  });
+}
+
+function addFiles(files, at) {
+  const list = Array.from(files || []);
+  let skipped = 0, full = false;
+  list.forEach(f => {
+    if (!/^image\//.test(f.type) && !/\.(jpe?g|png|gif|webp|bmp|heic|heif|avif|tiff?)$/i.test(f.name)) { skipped++; return; }
+    const idx = at >= 0 ? at : freeSlot();
+    at = -1;
+    if (idx < 0) { full = true; return; }
+    addSource(idx, f, f.name).catch(() => setHint('ph', 'Could not read ' + f.name, true));
+  });
+  const msg = [];
+  if (skipped) msg.push(skipped === 1 ? 'One file was skipped, only pictures can be added' : skipped + ' files were skipped, only pictures can be added');
+  if (full) msg.push('The sheet is full, remove a picture first');
+  setHint('ph', msg.join(' · '), msg.length > 0);
+  selected = -1;
+  renderSlots();
+}
+
+function normalizeUrl(t) {
+  t = t.trim();
+  if (!t) return null;
+  if (!/^[a-z][a-z0-9+.-]*:/i.test(t)) t = 'https://' + t;
+  return /^https?:/i.test(t) || /^data:image\//i.test(t) ? t : null;
+}
+
+// http links are retried as https: a page served over https cannot load http pictures.
+function loadUrl(u) {
+  return loadImage(u).catch(err => {
+    if (/^http:/i.test(u)) return loadImage(u.replace(/^http:/i, 'https:'));
+    throw err;
+  });
+}
+
+function nameFromUrl(u) {
+  if (/^data:/i.test(u)) return 'Pasted picture';
+  try {
+    const url = new URL(u);
+    return decodeURIComponent(url.pathname.split('/').pop() || '') || url.host;
+  } catch (e) { return u; }
+}
+
+function hostOf(u) {
+  try { return new URL(u).host; } catch (e) { return 'the link'; }
+}
+
+function addUrls(text) {
+  const urls = (text || '').split(/\s+/).map(normalizeUrl).filter(Boolean);
+  if (!urls.length) { setHint('uh', 'That does not look like a link', true); return; }
+  const failed = [];
+  let full = false;
+  const jobs = urls.map(u => {
+    const idx = freeSlot();
+    if (idx < 0) { full = true; return Promise.resolve(); }
+    return addSource(idx, u, nameFromUrl(u)).catch(() => { failed.push(u); });
+  });
+  $('url').value = '';
+  setHint('uh', 'Loading…', false);
+  Promise.all(jobs).then(() => {
+    const msg = [];
+    if (failed.length) {
+      msg.push((failed.length === 1 ? 'Could not load the picture from ' + hostOf(failed[0]) : failed.length + ' links could not be loaded') +
+        '. The site may block direct access to its pictures, or the link is not a picture. Open the picture in the browser, copy or save it, then add it here.');
+    }
+    if (full) msg.push('The sheet is full, remove a picture first.');
+    setHint('uh', msg.length ? msg.join(' ') : URL_HINT, msg.length > 0);
+  });
+}
+
+// Von der Android-App aufgerufen, wenn ein Bild ueber "Teilen" hereinkommt. Die
+// App legt es unter derselben Herkunft wie diese Seite ab, addUrls laedt es also
+// wie jeden anderen Link und setzt es in den naechsten freien Platz.
+function receiveShared(urls) {
+  if (state.step !== 1) go(1);
+  addUrls(urls);
+}
+
+function swap(a, b) {
+  if (b < 0 || b >= N) return;
+  [state.slots[a], state.slots[b]] = [state.slots[b], state.slots[a]];
+  selected = b;
+  renderSlots();
+  persist();
+}
+
+$('slots').addEventListener('click', e => {
+  const b = e.target.closest('.slot');
+  if (!b) return;
+  const i = +b.dataset.i;
+  if (!state.slots[i]) {
+    pendingIndex = i;
+    $('f').click();
+  } else {
+    selected = selected === i ? -1 : i;
+    renderSlots();
+  }
+});
+$('mvL').onclick = () => swap(selected, selected - 1);
+$('mvR').onclick = () => swap(selected, selected + 1);
+$('repl').onclick = () => { pendingIndex = selected; $('f').click(); };
+$('rm').onclick = () => { state.slots[selected] = null; selected = -1; renderSlots(); persist(); };
+
+// A click on the dropzone itself (not the synthetic one on the input) targets the next free slot.
+$('dz').addEventListener('click', e => { if (e.target !== $('f')) pendingIndex = -1; });
+$('f').addEventListener('change', function () { addFiles(this.files, pendingIndex); pendingIndex = -1; this.value = ''; });
+$('f').addEventListener('cancel', () => { pendingIndex = -1; });
+$('cam').addEventListener('change', function () { addFiles(this.files, -1); this.value = ''; });
+
+$('addUrl').onclick = () => addUrls($('url').value);
+$('url').addEventListener('keydown', function (e) { if (e.key === 'Enter') { e.preventDefault(); addUrls(this.value); } });
+
+// Paste: a copied picture (from a web page or the photo app) or copied links, anywhere on the page.
+document.addEventListener('paste', e => {
+  const cd = e.clipboardData;
+  if (!cd) return;
+  const files = Array.from(cd.files || []).filter(f => /^image\//.test(f.type));
+  if (files.length) {
+    e.preventDefault();
+    if (state.step !== 1) go(1);
+    addFiles(files, -1);
+    return;
+  }
+  const text = cd.getData('text/uri-list') || cd.getData('text/plain') || '';
+  if (/^\s*(https?:\/\/|data:image\/)/i.test(text)) {
+    e.preventDefault();
+    if (state.step !== 1) go(1);
+    addUrls(text);
+  }
+});
+
+// Drag & drop of files or of a picture / link from another browser window.
+['dragenter', 'dragover'].forEach(t => document.addEventListener(t, e => { e.preventDefault(); $('dz').classList.add('over'); }));
+['dragleave', 'drop'].forEach(t => document.addEventListener(t, e => { e.preventDefault(); $('dz').classList.remove('over'); }));
+document.addEventListener('drop', e => {
+  const dt = e.dataTransfer;
+  if (!dt) return;
+  if (dt.files && dt.files.length) {
+    if (state.step !== 1) go(1);
+    addFiles(dt.files, -1);
+    return;
+  }
+  const text = dt.getData('text/uri-list') || dt.getData('text/plain');
+  if (text) {
+    if (state.step !== 1) go(1);
+    addUrls(text);
+  }
+});
+
+// ---------------------------------------------------------------------------
+// Steps
+// ---------------------------------------------------------------------------
+function go(step) {
+  if (step > 1 && !order().length) step = 1;
+  state.step = step;
+  [1, 2, 3].forEach(k => { $('step' + k).hidden = k !== step; });
+  $('steps').querySelectorAll('a').forEach((a, k) => {
+    if (k + 1 === step) a.setAttribute('aria-current', 'page'); else a.removeAttribute('aria-current');
+  });
+  if (step === 1) renderSlots();
+  if (step === 2) enterCrop();
+  if (step === 3) enterPrint();
+  persist();
+  window.scrollTo(0, 0);
+}
+
+$('steps').querySelectorAll('a').forEach(a => a.addEventListener('click', e => {
+  e.preventDefault();
+  if (a.getAttribute('aria-disabled') === 'true') return;
+  go(+a.dataset.step);
+}));
+$('toCrop').onclick = () => { state.cur = 0; go(2); };
+$('toCrop2').onclick = () => go(2);
+
+// ---------------------------------------------------------------------------
+// Step 2: crop editor (canvas, pointer events for drag and pinch)
+// ---------------------------------------------------------------------------
+const ed = $('ed');
+let edSize = 0, raf = 0, pinch = null;
+const ptrs = new Map();
+
+function curSlot() {
+  const o = order();
+  if (state.cur >= o.length) state.cur = 0;
+  return state.slots[o[state.cur]];
+}
+
+function sizeEditor() {
+  const w = ed.parentNode.clientWidth || 320;
+  edSize = Math.max(200, Math.min(440, w));
+  const dpr = window.devicePixelRatio || 1;
+  ed.width = ed.height = Math.round(edSize * dpr);
+  ed.style.width = ed.style.height = edSize + 'px';
+}
+
+// Screen pixels per working-copy pixel: the crop square fills 84 % of the editor.
+const kOf = s => edSize * 0.84 / side(s);
+
+function drawEditor() {
+  const s = curSlot();
+  if (!s || !edSize) return;
+  const ctx = ed.getContext('2d');
+  const dpr = ed.width / edSize;
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  ctx.clearRect(0, 0, edSize, edSize);
+  const k = kOf(s), R = edSize * 0.42;
+  ctx.imageSmoothingQuality = 'medium';
+  ctx.drawImage(s.canvas, edSize / 2 - s.crop.cx * k, edSize / 2 - s.crop.cy * k, s.w * k, s.h * k);
+  ctx.fillStyle = 'rgba(0,0,0,.55)';
+  ctx.beginPath();
+  ctx.rect(0, 0, edSize, edSize);
+  ctx.arc(edSize / 2, edSize / 2, R, 0, Math.PI * 2, true);
+  ctx.fill('evenodd');
+  ctx.strokeStyle = 'rgba(255,255,255,.9)';
+  ctx.lineWidth = 1.5;
+  ctx.beginPath();
+  ctx.arc(edSize / 2, edSize / 2, R, 0, Math.PI * 2);
+  ctx.stroke();
+}
+
+function schedule() {
+  if (raf) return;
+  raf = requestAnimationFrame(() => { raf = 0; drawEditor(); });
+}
+
+function enterCrop() {
+  const o = order();
+  if (state.cur >= o.length) state.cur = 0;
+  sizeEditor();
+  renderThumbs();
+  updateCropUi();
+}
+
+function updateCropUi() {
+  const o = order(), s = curSlot();
+  $('cropPos').textContent = (state.cur + 1) + ' / ' + o.length;
+  $('cropName').textContent = s.name || '';
+  $('zoom').value = s.crop.z;
+  $('cropNext').textContent = state.cur === o.length - 1 ? 'Create sheet' : 'Next';
+  $('cropBack').textContent = state.cur === 0 ? 'Back to pictures' : 'Previous';
+  drawEditor();
+}
+
+function renderThumbs() {
+  const host = $('thumbs');
+  host.innerHTML = '';
+  order().forEach((idx, pos) => {
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.className = 'thumb' + (pos === state.cur ? ' active' : '');
+    b.setAttribute('aria-label', 'Crop picture ' + (idx + 1));
+    b.appendChild(thumb(state.slots[idx], 52));
+    b.onclick = () => { state.cur = pos; renderThumbs(); updateCropUi(); persist(); };
+    host.appendChild(b);
+  });
+}
+
+function updateThumb() {
+  const b = $('thumbs').children[state.cur];
+  if (b) b.replaceChild(thumb(curSlot(), 52), b.firstChild);
+}
+
+function setZoom(s, z) {
+  s.crop.z = clamp(z, 1, ZOOM_MAX);
+  clampCrop(s);
+  $('zoom').value = s.crop.z;
+  schedule();
+}
+
+ed.addEventListener('pointerdown', e => {
+  e.preventDefault();
+  ed.setPointerCapture(e.pointerId);
+  ptrs.set(e.pointerId, { x: e.clientX, y: e.clientY });
+  if (ptrs.size === 2) {
+    const [a, b] = [...ptrs.values()];
+    pinch = { d: Math.hypot(a.x - b.x, a.y - b.y), mx: (a.x + b.x) / 2, my: (a.y + b.y) / 2 };
+  }
+});
+ed.addEventListener('pointermove', e => {
+  const p = ptrs.get(e.pointerId);
+  const s = curSlot();
+  if (!p || !s) return;
+  if (ptrs.size === 1) {
+    const k = kOf(s);
+    s.crop.cx -= (e.clientX - p.x) / k;
+    s.crop.cy -= (e.clientY - p.y) / k;
+  }
+  p.x = e.clientX; p.y = e.clientY;
+  if (ptrs.size >= 2 && pinch) {
+    const [a, b] = [...ptrs.values()];
+    const d = Math.hypot(a.x - b.x, a.y - b.y), mx = (a.x + b.x) / 2, my = (a.y + b.y) / 2;
+    if (pinch.d > 0) s.crop.z = clamp(s.crop.z * d / pinch.d, 1, ZOOM_MAX);
+    const k = kOf(s);
+    s.crop.cx -= (mx - pinch.mx) / k;
+    s.crop.cy -= (my - pinch.my) / k;
+    pinch = { d, mx, my };
+  }
+  clampCrop(s);
+  $('zoom').value = s.crop.z;
+  schedule();
+});
+function endPointer(e) {
+  if (!ptrs.delete(e.pointerId)) return;
+  pinch = null;
+  if (!ptrs.size) { updateThumb(); persist(); }
+}
+ed.addEventListener('pointerup', endPointer);
+ed.addEventListener('pointercancel', endPointer);
+ed.addEventListener('wheel', e => {
+  e.preventDefault();
+  const s = curSlot();
+  if (!s) return;
+  setZoom(s, s.crop.z * Math.exp(-e.deltaY * 0.002));
+  persistSoon();
+}, { passive: false });
+
+$('zoom').addEventListener('input', function () { const s = curSlot(); if (s) setZoom(s, +this.value); });
+$('zoom').addEventListener('change', () => { updateThumb(); persist(); });
+$('rot').onclick = () => { const s = curSlot(); if (!s) return; rotateSlot(s); drawEditor(); updateThumb(); persist(); };
+$('reset').onclick = () => { const s = curSlot(); if (!s) return; s.crop = { z: 1, cx: s.w / 2, cy: s.h / 2 }; $('zoom').value = 1; drawEditor(); updateThumb(); persist(); };
+$('cropNext').onclick = () => {
+  if (state.cur < order().length - 1) { state.cur++; renderThumbs(); updateCropUi(); persist(); } else go(3);
+};
+$('cropBack').onclick = () => {
+  if (state.cur > 0) { state.cur--; renderThumbs(); updateCropUi(); persist(); } else go(1);
+};
+window.addEventListener('resize', () => { if (state.step === 2) { sizeEditor(); drawEditor(); } });
+
+// ---------------------------------------------------------------------------
+// Step 3: render the sheet, share or save it
+// ---------------------------------------------------------------------------
+function renderSheet() {
+  const c = document.createElement('canvas');
+  c.width = OUT_W; c.height = OUT_H;
+  const ctx = c.getContext('2d');
+  ctx.fillStyle = '#fff';
+  ctx.fillRect(0, 0, OUT_W, OUT_H);
+  state.slots.forEach((s, i) => {
+    if (!s || s.loading) return;
+    const x = PAD_X + (i % COLS) * (D + PAD_X), y = PAD_Y + Math.floor(i / COLS) * (D + PAD_Y);
+    drawToken(ctx, s, x, y, D);
+    if (state.guide) {
+      ctx.strokeStyle = 'rgba(0,0,0,.3)';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.arc(x + D / 2, y + D / 2, D / 2 + 1, 0, Math.PI * 2);
+      ctx.stroke();
+    }
+  });
+  return c;
+}
+
+const fileOfResult = () => {
+  try { return new File([result.blob], result.name, { type: 'image/jpeg' }); } catch (e) { return null; }
+};
+
+// Native Bruecke, gesetzt von der Android-App (android/, TokenSheetNative). Die
+// Android-WebView kennt weder navigator.share noch ein wirksames <a download>,
+// beides reicht die App nativ nach. Ohne App ist NATIVE null und unten laeuft
+// alles wie im Browser.
+const NATIVE = window.TokenSheetNative || null;
+
+const blobToBase64 = blob => new Promise((resolve, reject) => {
+  const fr = new FileReader();
+  fr.onload = () => resolve(String(fr.result).split(',')[1] || '');
+  fr.onerror = () => reject(fr.error || new Error('read'));
+  fr.readAsDataURL(blob);
+});
+
+// Kurze Rueckmeldung neben den Knoepfen; im Browser sagt der Download-Balken schon Bescheid.
+let savedTimer = 0;
+function flash(text, danger) {
+  const el = $('saved');
+  el.textContent = text;
+  el.className = 'hint' + (danger ? ' danger' : '');
+  el.hidden = false;
+  clearTimeout(savedTimer);
+  savedTimer = setTimeout(() => { el.hidden = true; }, 4000);
+}
+
+let renderSeq = 0;
+function enterPrint() {
+  const seq = ++renderSeq;
+  $('ready').hidden = true;
+  $('share').disabled = true;
+  $('dl').setAttribute('aria-disabled', 'true');
+  renderSheet().toBlob(blob => {
+    if (seq !== renderSeq || !blob) return;
+    if (result) URL.revokeObjectURL(result.url);
+    const name = 'token-sheet-' + new Date().toISOString().slice(0, 10) + '.jpg';
+    result = { blob, url: URL.createObjectURL(blob), name };
+    $('out').src = result.url;
+    $('dl').href = result.url;
+    $('dl').download = name;
+    $('dl').removeAttribute('aria-disabled');
+    $('ready').hidden = false;
+    $('saved').hidden = true;
+    const f = fileOfResult();
+    const canShare = !!NATIVE || !!(f && navigator.share && navigator.canShare && navigator.canShare({ files: [f] }));
+    $('share').hidden = !canShare;
+    $('share').disabled = false;
+  }, 'image/jpeg', 0.95);
+}
+
+$('share').onclick = () => {
+  if (!result) return;
+  if (NATIVE) {
+    blobToBase64(result.blob)
+      .then(b64 => NATIVE.shareJpeg(b64, result.name))
+      .catch(() => flash('Could not share the sheet', true));
+    return;
+  }
+  const f = fileOfResult();
+  if (f) navigator.share({ files: [f], title: 'Token sheet' }).catch(() => {});
+};
+
+// In der Android-WebView tut ein <a download> nichts. Mit Bruecke geht das Bild
+// deshalb ueber den MediaStore in die Galerie; ohne bleibt es der normale Link.
+$('dl').addEventListener('click', e => {
+  if (!NATIVE) return;
+  e.preventDefault();
+  if (!result) return;
+  blobToBase64(result.blob)
+    .then(b64 => {
+      const ok = NATIVE.saveToGallery(b64, result.name);
+      flash(ok ? 'Saved to Photos' : 'Could not save the sheet', !ok);
+    })
+    .catch(() => flash('Could not save the sheet', true));
+});
+$('guide').onchange = function () { state.guide = this.checked; enterPrint(); persist(); };
+
+function restart() {
+  if (order().length && !confirm('Remove all pictures and start over?')) return;
+  gen++;
+  state.slots = Array(N).fill(null);
+  state.cur = 0;
+  selected = -1;
+  pendingIndex = -1;
+  if (result) { URL.revokeObjectURL(result.url); result = null; }
+  $('out').removeAttribute('src');
+  $('restored').hidden = true;
+  setHint('ph', '', false);
+  setHint('uh', URL_HINT, false);
+  clearStore();
+  go(1);
+}
+$('restart').onclick = restart;
+$('restart1').onclick = restart;
+
+// ---------------------------------------------------------------------------
+// Persistence (IndexedDB): working copies as JPEG blobs plus crop and step
+// ---------------------------------------------------------------------------
+const DB = 'token-sheet', STORE = 'kv';
+let saveTimer = 0, saving = false, dirty = false;
+
+function openDb() {
+  return new Promise((resolve, reject) => {
+    if (!window.indexedDB) return reject(new Error('no indexedDB'));
+    const r = indexedDB.open(DB, 1);
+    r.onupgradeneeded = () => r.result.createObjectStore(STORE);
+    r.onsuccess = () => resolve(r.result);
+    r.onerror = () => reject(r.error);
+  });
+}
+
+const canvasToBlob = c => new Promise(resolve => c.toBlob(resolve, 'image/jpeg', 0.92));
+
+function persistSoon() {
+  clearTimeout(saveTimer);
+  saveTimer = setTimeout(persist, 400);
+}
+
+function persist() {
+  if (saving) { dirty = true; return; }
+  saving = true;
+  const snap = { step: state.step, cur: state.cur, guide: state.guide };
+  Promise.all(state.slots.map(s => {
+    if (!s || s.loading) return null;
+    const pack = blob => ({ blob, name: s.name, crop: { z: s.crop.z, cx: s.crop.cx, cy: s.crop.cy } });
+    return s.blob ? pack(s.blob) : canvasToBlob(s.canvas).then(b => { s.blob = b; return pack(b); });
+  })).then(slots => {
+    snap.slots = slots;
+    return openDb().then(db => new Promise((resolve, reject) => {
+      const tx = db.transaction(STORE, 'readwrite');
+      tx.objectStore(STORE).put(snap, 'state');
+      tx.oncomplete = () => { db.close(); resolve(); };
+      tx.onerror = tx.onabort = () => { db.close(); reject(tx.error); };
+    }));
+  }).catch(() => {}).then(() => {
+    saving = false;
+    if (dirty) { dirty = false; persist(); }
+  });
+}
+
+function clearStore() {
+  openDb().then(db => {
+    const tx = db.transaction(STORE, 'readwrite');
+    tx.objectStore(STORE).delete('state');
+    tx.oncomplete = tx.onerror = tx.onabort = () => db.close();
+  }).catch(() => {});
+}
+
+function restore() {
+  return openDb().then(db => new Promise((resolve, reject) => {
+    const tx = db.transaction(STORE, 'readonly');
+    const rq = tx.objectStore(STORE).get('state');
+    rq.onsuccess = () => { db.close(); resolve(rq.result); };
+    rq.onerror = () => { db.close(); reject(rq.error); };
+  })).then(snap => {
+    if (!snap || !Array.isArray(snap.slots)) return false;
+    return Promise.all(snap.slots.slice(0, N).map(x => {
+      if (!x || !x.blob) return null;
+      return imageFromBlob(x.blob).then(img => {
+        const s = makeSlot(img, x.name);
+        s.blob = x.blob;
+        if (x.crop) { s.crop = { z: +x.crop.z || 1, cx: +x.crop.cx || s.w / 2, cy: +x.crop.cy || s.h / 2 }; clampCrop(s); }
+        return s;
+      }).catch(() => null);
+    })).then(slots => {
+      slots.forEach((s, i) => { state.slots[i] = s; });
+      if (!order().length) return false;
+      state.guide = !!snap.guide;
+      $('guide').checked = state.guide;
+      state.cur = snap.cur | 0;
+      state.step = snap.step === 2 || snap.step === 3 ? snap.step : 1;
+      return true;
+    });
+  }).catch(() => false);
+}
+
+window.addEventListener('pagehide', () => { clearTimeout(saveTimer); persist(); });
+
+// ---------------------------------------------------------------------------
+// Start
+// ---------------------------------------------------------------------------
+setHint('uh', URL_HINT, false);
+renderSlots();
+restore().then(restored => {
+  if (restored) {
+    $('restored').hidden = false;
+    document.addEventListener('click', () => { $('restored').hidden = true; }, { once: true, capture: true });
+  }
+  go(state.step);
+  // Erst jetzt darf die App geteilte Bilder nachreichen. Frueher wuerde das
+  // restore() oben sie gleich wieder ueberschreiben: es schreibt alle sechs
+  // Plaetze, auch die leeren.
+  if (NATIVE && NATIVE.onPageReady) { try { NATIVE.onPageReady(); } catch (e) {} }
+});
+
+// For scripting and tests.
+window.TokenSheet = { state, addFiles, addUrls, go, renderSheet, receiveShared };
+})();
+</script>
+</body>
+</html>

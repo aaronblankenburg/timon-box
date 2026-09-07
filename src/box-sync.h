@@ -709,10 +709,10 @@ static const char *syncFileStatusName(uint8_t status) {
 void copyStatusJson(AsyncWebServerRequest *request) {
   SyncState state = syncState;
   AsyncResponseStream *res = request->beginResponseStream("application/json", 4096);
-  res->printf("{\"state\":\"%s\",\"station\":%s,\"bytes\":%u,\"bytesTotal\":%u,\"current\":%d,\"heap\":%u",
+  res->printf("{\"state\":\"%s\",\"station\":%s,\"bytes\":%u,\"bytesCur\":%u,\"bytesTotal\":%u,\"current\":%d,\"heap\":%u",
               syncStateName(state),
               netMode == NET_STATION && WiFi.status() == WL_CONNECTED ? "true" : "false",
-              (unsigned)(syncBytesDone + syncBytesCur), (unsigned)syncBytesTotal, (int)syncCurrent, ESP.getFreeHeap());
+              (unsigned)(syncBytesDone + syncBytesCur), (unsigned)syncBytesCur, (unsigned)syncBytesTotal, (int)syncCurrent, ESP.getFreeHeap());
 
   int total = 0, missing = 0, done = 0, failed = 0;
   if (syncLock(500)) {
@@ -826,15 +826,28 @@ void copyPage(AsyncWebServerRequest *request) {
   res->print("<button class=\"btn secondary\" type=\"submit\">Load album</button></div>"
              "<p class=\"hint\">The other box needs its management token in place so its server runs. Its album token is not needed.</p></form></div>");
 
-  // Card 2: the peer's album, the missing files and the transfer
+  // Card 2: the peer's album and what is missing here
   res->print("<div class=\"card\"><div class=\"card-head\"><h2 id=\"ct\">Album</h2><span class=\"hint mono\" id=\"cr\"></span></div>"
-             "<div class=\"progress\" id=\"cp\" hidden><i id=\"cb\"></i></div>"
              "<p class=\"hint\" id=\"cs\">No album loaded yet.</p>"
-             "<ul class=\"ulist\" id=\"cu\" hidden></ul>"
+             "<div id=\"cslot\"><ul class=\"ulist\" id=\"cu\" hidden></ul></div>"
              "<div class=\"actions end\">"
-             "<form method=\"POST\" action=\"/copy-cancel\"><button class=\"btn destructive\" type=\"submit\" id=\"cc\" hidden>Cancel</button></form>"
+             "<button class=\"btn secondary\" type=\"button\" id=\"cw\" hidden>Show progress</button>"
              "<form method=\"POST\" action=\"/copy-start\"><button class=\"btn\" type=\"submit\" id=\"cg\" hidden>Copy missing files</button></form>"
              "</div></div>");
+
+  // Transfer dialog, same shape as the upload one; the file list moves in here
+  res->print("<dialog class=\"modal\" id=\"cd\"><div class=\"card\">"
+             "<div class=\"card-head\"><h2 id=\"cdt\">Copying</h2><span class=\"hint mono\" id=\"cdr\"></span></div>"
+             "<div class=\"progress\"><i id=\"cdb\"></i></div>"
+             "<p class=\"hint mono\" id=\"cds\"></p>"
+             "<div id=\"cmslot\"></div>"
+             "<p class=\"hint\" id=\"cdh\">The transfer runs on the box. You can close this page, it keeps going.</p>"
+             "<div class=\"actions end\">"
+             "<form method=\"POST\" action=\"/copy-cancel\"><button class=\"btn destructive\" type=\"submit\" id=\"cdc\">Cancel</button></form>"
+             "<button class=\"btn secondary\" type=\"button\" id=\"cdx\" hidden>Close</button>"
+             "<form method=\"POST\" action=\"/copy-start\"><button class=\"btn\" type=\"submit\" id=\"cdg\" hidden>Retry</button></form>"
+             "<button class=\"btn\" type=\"button\" id=\"cdf\" hidden>Show files</button>"
+             "</div></div></dialog>");
 
   pageFoot(res);
   request->send(res);

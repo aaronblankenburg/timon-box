@@ -259,34 +259,61 @@ if(/err=2/.test(q))banner('fail','<span>The box is busy, please try again.</span
 
 // Copy page: pick the other box, list its album, copy the tracks missing here.
 // The transfer runs on the box, so this only queues jobs and polls the status;
-// a reload or a closed browser does not stop it.
+// a reload or a closed browser does not stop it. Progress is shown in the same
+// kind of dialog the upload uses, with the file list moved into it.
 if($('cf')){(function(){
-var station=$('cf').dataset.station==='1',pl=$('pl'),ps=$('ps'),peer=$('peer'),cn=$('cn'),ct=$('ct'),cr=$('cr'),cp=$('cp'),cb=$('cb'),cs=$('cs'),cu=$('cu'),cc=$('cc'),cg=$('cg');
-var q=location.search,ST={pending:'',copying:'up',done:'ok',failed:'err',present:'ok'};
+var station=$('cf').dataset.station==='1',pl=$('pl'),ps=$('ps'),peer=$('peer'),cn=$('cn'),ct=$('ct'),cr=$('cr'),cs=$('cs'),cu=$('cu'),cw=$('cw'),cg=$('cg'),
+cslot=$('cslot'),dlg=$('cd'),cdt=$('cdt'),cdr=$('cdr'),cdb=$('cdb'),cds=$('cds'),cmslot=$('cmslot'),cdh=$('cdh'),cdc=$('cdc'),cdx=$('cdx'),cdg=$('cdg'),cdf=$('cdf');
+var q=location.search,ST={pending:'',copying:'up',done:'ok',failed:'err',present:'ok'},samples=[],wasCopying=false,closed=false;
 function note(c,h){cn.innerHTML='<div class="banner '+c+'">'+h+'</div>'}
 if(/err=1/.test(q))note('fail','<span>Enter the name or address of the other box.</span>');
 if(/err=2/.test(q))note('fail','<span>The box is busy with another transfer.</span>');
-function label(f){return f.status==='present'?'already here':f.status==='failed'?'failed':f.status==='copying'?'copying':f.status==='done'?'copied':''}
+function open(){if(dlg.showModal){if(!dlg.open)dlg.showModal()}else dlg.setAttribute('open','')}
+function close(){if(dlg.close){if(dlg.open)dlg.close()}else dlg.removeAttribute('open')}
+dlg.addEventListener('close',function(){closed=true;cslot.appendChild(cu)});
+function label(d,f,i){
+if(i===d.current&&f.status==='copying'&&f.size)return Math.min(99,Math.round(d.bytesCur/f.size*100))+' %';
+return f.status==='present'?'already here':f.status==='failed'?'failed':f.status==='done'?'copied':''}
+function rate(d){var now=Date.now();samples.push([now,d.bytes]);while(samples.length>2&&now-samples[0][0]>8000)samples.shift();
+if(samples.length<2)return '';var a=samples[0],e=samples[samples.length-1];if(e[0]-a[0]<3000)return '';
+var r=(e[1]-a[1])/((e[0]-a[0])/1000);if(r<=0)return '';
+return fmt(r)+'/s · ~'+fmtT((d.bytesTotal-d.bytes)/r)+' left'}
 function render(d){
+var files=d.files||[],copying=d.state==='copying',pct=d.bytesTotal?Math.min(100,Math.round(d.bytes/d.bytesTotal*100)):0;
 ct.textContent=d.album?'Album: '+d.album:'Album';
-var files=d.files||[],copying=d.state==='copying';
 cu.hidden=!files.length;
-cu.innerHTML=files.map(function(f){return '<li><i class="st '+(ST[f.status]||'')+'"></i><span class="fn">'+esc(f.name)+'</span><span class="fp">'+label(f)+'</span><span class="fz">'+fmt(f.size)+'</span></li>'}).join('');
-cp.hidden=!copying;
-cr.textContent=copying?fmt(d.bytes)+' of '+fmt(d.bytesTotal):'';
-if(copying)cb.style.width=(d.bytesTotal?Math.min(100,Math.round(d.bytes/d.bytesTotal*100)):0)+'%';
-cc.hidden=!copying;
+cu.innerHTML=files.map(function(f,i){return '<li><i class="st '+(ST[f.status]||'')+'"></i><span class="fn">'+esc(f.name)+'</span><span class="fp">'+label(d,f,i)+'</span><span class="fz">'+fmt(f.size)+'</span></li>'}).join('');
+if(copying&&!wasCopying){closed=false;samples=[]}
+if(copying&&!closed){cmslot.appendChild(cu);open()}
+cw.hidden=!(copying&&closed);
 cg.hidden=copying||!d.missing||!station;
 if(d.missing)cg.textContent=(d.failed?'Retry ':'Copy ')+d.missing+' missing file'+(d.missing>1?'s':'');
+// card summary
 if(d.state==='listing')cs.textContent='Loading the album from '+(d.peer||'the other box')+'…';
-else if(copying)cs.textContent='Copying '+(d.current>=0?(d.current+1)+' of '+d.total+' · ':'')+d.done+' done'+(d.failed?' · '+d.failed+' failed':'');
+else if(copying)cs.textContent='Copying '+d.done+' of '+(d.done+d.missing)+' · '+pct+' %';
 else if(d.state==='failed')cs.textContent=d.error||'The transfer failed.';
-else if(d.state==='cancelled')cs.textContent='Cancelled · '+d.done+' of '+d.total+' copied.';
+else if(d.state==='cancelled')cs.textContent='Cancelled · '+d.done+' of '+(d.done+d.missing)+' copied.';
 else if(files.length)cs.textContent=d.missing?d.missing+' of '+d.total+' tracks are missing here':'All '+d.total+' tracks are already here.';
 else cs.textContent='No album loaded yet.';
-cs.className=d.state==='failed'?'hint danger':'hint'}
+cs.className=d.state==='failed'?'hint danger':'hint';
+cr.textContent=copying?pct+' %':'';
+// dialog
+cdb.style.width=pct+'%';
+cdr.textContent=copying?rate(d):'';
+if(copying){cdt.textContent='Copying';cds.textContent=(d.current>=0?'File '+(d.current+1)+' of '+d.total+' · ':'')+fmt(d.bytes)+' of '+fmt(d.bytesTotal)+' · '+pct+' %'}
+else if(d.state==='done'){cdt.textContent='Done';cds.textContent=d.done+' file'+(d.done===1?'':'s')+' copied · '+fmt(d.bytesTotal)}
+else if(d.state==='failed'&&wasCopying){cdt.textContent='Copy incomplete';cds.textContent=d.error||(d.failed+' files failed.')}
+else if(d.state==='cancelled'){cdt.textContent='Copy cancelled';cds.textContent=d.done+' of '+(d.done+d.missing)+' copied · '+fmt(d.bytes)}
+cdc.hidden=!copying;cdh.hidden=!copying;
+cdx.hidden=copying;
+cdg.hidden=copying||!d.missing||!wasCopying;
+if(d.missing)cdg.textContent='Retry '+d.missing+' file'+(d.missing>1?'s':'');
+cdf.hidden=copying||!d.done;
+wasCopying=copying}
 function poll(){fetch('/copy-status',{cache:'no-store'}).then(function(r){return r.json()}).then(function(d){render(d);if(d.state==='listing'||d.state==='copying')setTimeout(poll,1000)}).catch(function(){setTimeout(poll,2000)})}
 poll();
+cw.onclick=function(){closed=false;cmslot.appendChild(cu);open()};
+cdx.onclick=close;cdf.onclick=function(){location.href='/'};
 function scan(re){fetch('/copy-scan'+(re?'?rescan=1':'')).then(function(r){return r.json()}).then(function(d){
 if(d.state==='busy'){pl.innerHTML='<li class="status">Busy with a transfer</li>';return}
 if(d.state==='scanning'){pl.innerHTML='<li class="status">Searching…</li>';setTimeout(function(){scan(false)},1200);return}

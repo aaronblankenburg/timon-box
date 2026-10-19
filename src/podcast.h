@@ -14,7 +14,10 @@
 #include <WiFiClientSecure.h>
 #include <esp_task_wdt.h>
 
+#include <algorithm>
+#include <functional>
 #include <memory>
+#include <vector>
 
 #include "gated-fs.h"
 #include "podcast-feed.h"
@@ -52,7 +55,8 @@ class HttpStream {
   uint32_t length = SIZE_UNKNOWN;  // Content-Length of the body
   bool hasRange = false;           // a valid Content-Range came back
   uint32_t rangeStart = 0, rangeEnd = 0, rangeTotal = SIZE_UNKNOWN;
-  String url;  // where the body comes from, after redirects
+  String url;   // where the body comes from, after redirects
+  String date;  // the server's Date header
   String error;
 
   ~HttpStream() { close(); }
@@ -74,14 +78,14 @@ class HttpStream {
         _secure->setHandshakeTimeout(15);
         client = _secure.get();
       }
-      static const char *keys[] = {"Content-Range", "Transfer-Encoding", "Location"};
+      static const char *keys[] = {"Content-Range", "Transfer-Encoding", "Location", "Date"};
       _http.setReuse(false);
       _http.useHTTP10(true);
       _http.setFollowRedirects(HTTPC_DISABLE_FOLLOW_REDIRECTS);
       _http.setConnectTimeout(connectTimeoutMs);
       _http.setTimeout(10000);
       _http.setUserAgent(PODCAST_USER_AGENT);
-      _http.collectHeaders(keys, 3);
+      _http.collectHeaders(keys, 4);
       if (!_http.begin(*client, url)) {
         error = "bad URL";
         return false;
@@ -115,6 +119,7 @@ class HttpStream {
     int size = _http.getSize();
     length = size >= 0 ? (uint32_t)size : SIZE_UNKNOWN;
     hasRange = parseContentRange(_http.header("Content-Range").c_str(), rangeStart, rangeEnd, rangeTotal);
+    date = _http.header("Date");
     _chunked = _http.header("Transfer-Encoding").equalsIgnoreCase("chunked");
     _left = _chunked ? SIZE_UNKNOWN : length;
     _chunkLeft = 0;
@@ -280,8 +285,12 @@ static size_t readFully(HttpStream &http, uint8_t *buf, size_t len) {
 // the audio library skips a tag only 256 bytes per loop) and continuing a partial file with a
 // Range request. Progress is published through `growing`, so the file plays while it grows.
 // One attempt; returns true when the file is complete.
+// Called once the server has been asked: what will be downloaded, before the first byte.
+typedef std::function<void(uint32_t serverTotal, const ResumePlan &plan)> DownloadPlanned;
+
 static bool downloadEpisodeOnce(const String &url, const String &path, bool allowSkip, uint32_t savedTotal,
-                                String &error, DownloadStats &st, bool &retrySkipless, uint32_t &serverTotal) {
+                                String &error, DownloadStats &st, bool &retrySkipless, uint32_t &serverTotal,
+                                const DownloadPlanned &planned) {
   retrySkipless = false;
   serverTotal = SIZE_UNKNOWN;
   uint32_t local;
@@ -309,6 +318,7 @@ static bool downloadEpisodeOnce(const String &url, const String &path, bool allo
     return true;
   }
   if (plan.restart) local = 0;
+  if (planned) planned(total, plan);
 
   HttpStream body;
   HttpStream *in = &probe;
@@ -474,7 +484,8 @@ static bool downloadEpisodeOnce(const String &url, const String &path, bool allo
 
 // With retries: a dropped connection continues where it stopped. savedTotal: the server size the
 // file on the card was started with (SIZE_UNKNOWN if not known); serverTotal: the size now.
-bool downloadEpisode(const String &url, const String &path, uint32_t savedTotal, String &error, uint32_t &serverTotal) {
+bool downloadEpisode(const String &url, const String &path, uint32_t savedTotal, String &error, uint32_t &serverTotal,
+                     const DownloadPlanned &planned = nullptr) {
   static const uint16_t backoffMs[] = {2000, 5000, 10000};
   DownloadStats st;
   st.startedMs = millis();
@@ -483,7 +494,7 @@ bool downloadEpisode(const String &url, const String &path, uint32_t savedTotal,
   bool ok = false;
   for (int attempt = 0; attempt <= 3 && !podcastCancel; attempt++) {
     bool retrySkipless = false;
-    ok = downloadEpisodeOnce(url, path, allowSkip, savedTotal, error, st, retrySkipless, serverTotal);
+    ok = downloadEpisodeOnce(url, path, allowSkip, savedTotal, error, st, retrySkipless, serverTotal, planned);
     if (serverTotal != SIZE_UNKNOWN) savedTotal = serverTotal;  // what is on the card now matches it
     if (ok) break;
     if (retrySkipless) {
@@ -508,6 +519,400 @@ bool downloadEpisode(const String &url, const String &path, uint32_t savedTotal,
 }
 
 // ---------------------------------------------------------------------------
+// Album files: podcast.txt (written by the web UI) and podcast_state.txt (by the box)
+// ---------------------------------------------------------------------------
+
+#define PODCAST_CONFIG_FILE "/podcast.txt"
+#define PODCAST_STATE_FILE "/podcast_state.txt"
+#define PODCAST_STATE_TMP "/podcast_state.tmp"
+#define PODCAST_KEEP_DEFAULT 30
+#define PODCAST_KEEP_MAX 500
+
+struct PodcastConfig {
+  String url;
+  int keep = PODCAST_KEEP_DEFAULT;  // episodes kept in the folder
+};
+
+// What the box last found out about the feed. Only the newest episode is tracked.
+struct PodcastState {
+  String file;  // file name of the newest episode
+  String guid, title, date;
+  uint32_t total = SIZE_UNKNOWN;  // server size the file was started with
+  uint32_t skip = 0;              // ID3 bytes left out
+  uint32_t size = 0;              // expected size on the card
+  bool complete = false;
+  String result;   // ok, offline, error, unsupported
+  String error;    // why, if not ok
+  String checked;  // the feed server's Date of the last check
+  String feedTitle, newFeedUrl;
+};
+
+static String readSmallFile(const String &path) {
+  String content;
+  if (!sdGateTake()) return content;
+  File f = SD.open(path, FILE_READ);
+  if (f) {
+    while (f.available() && content.length() < 2048) content += (char)f.read();
+    f.close();
+  }
+  sdGateGive();
+  return content;
+}
+
+// Line by line, "key=value"; calls back for each pair (the first podcast.txt line is the URL).
+template <typename F>
+static void forEachLine(const String &content, F f) {
+  int start = 0;
+  while (start < (int)content.length()) {
+    int end = content.indexOf('\n', start);
+    if (end < 0) end = content.length();
+    String line = content.substring(start, end);
+    line.trim();
+    if (line.length()) f(line);
+    start = end + 1;
+  }
+}
+
+bool readPodcastConfig(const String &dir, PodcastConfig &cfg) {
+  cfg = PodcastConfig();
+  bool first = true;
+  forEachLine(readSmallFile(dir + PODCAST_CONFIG_FILE), [&](const String &line) {
+    if (first && !line.startsWith("keep=")) cfg.url = line;
+    else if (line.startsWith("keep=")) cfg.keep = constrain(line.substring(5).toInt(), 1, PODCAST_KEEP_MAX);
+    first = false;
+  });
+  return cfg.url.startsWith("http://") || cfg.url.startsWith("https://");
+}
+
+static bool writeSmallFile(const String &path, const String &content) {
+  if (!sdGateTake()) return false;
+  File f = SD.open(path, FILE_WRITE);
+  bool ok = f && f.print(content) == content.length();
+  if (f) f.close();
+  sdGateGive();
+  return ok;
+}
+
+bool writePodcastConfig(const String &dir, const PodcastConfig &cfg) {
+  return writeSmallFile(dir + PODCAST_CONFIG_FILE, cfg.url + "\nkeep=" + String(cfg.keep) + "\n");
+}
+
+bool readPodcastState(const String &dir, PodcastState &st) {
+  st = PodcastState();
+  bool any = false;
+  forEachLine(readSmallFile(dir + PODCAST_STATE_FILE), [&](const String &line) {
+    int eq = line.indexOf('=');
+    if (eq < 0) return;
+    String k = line.substring(0, eq), v = line.substring(eq + 1);
+    any = true;
+    if (k == "file") st.file = v;
+    else if (k == "guid") st.guid = v;
+    else if (k == "title") st.title = v;
+    else if (k == "date") st.date = v;
+    else if (k == "total") st.total = v == "?" ? SIZE_UNKNOWN : strtoul(v.c_str(), nullptr, 10);
+    else if (k == "skip") st.skip = strtoul(v.c_str(), nullptr, 10);
+    else if (k == "size") st.size = strtoul(v.c_str(), nullptr, 10);
+    else if (k == "complete") st.complete = v == "1";
+    else if (k == "result") st.result = v;
+    else if (k == "error") st.error = v;
+    else if (k == "checked") st.checked = v;
+    else if (k == "feed") st.feedTitle = v;
+    else if (k == "newfeed") st.newFeedUrl = v;
+  });
+  return any;
+}
+
+static String oneLine(String v) {
+  v.replace('\n', ' ');
+  v.replace('\r', ' ');
+  return v;
+}
+
+// Through a temp file, so a power cut leaves the old or the new state, never half of one.
+bool writePodcastState(const String &dir, const PodcastState &st) {
+  String c = "file=" + st.file + "\nguid=" + oneLine(st.guid) + "\ntitle=" + oneLine(st.title) + "\ndate=" + st.date +
+             "\ntotal=" + (st.total == SIZE_UNKNOWN ? String("?") : String(st.total)) + "\nskip=" + String(st.skip) +
+             "\nsize=" + String(st.size) + "\ncomplete=" + (st.complete ? "1" : "0") + "\nresult=" + st.result +
+             "\nerror=" + oneLine(st.error) + "\nchecked=" + oneLine(st.checked) + "\nfeed=" + oneLine(st.feedTitle) +
+             "\nnewfeed=" + oneLine(st.newFeedUrl) + "\n";
+  if (!writeSmallFile(dir + PODCAST_STATE_TMP, c)) return false;
+  if (!sdGateTake()) return false;
+  SD.remove(dir + PODCAST_STATE_FILE);
+  bool ok = SD.rename(dir + PODCAST_STATE_TMP, dir + PODCAST_STATE_FILE);
+  sdGateGive();
+  return ok;
+}
+
+// The episode files in `dir`, oldest first.
+std::vector<String> listEpisodes(const String &dir) {
+  std::vector<String> names;
+  if (!sdGateTake()) return names;
+  File d = SD.open(dir);
+  while (d) {
+    File f = d.openNextFile();
+    if (!f) break;
+    if (!f.isDirectory() && isEpisodeFileName(f.name())) names.push_back(f.name());
+    f.close();
+  }
+  if (d) d.close();
+  sdGateGive();
+  std::sort(names.begin(), names.end(), [](const String &a, const String &b) { return a.compareTo(b) < 0; });
+  return names;
+}
+
+static void removeIndexFile(const String &dir) {
+  if (!sdGateTake()) return;
+  SD.remove(dir + "/index.txt");  // the player rebuilds its playlist from the folder
+  sdGateGive();
+}
+
+static uint32_t fileSizeOnCard(const String &path) {
+  uint32_t size = 0;
+  if (!sdGateTake()) return 0;
+  File f = SD.open(path, FILE_READ);
+  if (f) {
+    size = f.size();
+    f.close();
+  }
+  sdGateGive();
+  return size;
+}
+
+// Deletes the oldest episodes beyond `keep`, never `except`. Only runs while nothing plays.
+int podcastRetention(const String &dir, int keep, const String &except) {
+  std::vector<String> names = listEpisodes(dir);
+  int removed = 0;
+  for (size_t i = 0; i + keep < names.size(); i++) {
+    if (names[i] == except) continue;
+    if (sdGateTake()) {
+      if (SD.remove(dir + "/" + names[i])) removed++;
+      sdGateGive();
+    }
+    Serial.printf("[podcast] removed old episode %s\n", names[i].c_str());
+  }
+  return removed;
+}
+
+// ---------------------------------------------------------------------------
+// The podcast task
+// ---------------------------------------------------------------------------
+
+enum PodcastPhase : uint8_t {
+  POD_IDLE,
+  POD_CHECKING,     // joining Wi-Fi, reading the feed
+  POD_DOWNLOADING,  // the newest episode is coming in (podcastPlayable() says when it can start)
+  POD_UP_TO_DATE,   // the newest episode was already complete on the card
+  POD_COMPLETE,     // downloaded it now
+  POD_OFFLINE,      // no network: play what is on the card
+  POD_FAILED,
+  POD_UNSUPPORTED  // the newest episode is not an MP3
+};
+
+static const char *podcastPhaseName(PodcastPhase p) {
+  static const char *names[] = {"idle", "checking", "downloading", "up to date", "complete", "offline", "failed", "unsupported"};
+  return p <= POD_UNSUPPORTED ? names[p] : "?";
+}
+
+volatile PodcastPhase podcastPhase = POD_IDLE;
+String podcastTaskDir;               // album folder of the running task; set before it starts
+char podcastEpisodePath[200] = "";  // newest episode, under growingMux
+
+String podcastEpisode() {
+  char copy[sizeof(podcastEpisodePath)];
+  portENTER_CRITICAL(&growingMux);
+  strlcpy(copy, podcastEpisodePath, sizeof(copy));
+  portEXIT_CRITICAL(&growingMux);
+  return String(copy);
+}
+
+static void setPodcastEpisode(const String &path) {
+  portENTER_CRITICAL(&growingMux);
+  strlcpy(podcastEpisodePath, path.c_str(), sizeof(podcastEpisodePath));
+  portEXIT_CRITICAL(&growingMux);
+}
+
+// The newest episode can start: complete, or enough of it on the card.
+bool podcastPlayable() {
+  PodcastPhase p = podcastPhase;
+  if (p == POD_UP_TO_DATE || p == POD_COMPLETE) return true;
+  if (p != POD_DOWNLOADING) return false;
+  uint32_t synced, expected;
+  bool done;
+  String path = podcastEpisode();
+  return path.length() && growingGet(path.c_str(), synced, expected, done) && (done || synced >= PODCAST_FIRST_FLUSH);
+}
+
+static bool fetchFeed(const String &url, FeedParser &parser, String &error, String &serverDate) {
+  HttpStream http;
+  if (!http.open(url)) {
+    error = "feed: " + http.error;
+    return false;
+  }
+  serverDate = http.date;
+  char buf[1024];
+  unsigned long last = millis();
+  while (!parser.done() && !podcastCancel) {
+    int n = http.read((uint8_t *)buf, sizeof(buf));
+    if (n < 0) break;
+    if (n == 0) {
+      if (millis() - last > PODCAST_STALL_TIMEOUT_MS) break;
+      vTaskDelay(pdMS_TO_TICKS(1));
+      continue;
+    }
+    last = millis();
+    parser.push(buf, n);
+  }
+  http.close();  // frees the TLS session before the long transfer
+  Serial.printf("[podcast] feed: %u bytes read, %d items, \"%s\"\n", parser.bytes, parser.itemsSeen,
+                parser.channelTitle.c_str());
+  if (!parser.newest().valid()) {
+    error = parser.itemsSeen ? "the feed has no audio episodes" : "not a podcast feed (RSS)";
+    return false;
+  }
+  return true;
+}
+
+// The whole check and download; returns how it ended. A function of its own, so its Strings are
+// destroyed before the task deletes itself (vTaskDelete does not return, nothing would free them).
+static PodcastPhase podcastRun() {
+  String dir = podcastTaskDir;
+  PodcastConfig cfg;
+  PodcastState st;
+  readPodcastState(dir, st);
+  if (!readPodcastConfig(dir, cfg)) {
+    st.result = "error";
+    st.error = "no feed URL in podcast.txt";
+    writePodcastState(dir, st);
+    return POD_FAILED;
+  }
+  if (podcastRetention(dir, cfg.keep, st.file) > 0) removeIndexFile(dir);
+
+  String error;
+  if (!podcastWifiUp(error)) {
+    Serial.printf("[podcast] offline: %s\n", error.c_str());
+    st.result = "offline";
+    st.error = error;
+    writePodcastState(dir, st);
+    return POD_OFFLINE;
+  }
+
+  FeedParser parser;
+  String serverDate;
+  if (!fetchFeed(cfg.url, parser, error, serverDate)) {
+    Serial.printf("[podcast] %s\n", error.c_str());
+    st.result = "error";
+    st.error = error;
+    writePodcastState(dir, st);
+    return POD_FAILED;
+  }
+  const PodcastEpisode &ep = parser.newest();
+  String file = String(episodeFileName(ep).c_str());
+  String path = dir + "/" + file;
+  bool same = st.file == file;
+  if (!same) {  // a new episode: forget the old one's progress
+    PodcastState fresh;
+    st = fresh;
+    st.file = file;
+  }
+  st.guid = String(ep.guid.c_str());
+  st.title = String(ep.title.c_str());
+  char date[20];
+  snprintf(date, sizeof(date), "%04d-%02d-%02d %02d:%02d", ep.date.year, ep.date.month, ep.date.day, ep.date.hour,
+           ep.date.minute);
+  st.date = ep.dated ? String(date) : String("");
+  st.checked = serverDate;
+  st.feedTitle = String(parser.channelTitle.c_str());
+  st.newFeedUrl = String(parser.newFeedUrl.c_str());
+  Serial.printf("[podcast] newest: %s (%s), %s\n", st.title.c_str(), st.date.c_str(), ep.type.c_str());
+
+  if (!ep.isMp3()) {
+    st.result = "unsupported";
+    st.error = "the newest episode is " + String(ep.type.length() ? ep.type.c_str() : "not an MP3") + ", not supported yet";
+    writePodcastState(dir, st);
+    return POD_UNSUPPORTED;
+  }
+
+  uint32_t onCard = fileSizeOnCard(path);
+  if (same && st.complete && onCard > 0 && onCard == st.size) {
+    st.result = "ok";
+    st.error = "";
+    writePodcastState(dir, st);
+    setPodcastEpisode(path);
+    Serial.printf("[podcast] up to date: %s\n", path.c_str());
+    return POD_UP_TO_DATE;
+  }
+
+  st.complete = false;
+  st.result = "downloading";
+  writePodcastState(dir, st);
+  if (onCard == 0) removeIndexFile(dir);  // a new file appears: the playlist has to be rebuilt
+  setPodcastEpisode(path);
+  podcastPhase = POD_DOWNLOADING;
+  uint32_t serverTotal;
+  bool ok = downloadEpisode(String(ep.url.c_str()), path, same ? st.total : SIZE_UNKNOWN, error, serverTotal,
+                            [&](uint32_t total, const ResumePlan &plan) {
+                              // Saved before the first byte: after a power cut the next try knows
+                              // which server file the partial one belongs to.
+                              st.total = total;
+                              st.skip = plan.skip;
+                              st.size = plan.expected == SIZE_UNKNOWN ? 0 : plan.expected;
+                              writePodcastState(dir, st);
+                            });
+  st.complete = ok;
+  if (ok) st.size = fileSizeOnCard(path);
+  st.result = ok ? "ok" : "error";
+  st.error = ok ? "" : error;
+  writePodcastState(dir, st);
+  return ok ? POD_COMPLETE : POD_FAILED;
+}
+
+static void podcastTaskMain(void *) {
+  PodcastPhase phase = podcastRun();
+  podcastWifiDown();
+  logHeap("podcast task end");
+  Serial.printf("[podcast] %s\n", podcastPhaseName(phase));
+  podcastPhase = phase;
+  podcastTask = nullptr;
+  vTaskDelete(NULL);
+}
+
+void podcastStop(bool wait, unsigned long timeoutMs = 3000);
+
+// Starts checking the feed of the podcast album `dir`. A task already working on the same album
+// is kept (the token was put back); one for another album is stopped first.
+bool podcastStart(const String &dir) {
+  if (podcastTask) {
+    if (podcastTaskDir == dir) return true;
+    podcastStop(true);
+  }
+  podcastCancel = false;
+  podcastPhase = POD_CHECKING;
+  podcastTaskDir = dir;
+  setPodcastEpisode("");
+  growingClear();
+  TaskHandle_t handle = nullptr;
+  logHeap("podcast task start");
+  if (xTaskCreatePinnedToCore(podcastTaskMain, "podcast", PODCAST_TASK_STACK, nullptr, 1, &handle, 0) != pdPASS) {
+    podcastPhase = POD_FAILED;
+    return false;
+  }
+  podcastTask = handle;
+  return true;
+}
+
+// Stops the task. With `wait`, returns once it is gone (the episode file closed) or after
+// `timeoutMs`; a TLS handshake in progress can take up to 15 s to give up.
+void podcastStop(bool wait, unsigned long timeoutMs) {
+  if (!podcastTask) return;
+  podcastCancel = true;
+  unsigned long start = millis();
+  while (wait && podcastTask && millis() - start < timeoutMs) {
+    esp_task_wdt_reset();
+    vTaskDelay(pdMS_TO_TICKS(10));
+  }
+}
+
+// ---------------------------------------------------------------------------
 // Serial test commands (dl:<url>, md5:<path>)
 // ---------------------------------------------------------------------------
 
@@ -517,17 +922,19 @@ struct PodcastDebugJob {
 };
 
 static void podcastDebugTask(void *arg) {
-  std::unique_ptr<PodcastDebugJob> job((PodcastDebugJob *)arg);
-  logHeap("download task start");
-  String error;
-  if (podcastWifiUp(error)) {
-    logHeap("wifi up");
-    uint32_t total;
-    if (!downloadEpisode(job->url, job->path, SIZE_UNKNOWN, error, total)) Serial.printf("[podcast] failed: %s\n", error.c_str());
-    podcastWifiDown();
-    logHeap("wifi down");
-  } else {
-    Serial.printf("[podcast] no network: %s\n", error.c_str());
+  {  // a scope of its own: everything in it is freed before the task deletes itself
+    std::unique_ptr<PodcastDebugJob> job((PodcastDebugJob *)arg);
+    logHeap("download task start");
+    String error;
+    if (podcastWifiUp(error)) {
+      logHeap("wifi up");
+      uint32_t total;
+      if (!downloadEpisode(job->url, job->path, SIZE_UNKNOWN, error, total)) Serial.printf("[podcast] failed: %s\n", error.c_str());
+      podcastWifiDown();
+      logHeap("wifi down");
+    } else {
+      Serial.printf("[podcast] no network: %s\n", error.c_str());
+    }
   }
   podcastTask = nullptr;
   vTaskDelete(NULL);

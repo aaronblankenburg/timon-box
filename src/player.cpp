@@ -5,6 +5,7 @@
 #include "FS.h"
 #include "LList.h"
 #include "SD.h"
+#include "podcast-feed.h"
 
 // SD card
 #define SD_SPEED 27000000
@@ -176,8 +177,41 @@ class Player {
     currentlyPlayingFile = "";
 
     determineAlbumDir(tag);
+    podcastAlbum = SD.exists(albumDir + "/podcast.txt");
 
     loadAlbumIntoPlaylist(albumDir);
+  }
+
+  // The album's playlist again, e.g. after the podcast task added or removed episodes.
+  void reloadPlaylist() {
+    playlist.clear();
+    loadAlbumIntoPlaylist(albumDir);
+  }
+
+  bool podcastAlbum = false;  // the album folder has a podcast.txt
+  uint32_t lastPosition() const { return lastPlayedPos; }  // set by getLastPlayedSong()
+  const String &albumDirectory() const { return albumDir; }
+  int currentIndex() { return playlistIndexOf(currentlyPlayingFile); }
+  int indexOfTrack(const String &path) { return playlistIndexOf(path); }
+  String trackAt(int index) { return playlist.get(index); }
+
+  static bool isEpisodePath(const String &path) {
+    return isEpisodeFileName(path.c_str() + path.lastIndexOf('/') + 1);
+  }
+
+  // Episodes sort by date, so the newest is the last one (uploaded files are not episodes).
+  int newestEpisodeIndex() {
+    for (int i = (int)playlist.size() - 1; i >= 0; i--) {
+      if (isEpisodePath(playlist.get(i))) return i;
+    }
+    return -1;
+  }
+
+  int olderEpisodeIndex(int index) {
+    for (int i = index - 1; i >= 0; i--) {
+      if (isEpisodePath(playlist.get(i))) return i;
+    }
+    return -1;
   }
 
   void startOrContinueAlbum() {

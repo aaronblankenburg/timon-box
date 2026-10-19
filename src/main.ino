@@ -55,7 +55,8 @@ enum State { paused,
              bluetoothPaused,
              managementServerRunning,     // web UI reachable via the box's own hotspot
              managementServerConnecting,  // joining the saved home network
-             managementServerLan };       // web UI reachable via the home network (<box>.local)
+             managementServerLan,         // web UI reachable via the home network (<box>.local)
+             podcastLoading };            // podcast token: checking the feed, loading the newest episode
 const uint32_t stateColors[] = {
     /* paused */ pixel.Color(255, 165, 0),                        // Orange
     /* playing */ pixel.Color(0, 255, 0),                         // Green
@@ -63,7 +64,8 @@ const uint32_t stateColors[] = {
     /* bluetoothPaused */ pixel.Color(75, 0, 130),                // Indigo
     /* managementServerRunning */ pixel.Color(255, 165, 0),       // Orange (hotspot)
     /* managementServerConnecting */ pixel.Color(255, 255, 255),  // White
-    /* managementServerLan */ pixel.Color(0, 255, 255)            // Cyan (home network)
+    /* managementServerLan */ pixel.Color(0, 255, 255),           // Cyan (home network)
+    /* podcastLoading */ pixel.Color(0, 255, 0)                   // Green, breathing
 };
 enum KnockSensorAction { noPress,
                          leftPress,
@@ -86,6 +88,8 @@ String managementAlbumTag = "";        // album token currently selected in mana
 unsigned long managementNoTokenSince = 0;
 unsigned long heapLogEveryMs = 0;  // serial "heap:<s>"
 unsigned long lastStateSave = 0;
+unsigned long podcastLoadingSince = 0;
+#define PODCAST_LOADING_TIMEOUT_MS 20000  // then play what is on the card; the check carries on
 #define STATE_SAVE_EVERY_MS 60000  // the position survives switching off with the power button
 
 void setup() {
@@ -156,6 +160,7 @@ void loop() {
         Serial.println("Bluetooth mode");
         if (!bluetoothMode) {
           bluetoothMode = true;
+          podcastStop(true);
           ESP.restart();
         }
         changeState(bluetoothPaused);
@@ -164,6 +169,7 @@ void loop() {
 
       if (recent_tag == MANAGEMENT_SERVER_TAG) {
         Serial.println("management server mode");
+        podcastStop(true, 20000);  // its Wi-Fi must be down before the web server brings up its own
         player.startManagementServer();
         managementAlbumTag = "";
         managementNoTokenSince = 0;
@@ -173,12 +179,22 @@ void loop() {
 
       if (recent_tag != "") {
         Serial.println("tag: " + recent_tag);
-        if (recent_tag == before_tag) {
+        if (recent_tag == before_tag && player.currentlyPlayingFile.length()) {
           player.resume();
         } else {
           checkBattery(true);
+          player.audio.stopSong();  // closes the old file and frees the decoder for the feed's TLS session
           player.loadPlaylist(recent_tag);
-          player.startOrContinueAlbum();
+          if (player.podcastAlbum) {
+            if (getBattery() > LOW_BATTERY_THRESHOLD && podcastStart(player.albumDirectory())) {
+              podcastLoadingSince = millis();
+              changeState(podcastLoading);
+              break;
+            }
+            startPodcastPlayback();  // low battery: no Wi-Fi, the newest episode on the card
+          } else {
+            player.startOrContinueAlbum();
+          }
         }
         fileWhenTagInserted = player.currentlyPlayingFile;
         changeState(playing);
@@ -213,6 +229,27 @@ void loop() {
         player.pause();
         player.savePlayingState();
         shutdownBox();
+      }
+      break;
+
+    case podcastLoading:
+      pulseLed(true);
+      if (recent_tag == "") {
+        // Taken off before anything played: the check carries on in the background, and putting
+        // the token back counts as a new start.
+        before_tag = "";
+        musicStopTime = millis();
+        pulseLed(false);
+        changeState(paused);
+        break;
+      }
+      // Ready, or finished one way or another (up to date, offline, failed), or waited long enough.
+      if (podcastPlayable() || podcastPhase > POD_DOWNLOADING ||
+          millis() - podcastLoadingSince > PODCAST_LOADING_TIMEOUT_MS) {
+        pulseLed(false);
+        startPodcastPlayback();
+        fileWhenTagInserted = player.currentlyPlayingFile;
+        changeState(playing);
       }
       break;
 
@@ -301,12 +338,16 @@ uint32_t scaleColor(uint32_t color, uint8_t percent) {
 }
 
 // While the other box pulls tracks from us, breathe the state colour so it is
-// obvious that this box is busy. Triangle wave, 25 % to 100 %, ~1.2 s period.
-void updateTransferLed() {
+// obvious that this box is busy.
+void updateTransferLed() { pulseLed(peerTransferActive()); }
+
+// Breathes the state colour while `active`, steady otherwise. Triangle wave, 25 % to 100 %,
+// ~1.2 s period.
+void pulseLed(bool active) {
   static bool pulsing = false;
   static unsigned long lastFrame = 0;
 
-  if (!peerTransferActive()) {
+  if (!active) {
     if (pulsing) {
       pulsing = false;
       setNeoPixel(stateColor());  // back to a steady light
@@ -459,6 +500,17 @@ void audio_eof_mp3(const char *info) {  // end of file; `info` is the file name 
   // Moving on here skipped a track, and the alert's end called checkBattery() recursively.
   if (strcmp(info, "tap.mp3") == 0 || strcmp(info, "alert.mp3") == 0) return;
   checkBattery(true);
+  if (player.podcastAlbum) {
+    // From the newest episode back to the older ones; after the oldest the box switches off.
+    int older = player.olderEpisodeIndex(player.currentIndex());
+    if (older >= 0) {
+      player.playSongByIndex(older);
+    } else {
+      player.savePlayingState();
+      shutdownBox();
+    }
+    return;
+  }
   player.next();
   if (fileWhenTagInserted == player.currentlyPlayingFile) {
     // shutdown when starting file is reached again; the next time the album starts here, from the top
@@ -466,6 +518,32 @@ void audio_eof_mp3(const char *info) {  // end of file; `info` is the file name 
     player.savePlayingState();
     shutdownBox();
   }
+}
+
+// Podcast albums start with the newest episode: the one the podcast task just checked or
+// downloaded, or, without network, the newest on the card. If that is the one heard last, it
+// continues at the remembered spot.
+void startPodcastPlayback() {
+  player.reloadPlaylist();  // the task may have added and removed episodes
+  String path = podcastEpisode();
+  if (path.isEmpty() || player.indexOfTrack(path) < 0) {
+    int newest = player.newestEpisodeIndex();
+    if (newest < 0) {
+      Serial.println("podcast: no episode on the card yet");
+      player.startOrContinueAlbum();  // whatever else is in the folder
+      return;
+    }
+    path = player.trackAt(newest);
+  }
+  String last = player.getLastPlayedSong();
+  uint32_t pos = last == path ? player.lastPosition() : 0;
+  uint32_t synced, expected;
+  bool done;
+  if (pos && growingGet(path.c_str(), synced, expected, done) && !done) {
+    // A resume searches the next frame byte by byte: keep it well inside what is on the card.
+    pos = synced > 2 * PODCAST_FIRST_FLUSH ? min(pos, synced - PODCAST_FIRST_FLUSH) : 0;
+  }
+  player.playTrack(path, pos);
 }
 
 void setVolume() {
@@ -555,6 +633,16 @@ void checkSerialForCommands() {
     value.trim();
     player.playTrack(value.length() ? value : String("/spike.mp3"), 0);
     fileWhenTagInserted = player.currentlyPlayingFile;
+  } else if (cmd == "podcast") {
+    uint32_t synced = 0, expected = 0;
+    bool done = false;
+    String episode = podcastEpisode();
+    bool grows = episode.length() && growingGet(episode.c_str(), synced, expected, done);
+    Serial.printf("podcast: %s%s, album %s, episode %s", podcastPhaseName(podcastPhase), podcastBusy() ? " (running)" : "",
+                  player.podcastAlbum ? "is a podcast" : "is not a podcast", episode.length() ? episode.c_str() : "-");
+    if (grows) Serial.printf(", %u of %u bytes on the card%s", synced, expected, done ? ", done" : "");
+    Serial.println();
+    logHeap("now");
   } else if (cmd == "md5") {
     value.trim();
     uint32_t size;
@@ -570,7 +658,7 @@ void checkSerialForCommands() {
                    "\" is not supported. Supported commands: low[:<-40..6>], "
                    "mid[:<-40..6>], high[:<-40..6>], list, play:<index>, "
                    "maxVolume:<safe|unsafe>, knockDebug:<0|1|2>, heap[:<seconds>], dl:<url>, dlstop, "
-                   "dlplay[:<path>], md5:<path>");
+                   "dlplay[:<path>], md5:<path>, podcast");
   }
   Serial.readString();
 }
@@ -581,6 +669,7 @@ void restoreToneSettings() {
 }
 
 void shutdownBox() {
+  podcastStop(true);  // close the episode file before the power goes
   // On USB power the supply stays on and the callers keep calling this every loop iteration:
   // say it once, or the console drowns in it.
   static bool announced = false;

@@ -60,6 +60,13 @@ void growingStart(const char *path, uint32_t synced, uint32_t expected) {
   portEXIT_CRITICAL(&growingMux);
 }
 
+// No episode downloading (any more): no file is treated as growing.
+void growingClear() {
+  portENTER_CRITICAL(&growingMux);
+  growing.path[0] = 0;
+  portEXIT_CRITICAL(&growingMux);
+}
+
 void growingSynced(uint32_t synced) {
   portENTER_CRITICAL(&growingMux);
   growing.synced = synced;

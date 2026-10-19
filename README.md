@@ -126,7 +126,8 @@ Was dabei auffiel:
 
 Host-Tests für Feed-Parser, Dateinamen und Fortsetzungslogik (echte Feeds verschiedener Hoster als Testdaten):
 `tools/host-test.sh`. Serielle Befehle zum Prüfen auf der Box: `podcast`, `audio`, `heap[:<s>]`, `md5:<pfad>`,
-`podcasturl:<url> [<keep>]` (setzt den Feed des aufgelegten Albums), `dl:<url>` / `dlplay` / `dlstop`.
+`podcasturl:<url> [<keep>]` (setzt den Feed des aufgelegten Albums), `dl:<url>` / `dlplay` / `dlstop` / `dlclean`
+(löscht die Testdateien von `dl:`).
 
 ### Token-Bogen
 [tools/token-sheet.html](tools/token-sheet.html) erzeugt den 10 × 15 cm Fotoabzug mit sechs runden Token-Bildern, gleiches Layout wie `src/prepare_tokens.py` (1772 × 1181 px, Kreise mit 515 px). Die Seite ist eine einzelne HTML-Datei ohne Server und ohne Abhängigkeiten, im Look der Management-Web-UI, und führt in drei Schritten durch den Ablauf: Bilder sammeln (Fotos, Kamera, Web-Links, Einfügen, Drag & Drop), jedes Bild im Kreis zuschneiden (Verschieben, Pinch-Zoom, Drehen), fertigen Bogen teilen oder als JPEG speichern. Die Bilder verlassen das Gerät nicht; eine angefangene Sitzung bleibt im Browser gespeichert.

@@ -659,6 +659,25 @@ void checkSerialForCommands() {
     value.trim();
     player.playTrack(value.length() ? value : podcastDebugPath, 0);
     fileWhenTagInserted = player.currentlyPlayingFile;
+  } else if (cmd == "dlclean") {  // removes the files dl: wrote
+    if (podcastBusy()) {
+      Serial.println("a download is running, try again when it is done");
+    } else if (player.currentlyPlayingFile.startsWith("/spike_")) {
+      Serial.println("one of them is playing: switch to another track first (play:<index>)");
+    } else {
+      std::vector<String> names;
+      File root = SD.open("/");
+      for (File f = root ? root.openNextFile() : File(); f; f = root.openNextFile()) {
+        String name = f.name();
+        if (!f.isDirectory() && name.startsWith("spike_") && name.endsWith(".mp3")) names.push_back(name);
+        f.close();
+      }
+      if (root) root.close();
+      for (const String &name : names) {
+        Serial.printf("%s /%s\n", SD.remove("/" + name) ? "removed" : "could not remove", name.c_str());
+      }
+      if (names.empty()) Serial.println("no files from dl: on the card");
+    }
   } else if (cmd == "playat") {  // test: continue the current track at a byte position
     value.trim();
     player.playTrack(player.currentlyPlayingFile, strtoul(value.c_str(), nullptr, 10));
@@ -695,7 +714,8 @@ void checkSerialForCommands() {
                    "\" is not supported. Supported commands: low[:<-40..6>], "
                    "mid[:<-40..6>], high[:<-40..6>], list, play:<index>, "
                    "maxVolume:<safe|unsafe>, knockDebug:<0|1|2>, heap[:<seconds>], dl:<url>, dlstop, "
-                   "dlplay[:<path>], md5:<path>, podcast, audio, dltls:<0|1>, podcasturl:<url>, playat:<byte>, restart");
+                   "dlplay[:<path>], dlclean, md5:<path>, podcast, audio, dltls:<0|1>, podcasturl:<url>[ <keep>], playat:<byte>, "
+                   "restart");
   }
   Serial.readString();
 }

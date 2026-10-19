@@ -205,10 +205,21 @@ void loop() {
       }
       break;
 
-    case playing:
+    case playing: {
       setVolume();
       leftKnockSensor.loop();
       rightKnockSensor.loop();
+      // Playback that ends without a track end (audio_eof_mp3 starts the next one right away) or a
+      // pause is worth knowing about: log where and with how much memory.
+      static bool wasRunning = false;
+      static uint32_t lastPos = 0;
+      bool running = player.audio.isRunning();
+      if (running) lastPos = player.audio.getFilePos();
+      if (wasRunning && !running && recent_tag != "") {
+        Serial.printf("playback stopped by itself: %s at %u, heap %u, largest %u\n", player.currentlyPlayingFile.c_str(),
+                      lastPos, ESP.getFreeHeap(), ESP.getMaxAllocHeap());
+      }
+      wasRunning = running;
 
       if (recent_tag == "") {
         musicStopTime = millis();
@@ -231,6 +242,7 @@ void loop() {
         shutdownBox();
       }
       break;
+    }
 
     case podcastLoading:
       pulseLed(true);
@@ -644,6 +656,12 @@ void checkSerialForCommands() {
     value.trim();
     player.playTrack(value.length() ? value : podcastDebugPath, 0);
     fileWhenTagInserted = player.currentlyPlayingFile;
+  } else if (cmd == "playat") {  // test: continue the current track at a byte position
+    value.trim();
+    player.playTrack(player.currentlyPlayingFile, strtoul(value.c_str(), nullptr, 10));
+  } else if (cmd == "restart") {
+    podcastStop(true);
+    ESP.restart();
   } else if (cmd == "audio") {
     Serial.printf("audio: %s, %s, at %u of %u, %u buffered, %u kbit/s, %u s\n", player.audio.isRunning() ? "running" : "not running",
                   player.currentlyPlayingFile.length() ? player.currentlyPlayingFile.c_str() : "-", player.audio.getFilePos(),
@@ -674,7 +692,7 @@ void checkSerialForCommands() {
                    "\" is not supported. Supported commands: low[:<-40..6>], "
                    "mid[:<-40..6>], high[:<-40..6>], list, play:<index>, "
                    "maxVolume:<safe|unsafe>, knockDebug:<0|1|2>, heap[:<seconds>], dl:<url>, dlstop, "
-                   "dlplay[:<path>], md5:<path>, podcast, audio, dltls:<0|1>, podcasturl:<url>");
+                   "dlplay[:<path>], md5:<path>, podcast, audio, dltls:<0|1>, podcasturl:<url>, playat:<byte>, restart");
   }
   Serial.readString();
 }

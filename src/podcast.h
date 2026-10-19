@@ -324,7 +324,12 @@ static bool downloadEpisodeOnce(const String &url, const String &path, bool allo
     tagSize = src.skip;
   } else {
     // Probe: the first 10 bytes tell the ID3 size, Content-Range the total and range support.
-    if (!probe.open(url, 0, 9)) {
+    // Plain http first: it saves a TLS handshake (~3 s) before the first sound, and most hosts
+    // serve the file both ways. Only a real range answer counts, never some 200 page.
+    String plain = String(plainHttpVariant(url.c_str()).c_str());
+    bool probed = podcastPreferHttp && plain != url && probe.open(plain, 0, 9, 3000) && probe.status == 206 &&
+                  probe.hasRange;
+    if (!probed && !probe.open(url, 0, 9)) {
       error = "episode: " + probe.error;
       return false;
     }

@@ -426,6 +426,7 @@ static NavItem NAV_ITEMS[] = {
     {"files", "/", "Files"},
     {"upload", "/home", "Upload"},
     {"copy", "/copy", "Copy"},
+    {"podcast", "/podcast", "Podcast"},
     {"wifi", "/wifi", "Wi&#8209;Fi"},
 };
 

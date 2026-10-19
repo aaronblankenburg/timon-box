@@ -33,9 +33,9 @@ class Player {
 
   void startSdCard() {
     spiSD.begin(SD_SCK, SD_MISO, SD_MOSI, SD_CS);
-    // 8 instead of 5 open files: the podcast downloader and the audio library (which opens a
-    // file twice when it starts one) share the card.
-    if (!SD.begin(SD_CS, spiSD, SD_SPEED, "/sd", 8)) {
+    // At most 5 files open through the VFS. Each one reserves a 4 kB sector buffer for good,
+    // and the podcast downloader does not count: it uses FATFS directly (see podcast.h).
+    if (!SD.begin(SD_CS, spiSD, SD_SPEED, "/sd", 5)) {
       Serial.println("Error talking to SD card!");
       sdConnected = false;
     } else {

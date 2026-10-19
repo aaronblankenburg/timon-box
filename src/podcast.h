@@ -17,8 +17,10 @@
 #include <algorithm>
 #include <functional>
 #include <memory>
+#include <new>
 #include <vector>
 
+#include "ff.h"
 #include "gated-fs.h"
 #include "podcast-feed.h"
 #include "wifi-setup.h"
@@ -31,12 +33,56 @@
 #define PODCAST_FIRST_FLUSH (64 * 1024)  // playback can start once this much is on the card
 #define PODCAST_FLUSH_EVERY (128 * 1024)
 #define PODCAST_HUNGRY_FLUSH (16 * 1024)  // flush early by this much when a reader is waiting
+// A connection that only trickles (Wi-Fi trouble leaves TCP crawling with its small window) is
+// replaced: below 8 kB/s over 15 s, half the rate of a 128 kbit/s episode, playback would catch up.
+// A write that fails after this much progress since the last failure is the SD driver's
+// occasional false alarm (see writeBlock); failures closer together count towards giving up.
+#define PODCAST_WRITE_PROGRESS (64 * 1024)
+#define PODCAST_WRITE_ERRORS_IN_A_ROW 5
+#define PODCAST_SLOW_WINDOW_MS 15000
+#define PODCAST_SLOW_BYTES (8 * 1024 * 15)
 
 volatile TaskHandle_t podcastTask = nullptr;
 volatile bool podcastCancel = false;
 bool podcastPreferHttp = true;  // serial "dltls:1" turns it off, to measure TLS during playback
 
 bool podcastBusy() { return podcastTask != nullptr; }
+
+// ---------------------------------------------------------------------------
+// SD access of the podcast task: FATFS directly
+//
+// The main loop and the audio library use the card through the VFS and stdio (File, FILE*,
+// file descriptors). With the podcast task in there as well, a track change in the player and a
+// reopen in the downloader ended up on one shared descriptor: the player's new file read the
+// downloader's write handle (EACCES), the downloader wrote to a descriptor the player had just
+// closed (EBADF), and further opens failed. So this task keeps out of the VFS and uses its own
+// FATFS objects; FATFS locks the volume itself (FF_FS_REENTRANT). sdGate still keeps the
+// player's reads from waiting for the card.
+// ---------------------------------------------------------------------------
+
+static char fatDriveLetter = 0;
+
+// "/a/b.mp3" -> "0:/a/b.mp3" on the FATFS drive the SD library mounted.
+static String fatPath(const String &path) {
+  if (!fatDriveLetter) {
+    for (char d = '0'; d <= '1' && !fatDriveLetter; d++) {
+      char root[4] = {d, ':', '/', 0};
+      FF_DIR dir;
+      if (f_opendir(&dir, root) == FR_OK) {
+        f_closedir(&dir);
+        fatDriveLetter = d;
+      }
+    }
+  }
+  return String(fatDriveLetter ? fatDriveLetter : '0') + ":" + path;
+}
+
+static bool fatRemove(const String &path) {
+  if (!sdGateTake()) return false;
+  bool ok = f_unlink(fatPath(path).c_str()) == FR_OK;
+  sdGateGive();
+  return ok;
+}
 
 void logHeap(const char *what) {
   Serial.printf("[heap] %s: free %u, min %u, largest block %u\n", what, ESP.getFreeHeap(), ESP.getMinFreeHeap(),
@@ -244,6 +290,7 @@ struct DownloadStats {
   uint32_t bytes = 0;  // received in this session
   unsigned long startedMs = 0;
   uint32_t maxWriteMs = 0, maxFlushMs = 0;
+  uint32_t writeRetries = 0;  // failed writes repeated in place
   uint32_t minFree = 0xFFFFFFFF, minBlock = 0xFFFFFFFF;
   unsigned long lastReport = 0;
 
@@ -258,15 +305,19 @@ struct DownloadStats {
 static void localEpisodeState(const String &path, uint32_t &size, bool &startsWithId3) {
   size = 0;
   startsWithId3 = false;
-  if (!sdGateTake()) return;
-  File f = SD.open(path, FILE_READ);
-  if (f) {
-    size = f.size();
-    uint8_t head[3];
-    startsWithId3 = size >= 3 && f.read(head, 3) == 3 && memcmp(head, "ID3", 3) == 0;
-    f.close();
+  FIL *f = new (std::nothrow) FIL;
+  if (!f) return;
+  if (sdGateTake()) {
+    if (f_open(f, fatPath(path).c_str(), FA_READ) == FR_OK) {
+      size = f_size(f);
+      uint8_t head[3];
+      UINT got = 0;
+      startsWithId3 = size >= 3 && f_read(f, head, 3, &got) == FR_OK && got == 3 && memcmp(head, "ID3", 3) == 0;
+      f_close(f);
+    }
+    sdGateGive();
   }
-  sdGateGive();
+  delete f;
 }
 
 // Reads exactly `len` bytes unless the body ends or stalls. Returns the count.
@@ -305,9 +356,11 @@ struct EpisodeSource {
 
 static bool downloadEpisodeOnce(const String &url, const String &path, bool allowSkip, uint32_t savedTotal,
                                 String &error, DownloadStats &st, bool &retrySkipless, bool &writeError,
-                                uint32_t &serverTotal, const DownloadPlanned &planned, EpisodeSource &src) {
+                                bool &tooSlow, uint32_t &serverTotal, const DownloadPlanned &planned,
+                                EpisodeSource &src) {
   retrySkipless = false;
   writeError = false;
+  tooSlow = false;
   serverTotal = SIZE_UNKNOWN;
   uint32_t local;
   bool localHasId3;
@@ -399,13 +452,14 @@ static bool downloadEpisodeOnce(const String &url, const String &path, bool allo
     error = "no memory for the download buffer";
     return false;
   }
-  File out;
-  if (sdGateTake()) {
-    out = SD.open(path, local > 0 ? FILE_APPEND : FILE_WRITE);
-    if (out) out.setBufferSize(512);  // whole 4 kB blocks bypass the stdio buffer anyway
+  FIL *out = new (std::nothrow) FIL;
+  bool opened = false;
+  if (out && sdGateTake()) {
+    opened = f_open(out, fatPath(path).c_str(), FA_WRITE | (local > 0 ? FA_OPEN_APPEND : FA_CREATE_ALWAYS)) == FR_OK;
     sdGateGive();
   }
-  if (!out) {
+  if (!opened) {
+    delete out;
     free(block);
     error = "cannot write " + path;
     return false;
@@ -422,19 +476,46 @@ static bool downloadEpisodeOnce(const String &url, const String &path, bool allo
     fill = pendingLen;
   }
 
-  auto writeBlock = [&](size_t len) -> bool {
-    unsigned long t0 = millis();
+  // After a failed write FATFS refuses the handle for good. Closing it saves what was accepted;
+  // the reopened file has to end exactly at `at`, or the caller starts over from the card.
+  auto reopenAt = [&](uint32_t at) -> bool {
     if (!sdGateTake()) return false;
-    errno = 0;
-    size_t put = out.write(block, len);
-    int err = errno;
+    f_close(out);
+    bool ok = f_open(out, fatPath(path).c_str(), FA_WRITE | FA_OPEN_APPEND) == FR_OK;
+    if (ok && f_size(out) != at) {
+      Serial.printf("[podcast] reopened %s ends at %u, not %u\n", path.c_str(), (unsigned)f_size(out), (unsigned)at);
+      f_close(out);
+      ok = false;
+    }
     sdGateGive();
-    uint32_t ms = millis() - t0;
-    if (ms > st.maxWriteMs) st.maxWriteMs = ms;
-    if (put != len) {
-      Serial.printf("[podcast] write of %u bytes at %u put %u after %u ms, errno %d, heap %u, largest %u\n", (unsigned)len,
-                    written, (unsigned)put, ms, err, ESP.getFreeHeap(), ESP.getMaxAllocHeap());
-      return false;
+    return ok;
+  };
+  // The SD driver fails a write now and then although the card has taken it: after each
+  // multi-sector write it asks for the card status, and any bit set there counts as an error.
+  // That happens every few hundred kB on some cards; repeating the rest of the block in place
+  // costs a few ms, where a new connection costs half a second (or a TLS handshake).
+  auto writeBlock = [&](size_t len) -> bool {
+    size_t done = 0;
+    for (int tries = 0;; tries++) {
+      unsigned long t0 = millis();
+      if (!sdGateTake()) return false;
+      UINT put = 0;
+      FRESULT res = f_write(out, block + done, len - done, &put);
+      sdGateGive();
+      uint32_t ms = millis() - t0;
+      if (ms > st.maxWriteMs) st.maxWriteMs = ms;
+      done += put;
+      if (res == FR_OK && done == len) break;
+      if (tries < 2 && st.writeRetries < 10) {
+        Serial.printf("[podcast] write of %u bytes at %u failed after %u ms (FATFS error %d), writing it again\n",
+                      (unsigned)(len - done + put), (unsigned)(written + done - put), ms, (int)res);
+      }
+      if (tries >= 2 || !reopenAt(written + done)) {
+        Serial.printf("[podcast] write of %u bytes at %u put %u after %u ms, FATFS error %d, heap %u, largest %u\n",
+                      (unsigned)len, written, (unsigned)done, ms, (int)res, ESP.getFreeHeap(), ESP.getMaxAllocHeap());
+        return false;  // the caller starts over from what the card has
+      }
+      st.writeRetries++;
     }
     written += len;
     return true;
@@ -442,7 +523,7 @@ static bool downloadEpisodeOnce(const String &url, const String &path, bool allo
   auto flushOut = [&]() {
     unsigned long t0 = millis();
     if (!sdGateTake()) return;
-    out.flush();
+    f_sync(out);  // updates the directory entry: readers that open the file now see this size
     sdGateGive();
     uint32_t ms = millis() - t0;
     if (ms > st.maxFlushMs) st.maxFlushMs = ms;
@@ -451,7 +532,17 @@ static bool downloadEpisodeOnce(const String &url, const String &path, bool allo
   };
 
   bool writeFailed = false;
+  unsigned long rateSince = millis();
+  uint32_t rateBytes = 0;
   while (!podcastCancel) {
+    if (millis() - rateSince >= PODCAST_SLOW_WINDOW_MS) {
+      if (rateBytes < PODCAST_SLOW_BYTES) {
+        tooSlow = true;
+        break;
+      }
+      rateSince = millis();
+      rateBytes = 0;
+    }
     int n = in->read(block + fill, PODCAST_BLOCK - fill);
     if (n < 0) {
       ended = true;
@@ -467,6 +558,7 @@ static bool downloadEpisodeOnce(const String &url, const String &path, bool allo
     }
     lastData = millis();
     st.bytes += n;
+    rateBytes += n;
     if (discard) {  // still inside the ID3 tag of a server without ranges
       size_t d = (size_t)n < discard ? n : discard;
       memmove(block + fill, block + fill + d, n - d);
@@ -503,18 +595,16 @@ static bool downloadEpisodeOnce(const String &url, const String &path, bool allo
                     ESP.getMaxAllocHeap(), st.maxWriteMs, st.maxFlushMs);
     }
   }
-  if (fill && !retrySkipless && !writeFailed) writeBlock(fill);
+  if (fill && !retrySkipless && !writeFailed && !tooSlow) writeBlock(fill);
   if (sdGateTake()) {
-    out.close();
+    f_close(out);  // after a failed write the file keeps what was written before it
     sdGateGive();
   }
+  delete out;
   free(block);
 
   if (retrySkipless) {
-    if (sdGateTake()) {
-      SD.remove(path);
-      sdGateGive();
-    }
+    fatRemove(path);
     growingDone(0);
     return false;
   }
@@ -526,6 +616,7 @@ static bool downloadEpisodeOnce(const String &url, const String &path, bool allo
   growingSynced(written);
   writeError = writeFailed;
   if (writeFailed) error = "writing to the SD card failed";
+  else if (tooSlow) error = "the connection got too slow";
   else if (podcastCancel) error = "cancelled";
   else if (stalled) error = "download stalled";
   else error = "connection closed early";
@@ -548,11 +639,12 @@ bool downloadEpisode(const String &url, const String &path, uint32_t savedTotal,
   EpisodeSource src;
   bool allowSkip = true;
   bool ok = false;
-  int writeErrors = 0;
+  int writeErrors = 0, writeErrorsInARow = 0, slowConnections = 0;
+  uint32_t bytesAtWriteError = 0;
   for (int attempt = 0; attempt <= 3 && !podcastCancel; attempt++) {
-    bool retrySkipless = false, writeError = false;
-    ok = downloadEpisodeOnce(url, path, allowSkip, savedTotal, error, st, retrySkipless, writeError, serverTotal,
-                             planned, src);
+    bool retrySkipless = false, writeError = false, tooSlow = false;
+    ok = downloadEpisodeOnce(url, path, allowSkip, savedTotal, error, st, retrySkipless, writeError, tooSlow,
+                             serverTotal, planned, src);
     if (serverTotal != SIZE_UNKNOWN) savedTotal = serverTotal;  // what is on the card now matches it
     if (ok) break;
     if (retrySkipless) {
@@ -561,14 +653,29 @@ bool downloadEpisode(const String &url, const String &path, uint32_t savedTotal,
       attempt--;  // not a network failure
       continue;
     }
-    if (writeError && ++writeErrors <= 40) {
-      attempt--;  // the network is fine: continue at once
+    if (writeError) {
+      // Only failures without progress in between mean that the card is in trouble.
+      bool progress = st.bytes - bytesAtWriteError >= PODCAST_WRITE_PROGRESS;
+      writeErrorsInARow = progress ? 1 : writeErrorsInARow + 1;
+      bytesAtWriteError = st.bytes;
+      writeErrors++;
+      if (writeErrorsInARow <= PODCAST_WRITE_ERRORS_IN_A_ROW) {
+        attempt--;  // the network is fine: continue at once
+        continue;
+      }
+    }
+    if (tooSlow && ++slowConnections <= 20) {
+      Serial.printf("[podcast] connection too slow, reconnecting (%d)\n", slowConnections);
+      attempt--;
       continue;
     }
     Serial.printf("[podcast] attempt %d: %s\n", attempt + 1, error.c_str());
     if (attempt < 3 && !podcastCancel) vTaskDelay(pdMS_TO_TICKS(backoffMs[attempt]));
   }
-  if (writeErrors) Serial.printf("[podcast] %d failed writes continued\n", writeErrors);
+  if (st.writeRetries || writeErrors) {
+    Serial.printf("[podcast] failed writes: %u written again in place, %d continued over a new connection\n",
+                  (unsigned)st.writeRetries, writeErrors);
+  }
   st.sample();
   unsigned long secs = (millis() - st.startedMs) / 1000;
   Serial.printf("[podcast] %s %s: %u kB in %lu s, min heap %u, min largest %u, write max %u ms, flush max %u ms\n",
@@ -613,13 +720,20 @@ struct PodcastState {
 
 static String readSmallFile(const String &path) {
   String content;
-  if (!sdGateTake()) return content;
-  File f = SD.open(path, FILE_READ);
-  if (f) {
-    while (f.available() && content.length() < 2048) content += (char)f.read();
-    f.close();
+  FIL *f = new (std::nothrow) FIL;
+  if (!f) return content;
+  if (sdGateTake()) {
+    if (f_open(f, fatPath(path).c_str(), FA_READ) == FR_OK) {
+      char buf[128];
+      UINT got = 0;
+      while (content.length() < 2048 && f_read(f, buf, sizeof(buf), &got) == FR_OK && got > 0) {
+        for (UINT i = 0; i < got; i++) content += buf[i];
+      }
+      f_close(f);
+    }
+    sdGateGive();
   }
-  sdGateGive();
+  delete f;
   return content;
 }
 
@@ -649,11 +763,18 @@ bool readPodcastConfig(const String &dir, PodcastConfig &cfg) {
 }
 
 static bool writeSmallFile(const String &path, const String &content) {
-  if (!sdGateTake()) return false;
-  File f = SD.open(path, FILE_WRITE);
-  bool ok = f && f.print(content) == content.length();
-  if (f) f.close();
-  sdGateGive();
+  FIL *f = new (std::nothrow) FIL;
+  if (!f) return false;
+  bool ok = false;
+  if (sdGateTake()) {
+    if (f_open(f, fatPath(path).c_str(), FA_WRITE | FA_CREATE_ALWAYS) == FR_OK) {
+      UINT put = 0;
+      ok = f_write(f, content.c_str(), content.length(), &put) == FR_OK && put == content.length();
+      ok = f_close(f) == FR_OK && ok;
+    }
+    sdGateGive();
+  }
+  delete f;
   return ok;
 }
 
@@ -701,8 +822,8 @@ bool writePodcastState(const String &dir, const PodcastState &st) {
              "\nnewfeed=" + oneLine(st.newFeedUrl) + "\n";
   if (!writeSmallFile(dir + PODCAST_STATE_TMP, c)) return false;
   if (!sdGateTake()) return false;
-  SD.remove(dir + PODCAST_STATE_FILE);
-  bool ok = SD.rename(dir + PODCAST_STATE_TMP, dir + PODCAST_STATE_FILE);
+  f_unlink(fatPath(dir + PODCAST_STATE_FILE).c_str());
+  bool ok = f_rename(fatPath(dir + PODCAST_STATE_TMP).c_str(), fatPath(dir + PODCAST_STATE_FILE).c_str()) == FR_OK;
   sdGateGive();
   return ok;
 }
@@ -710,35 +831,35 @@ bool writePodcastState(const String &dir, const PodcastState &st) {
 // The episode files in `dir`, oldest first.
 std::vector<String> listEpisodes(const String &dir) {
   std::vector<String> names;
-  if (!sdGateTake()) return names;
-  File d = SD.open(dir);
-  while (d) {
-    File f = d.openNextFile();
-    if (!f) break;
-    if (!f.isDirectory() && isEpisodeFileName(f.name())) names.push_back(f.name());
-    f.close();
+  FF_DIR *d = new (std::nothrow) FF_DIR;
+  FILINFO *fi = new (std::nothrow) FILINFO;
+  if (d && fi && sdGateTake()) {
+    if (f_opendir(d, fatPath(dir).c_str()) == FR_OK) {
+      while (f_readdir(d, fi) == FR_OK && fi->fname[0]) {
+        if (!(fi->fattrib & AM_DIR) && isEpisodeFileName(fi->fname)) names.push_back(fi->fname);
+      }
+      f_closedir(d);
+    }
+    sdGateGive();
   }
-  if (d) d.close();
-  sdGateGive();
+  delete d;
+  delete fi;
   std::sort(names.begin(), names.end(), [](const String &a, const String &b) { return a.compareTo(b) < 0; });
   return names;
 }
 
 static void removeIndexFile(const String &dir) {
-  if (!sdGateTake()) return;
-  SD.remove(dir + "/index.txt");  // the player rebuilds its playlist from the folder
-  sdGateGive();
+  fatRemove(dir + "/index.txt");  // the player rebuilds its playlist from the folder
 }
 
 static uint32_t fileSizeOnCard(const String &path) {
   uint32_t size = 0;
-  if (!sdGateTake()) return 0;
-  File f = SD.open(path, FILE_READ);
-  if (f) {
-    size = f.size();
-    f.close();
+  FILINFO *fi = new (std::nothrow) FILINFO;
+  if (fi && sdGateTake()) {
+    if (f_stat(fatPath(path).c_str(), fi) == FR_OK) size = fi->fsize;
+    sdGateGive();
   }
-  sdGateGive();
+  delete fi;
   return size;
 }
 
@@ -748,10 +869,7 @@ int podcastRetention(const String &dir, int keep, const String &except) {
   int removed = 0;
   for (size_t i = 0; i + keep < names.size(); i++) {
     if (names[i] == except) continue;
-    if (sdGateTake()) {
-      if (SD.remove(dir + "/" + names[i])) removed++;
-      sdGateGive();
-    }
+    if (fatRemove(dir + "/" + names[i])) removed++;
     Serial.printf("[podcast] removed old episode %s\n", names[i].c_str());
   }
   return removed;
@@ -779,7 +897,7 @@ static const char *podcastPhaseName(PodcastPhase p) {
 
 volatile PodcastPhase podcastPhase = POD_IDLE;
 String podcastTaskDir;               // album folder of the running task; set before it starts
-char podcastEpisodePath[200] = "";  // newest episode, under growingMux
+char podcastEpisodePath[260] = "";  // newest episode, under growingMux
 
 String podcastEpisode() {
   char copy[sizeof(podcastEpisodePath)];

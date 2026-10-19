@@ -14,8 +14,6 @@
 
 class PlayerI2S : public Player {
  private:
-  void playFile(String path) { playTrack(path, 0); }
-
   // While a podcast download runs, every file goes through gatedFS, so the decoder never waits
   // for the card the downloader writes to.
   fs::FS &card() { return podcastBusy() ? gatedFS : (fs::FS &)SD; }
@@ -62,7 +60,7 @@ class PlayerI2S : public Player {
   }
 
   // Starts `path` at byte `pos` (0 = from the start).
-  bool playTrack(String path, uint32_t pos = 0) {
+  bool playTrack(String path, uint32_t pos = 0) override {
     if (!card().exists(path)) {
       // The index lists a track that is gone (deleted or renamed in the web UI): rebuild the
       // playlist from the folder and start at its first track.
@@ -83,6 +81,17 @@ class PlayerI2S : public Player {
     bool ok = startFile(path.c_str(), pos);
     Serial.printf("playing file: %s at %u%s\n", path.c_str(), pos, podcastBusy() ? " (gated)" : "");
     return ok;
+  }
+
+  uint32_t resumePosition() override {
+    uint32_t pos = audio.getFilePos();  // read position, 0 when no file is open
+    if (!pos) return 0;
+    uint32_t buffered = audio.inBufferFilled();  // read but not yet heard
+    pos = pos > buffered ? pos - buffered : 0;
+    uint32_t bitrate = audio.getBitRate();  // bit/s, 0 before the first frame
+    uint32_t back = (bitrate ? bitrate : 128000) / 8 * RESUME_REWIND_S;
+    uint32_t start = audio.getAudioDataStartPos();  // never continue inside the ID3 tag
+    return pos > start + back ? pos - back : 0;
   }
 
   void loop() { audio.loop(); }

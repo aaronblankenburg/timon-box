@@ -15,6 +15,7 @@
 
 #define LAST_PLAYED_FILE_NAME "/last_played.txt"
 #define INDEX_FILE_NAME "/index.txt"
+#define RESUME_REWIND_S 5  // continue a track this many seconds before where it was left
 
 class Player {
  protected:
@@ -41,7 +42,13 @@ class Player {
     }
   }
 
-  virtual void playFile(String path) = 0;
+  virtual bool playTrack(String path, uint32_t pos) = 0;
+  void playFile(String path) { playTrack(path, 0); }
+
+  // Where to continue the current track (already RESUME_REWIND_S back), 0 = from the start.
+  virtual uint32_t resumePosition() = 0;
+
+  uint32_t lastPlayedPos = 0;  // from the second line of last_played.txt
 
   void flushPlayerCache() {
     if (SD.exists(albumDir + LAST_PLAYED_FILE_NAME)) SD.remove(albumDir + LAST_PLAYED_FILE_NAME);
@@ -175,7 +182,8 @@ class Player {
 
   void startOrContinueAlbum() {
     if (playlist.size() > 0) {
-      playFile(getLastPlayedSong());
+      String track = getLastPlayedSong();
+      playTrack(track, lastPlayedPos);
     } else {
       Serial.println("playlist empty");
     }
@@ -210,7 +218,11 @@ class Player {
     }
   }
 
+  // last_played.txt holds the track's path and, on a second line, the byte position to continue
+  // from. Without that line (older firmware, "Play next" in the web UI) the track starts at 0.
+  // Sets lastPlayedPos.
   String getLastPlayedSong() {
+    lastPlayedPos = 0;
     if (!SD.exists(albumDir + LAST_PLAYED_FILE_NAME)) {
       Serial.println("Failed to open file for reading");
       return playlist.get(0);
@@ -218,32 +230,42 @@ class Player {
 
     File file = SD.open(albumDir + LAST_PLAYED_FILE_NAME);
 
-    String fileName;
+    String content;
     while (file.available()) {
-      fileName += (char)file.read();
+      content += (char)file.read();
     }
     file.close();
 
-    if(fileName.length() == 0) {
+    int newline = content.indexOf('\n');
+    String fileName = newline >= 0 ? content.substring(0, newline) : content;
+    fileName.trim();
+    uint32_t pos = newline >= 0 ? strtoul(content.c_str() + newline + 1, nullptr, 10) : 0;
+
+    if (fileName.length() == 0) {
       Serial.println(albumDir + LAST_PLAYED_FILE_NAME + " is empty");
       return playlist.get(0);
     }
 
-    if (SD.exists(fileName)) {
-      return fileName;
-    } else {
+    File track = SD.open(fileName);
+    if (!track) {
       return playlist.get(0);
     }
+    if (pos < track.size()) lastPlayedPos = pos;  // a replaced, shorter file starts over
+    track.close();
+    return fileName;
   }
 
-  void savePlayingState() {
+  void savePlayingState(bool quiet = false) {
     File file = SD.open(albumDir + LAST_PLAYED_FILE_NAME, FILE_WRITE);
     if (!file) {
       Serial.println("Failed to open file for writing");
       return;
     }
-    if (file.print(currentlyPlayingFile)) {
-      Serial.println("Last played song saved");
+    uint32_t pos = resumePosition();
+    bool ok = file.print(currentlyPlayingFile);
+    if (ok && pos) ok = file.print('\n') && file.print(pos);
+    if (ok && !quiet) {
+      Serial.printf("Last played song saved: %s at %u\n", currentlyPlayingFile.c_str(), pos);
     }
     file.close();
   }

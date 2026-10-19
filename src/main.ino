@@ -85,6 +85,8 @@ float batteryAdcValue = 2390.;  // start with full value
 String managementAlbumTag = "";        // album token currently selected in management mode
 unsigned long managementNoTokenSince = 0;
 unsigned long heapLogEveryMs = 0;  // serial "heap:<s>"
+unsigned long lastStateSave = 0;
+#define STATE_SAVE_EVERY_MS 60000  // the position survives switching off with the power button
 
 void setup() {
   pinMode(POWER_SUPPLY_PIN, OUTPUT);
@@ -198,6 +200,13 @@ void loop() {
         player.savePlayingState();
         changeState(paused);
         delay(3000);
+      } else if (millis() - lastStateSave > STATE_SAVE_EVERY_MS) {
+        lastStateSave = millis();
+        // Only if the card is free right now: a podcast download may be writing to it.
+        if (player.audio.isRunning() && sdGateTake(0)) {
+          player.savePlayingState(true);
+          sdGateGive();
+        }
       }
 
       if (millis() - musicStartTime > (MAX_PLAY_TIME_IN_S * 1000)) {
@@ -452,8 +461,9 @@ void audio_eof_mp3(const char *info) {  // end of file; `info` is the file name 
   checkBattery(true);
   player.next();
   if (fileWhenTagInserted == player.currentlyPlayingFile) {
-    // shutdown when starting file is reached again
+    // shutdown when starting file is reached again; the next time the album starts here, from the top
     fileWhenTagInserted = "";
+    player.savePlayingState();
     shutdownBox();
   }
 }

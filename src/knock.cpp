@@ -64,6 +64,7 @@ class KnockSensor {
   static constexpr unsigned long maxRiseUs = 10000;  // a hump is timed from when the signal left rest, but no
                                                      // further back than this (a raised noise floor is not a hump)
   static constexpr unsigned long maxDtUs = 2000;     // a late timer callback must not inflate the area
+  static constexpr unsigned long maxBlindUs = 2000;  // samples missed this long: a hump across the gap proves nothing
   static constexpr unsigned long cooldownMs = 800;   // after firing: the panel is released and the click plays
   static constexpr unsigned long maxPressAgeUs = 200000;  // a press seen while paused is not replayed when playback starts
 
@@ -86,7 +87,7 @@ class KnockSensor {
   // What the music does to the sensor: per-second statistics of the humps that did not fire.
   unsigned long statsSinceMs = 0;
   unsigned long samples = 0, readUs = 0;
-  unsigned int humps = 0, longestMs = 0, maxPeak = 0;
+  unsigned int humps = 0, longestMs = 0, maxPeak = 0, blind = 0;
   unsigned long maxArea = 0;
 
   // One-shot trace of the raw signal (debug = 2): starts when the signal leaves rest, printed when full.
@@ -124,6 +125,14 @@ class KnockSensor {
     unsigned int raw = adc1_get_raw((adc1_channel_t)channel);
     readUs += micros() - now;
     unsigned long dt = now - lastSampleUs;
+    // Samples were missed (Wi-Fi or a flash write kept the timer task from running): the gaps
+    // between the half waves of a tone may have been in there, so the hump starts over.
+    if (state == HUMP && dt > maxBlindUs) {
+      state = IDLE;
+      armed = true;
+      restUs = now;
+      blind++;
+    }
     if (dt > maxDtUs) dt = maxDtUs;
     lastSampleUs = now;
     samples++;
@@ -180,11 +189,11 @@ class KnockSensor {
 
   void printStats() {
     if (!debug || millis() - statsSinceMs < 1000) return;
-    Serial.printf("knock %u: %lu samples/s (%lu us each), %u humps, longest %u ms, peak %u, area %lu\n", pin, samples,
-                  samples ? readUs / samples : 0, humps, longestMs, maxPeak, maxArea);
+    Serial.printf("knock %u: %lu samples/s (%lu us each), %u humps, longest %u ms, peak %u, area %lu, %u blind\n", pin,
+                  samples, samples ? readUs / samples : 0, humps, longestMs, maxPeak, maxArea, blind);
     statsSinceMs = millis();
     samples = readUs = 0;
-    humps = longestMs = maxPeak = 0;
+    humps = longestMs = maxPeak = blind = 0;
     maxArea = 0;
   }
 
@@ -224,6 +233,7 @@ class KnockSensor {
     args.callback = [](void *self) { static_cast<KnockSensor *>(self)->sample(); };
     args.arg = this;
     args.dispatch_method = ESP_TIMER_TASK;
+    args.skip_unhandled_events = true;  // a late callback is not repeated back to back
     args.name = "knock";
     esp_timer_create(&args, &timer);
     esp_timer_start_periodic(timer, sampleUs);

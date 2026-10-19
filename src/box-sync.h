@@ -134,9 +134,12 @@ void peerAlbum(AsyncWebServerRequest *request) {
   Print *res = page.get();
   res->printf("album\t%s\n", folderDisplayName(folder, tag).c_str());
   int count = 0;
+  PodcastState podcast;  // an episode still downloading is not offered: it would arrive cut off
+  readPodcastState(folder, podcast);
+  String partial = podcast.complete ? "" : podcast.file;
   File dir = SD.open(folder);
   while (File entry = dir.openNextFile()) {
-    if (!entry.isDirectory() && String(entry.name()).endsWith(".mp3") && count < SYNC_MAX_FILES) {
+    if (!entry.isDirectory() && String(entry.name()).endsWith(".mp3") && partial != entry.name() && count < SYNC_MAX_FILES) {
       res->printf("%u\t%s\n", (unsigned)entry.size(), entry.name());
       count++;
     }

@@ -16,6 +16,7 @@
 
 #include "web-ui.h"
 #include "wifi-setup.h"
+#include "podcast.h"
 
 #define PAGE_SIZE 10
 #define LAST_PLAYED_FILE_NAME "/last_played.txt"
@@ -278,6 +279,85 @@ void sendBusy(AsyncWebServerRequest *request) {
   request->send(503, "text/plain", "The box is busy, please retry.");
 }
 
+// "2026-10-19_0400_Erntezeit_1a2b.mp3" -> "2026-10-19 04:00 · Erntezeit"; other names: underscores
+// become spaces, without the extension.
+String trackDisplayName(const String &fileName) {
+  int dot = fileName.lastIndexOf('.');
+  String base = dot > 0 ? fileName.substring(0, dot) : fileName;
+  if (!isEpisodeFileName(fileName.c_str())) {
+    base.replace('_', ' ');
+    return base;
+  }
+  String title = base.substring(16, base.lastIndexOf('_'));
+  title.replace('_', ' ');
+  if (base.startsWith("0000-00-00")) return title;
+  return base.substring(0, 10) + " " + base.substring(11, 13) + ":" + base.substring(13, 15) + " \xc2\xb7 " + title;
+}
+
+static String megabytes(uint32_t bytes) {
+  char buf[16];
+  snprintf(buf, sizeof(buf), "%.1f MB", bytes / 1048576.0);
+  return buf;
+}
+
+String podcastStatusText(const PodcastState &st, uint32_t onCard) {
+  if (st.result == "ok" && st.complete) return "The newest episode is on the card.";
+  if (st.result == "unsupported") return st.error + ".";
+  if (st.result == "offline") return "No Wi-Fi at the last check (" + st.error + "). The episodes on the card play.";
+  if (st.result == "error") return "The last check failed: " + st.error + ".";
+  if (st.file.length() && !st.complete) {
+    return st.size ? "Partly downloaded: " + megabytes(onCard) + " of " + megabytes(st.size) + ". It continues next time."
+                   : "Partly downloaded. It continues next time.";
+  }
+  return "Not checked yet: place the token on the box in normal mode.";
+}
+
+// Turns the album into a podcast (feed address + how many episodes to keep), or back.
+void podcastCard(Print *res, bool isPodcast, const PodcastConfig &cfg, const PodcastState &st, uint32_t onCard) {
+  res->print("<div class=\"card\"><div class=\"card-head\"><h2>Podcast</h2>");
+  if (isPodcast) res->print("<span class=\"pill ok\"><span class=\"dot\"></span>On</span>");
+  res->print("</div>");
+  if (isPodcast) {
+    res->print("<dl class=\"kv\">");
+    if (st.feedTitle.length()) res->printf("<dt>Podcast</dt><dd>%s</dd>", htmlEscape(st.feedTitle).c_str());
+    if (st.title.length()) {
+      res->printf("<dt>Newest</dt><dd>%s%s%s</dd>", htmlEscape(st.title).c_str(), st.date.length() ? " &middot; " : "",
+                  htmlEscape(st.date).c_str());
+    }
+    res->printf("<dt>Status</dt><dd>%s</dd>", htmlEscape(podcastStatusText(st, onCard)).c_str());
+    if (st.checked.length()) res->printf("<dt>Last check</dt><dd>%s</dd>", htmlEscape(st.checked).c_str());
+    res->print("</dl>");
+    if (st.newFeedUrl.length() && st.newFeedUrl != cfg.url) {
+      res->printf("<div class=\"notice\"><i class=\"ic ic-warn\"></i><span>The podcast has moved to <code>%s</code>. "
+                  "Enter that address below.</span></div>", htmlEscape(st.newFeedUrl).c_str());
+    }
+  } else {
+    res->print("<p class=\"hint lead\">Make this token a podcast: whenever it is placed, the box loads the newest episode, "
+               "plays it right away and keeps it in this folder. The tracks already here stay.</p>");
+  }
+  res->print("<div class=\"field\"><label for=\"ps\">Find a podcast</label><div class=\"row-inline\">"
+             "<input class=\"input\" id=\"ps\" type=\"search\" placeholder=\"Name of the podcast\" spellcheck=\"false\">"
+             "<button class=\"btn secondary\" type=\"button\" id=\"psb\">Search</button></div>"
+             "<p class=\"hint\" id=\"psh\">Searches the Apple Podcasts directory. Needs internet on this device.</p>"
+             "<ul class=\"list\" id=\"psr\" hidden></ul></div>");
+  res->print("<form method=\"POST\" action=\"/setPodcast\" accept-charset=\"UTF-8\" class=\"field\">"
+             "<label for=\"pu\">Feed address (RSS)</label>");
+  res->printf("<input class=\"input\" id=\"pu\" name=\"url\" type=\"url\" value=\"%s\" placeholder=\"https://&hellip;\" "
+              "required spellcheck=\"false\">", htmlEscape(cfg.url).c_str());
+  res->printf("<label for=\"pk\">Keep the newest</label><div class=\"row-inline\">"
+              "<input class=\"input narrow\" id=\"pk\" name=\"keep\" type=\"number\" min=\"1\" max=\"%d\" value=\"%d\" required>"
+              "<span class=\"hint grow\">episodes</span><button class=\"btn\" type=\"submit\">Save</button></div>",
+              PODCAST_KEEP_MAX, cfg.keep);
+  res->print("<p class=\"hint\">Older episodes are deleted when a new one arrives. MP3 podcasts only. "
+             "The box uses the Wi-Fi network saved on the Wi-Fi page.</p></form>");
+  if (isPodcast) {
+    res->print("<form method=\"POST\" action=\"/setPodcast\" onsubmit=\"return confirm('Stop using this token as a podcast? "
+               "The episodes on the card stay.')\" class=\"actions end\"><input type=\"hidden\" name=\"remove\" value=\"1\">"
+               "<button class=\"btn destructive\" type=\"submit\">Remove podcast</button></form>");
+  }
+  res->print("</div>");
+}
+
 // ---------------------------------------------------------------------------
 // Pages
 // ---------------------------------------------------------------------------
@@ -289,6 +369,15 @@ void home(AsyncWebServerRequest *request) {
   int trackCount = filesInDir.size();
   uint64_t sdTotal = SD.totalBytes();
   uint64_t sdUsed = SD.usedBytes();
+  PodcastConfig podcast;
+  PodcastState podcastState;
+  bool isPodcast = false;
+  uint32_t episodeOnCard = 0;
+  if (!folder.isEmpty()) {
+    isPodcast = readPodcastConfig(folder, podcast);
+    readPodcastState(folder, podcastState);
+    if (podcastState.file.length()) episodeOnCard = fileSizeOnCard(folder + "/" + podcastState.file);
+  }
   filesUnlock();
   if (folder.isEmpty()) return request->redirect("/wifi");
   uint64_t sdFree = sdTotal > sdUsed ? sdTotal - sdUsed : 0;
@@ -308,6 +397,8 @@ void home(AsyncWebServerRequest *request) {
   res->printf("<dt>Tracks</dt><dd>%d</dd>", trackCount);
   res->printf("<dt>SD card</dt><dd>%s free of %s</dd>", formatBytes(sdFree).c_str(), formatBytes(sdTotal).c_str());
   res->print("</dl></div>");
+
+  podcastCard(res, isPodcast, podcast, podcastState, episodeOnCard);
 
   // Upload card: dropzone + selection summary. The upload itself runs in a modal
   // <dialog> with a backdrop so it is obvious that leaving the page cancels it.
@@ -387,14 +478,9 @@ void listFiles(AsyncWebServerRequest *request) {
       String escaped = htmlEscape(fileName);
       bool isNext = lastPlayedFileName.endsWith(fileName);
 
-      String display = fileName;
-      String ext = "";
-      int dot = display.lastIndexOf('.');
-      if (dot > 0) {
-        ext = display.substring(dot);
-        display = display.substring(0, dot);
-      }
-      display.replace('_', ' ');
+      String display = trackDisplayName(fileName);
+      int dot = fileName.lastIndexOf('.');
+      String ext = dot > 0 ? fileName.substring(dot) : "";
 
       res->printf("<li><form method=\"POST\" action=\"/select\"><input type=\"hidden\" name=\"filename\" value=\"%s\">"
                   "<button class=\"icon-btn%s\" type=\"submit\" aria-label=\"Play next\"><i class=\"ic ic-play\"></i></button></form>",
@@ -765,6 +851,40 @@ void handleFolderPathChange(AsyncWebServerRequest *request) {
 // uses the helpers above (filesLock, renameFolder, the upload buffer pool, ...).
 #include "box-sync.h"
 
+// Sets the feed of the album (podcast.txt), or with "remove" makes it a plain album again. The
+// episodes on the card stay either way.
+void handlePodcastSet(AsyncWebServerRequest *request) {
+  if (!filesLock()) return sendBusy(request);
+  String folder = webServerFolderPath;
+  filesUnlock();
+  if (folder.isEmpty()) return request->redirect("/home");
+
+  if (request->hasParam("remove", true)) {
+    if (!filesLock()) return sendBusy(request);
+    SD.remove(folder + PODCAST_CONFIG_FILE);
+    filesUnlock();
+    Serial.printf("podcast removed from %s\n", folder.c_str());
+    return request->redirect("/home");
+  }
+
+  PodcastConfig cfg;
+  cfg.url = request->hasParam("url", true) ? request->getParam("url", true)->value() : "";
+  cfg.url.trim();
+  if (request->hasParam("keep", true)) cfg.keep = constrain(request->getParam("keep", true)->value().toInt(), 1, PODCAST_KEEP_MAX);
+  bool valid = (cfg.url.startsWith("http://") || cfg.url.startsWith("https://")) && cfg.url.length() <= 500 &&
+               cfg.url.indexOf(' ') < 0 && cfg.url.indexOf('\n') < 0 && cfg.url.indexOf('\r') < 0;
+  if (!valid) {
+    request->send(400, "text/plain", "The feed address has to start with http:// or https:// (at most 500 characters).");
+    return;
+  }
+  if (!filesLock()) return sendBusy(request);
+  bool ok = writePodcastConfig(folder, cfg);
+  filesUnlock();
+  Serial.printf("podcast for %s: %s, keep %d%s\n", folder.c_str(), cfg.url.c_str(), cfg.keep, ok ? "" : " (write failed)");
+  if (!ok) return request->send(500, "text/plain", "Could not write podcast.txt to the SD card.");
+  request->redirect("/home");
+}
+
 // Removes every file in the album folder and the folder itself, then gives the
 // token a fresh, unnamed folder (as a new token gets), so uploads can start right
 // away. Deleting while iterating confuses FATFS's directory cursor, so this takes
@@ -842,6 +962,7 @@ void setupWebServer() {
   server.on("/delete", HTTP_POST, handleFileDelete);
   server.on("/setFolderPath", HTTP_POST, handleFolderPathChange);
   server.on("/deleteAlbum", HTTP_POST, handleAlbumDelete);
+  server.on("/setPodcast", HTTP_POST, handlePodcastSet);
   registerWifiRoutes(server);
   registerSyncRoutes(server);
   server.onNotFound([](AsyncWebServerRequest *request) {

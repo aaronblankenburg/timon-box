@@ -226,7 +226,8 @@ html,.ulist,dialog.modal .card{scrollbar-width:thin;scrollbar-color:var(--text3)
 ::-webkit-scrollbar-corner{background:transparent}
 @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
 @media (max-width:420px){h1{font-size:30px}.card{padding:16px}.card.flush{padding:0}.card.flush .card-head,.card.flush .lead{padding-left:16px;padding-right:16px}.card.flush .card-head{padding-top:16px}.list li{padding:8px 16px}.pager{padding:12px 16px}}
-)CSS";
+
+.input.narrow{max-width:7em}.grow{flex:1;align-self:center})CSS";
 
 // Page script for all pages, served as /app.js (versioned, cached, straight from flash so
 // pages stay small and need little heap to render). Each part activates itself when its
@@ -247,6 +248,22 @@ ap(rc());t.onclick=function(){var n=ef()==='dark'?'light':'dark';wc(n);ap(n)};a.
 
 // "Which album?" notice: poll until an album token is recognised, then show its files.
 if($('an')){(function(){function c(){fetch('/album',{cache:'no-store'}).then(function(r){return r.json()}).then(function(d){if(d.album)location.href='/';else setTimeout(c,2000)}).catch(function(){setTimeout(c,3000)})}setTimeout(c,2000)})()}
+
+// Podcast card: search the Apple Podcasts directory and put a result's feed address into the
+// form. JSONP, because a page served by the box cannot fetch() another site's API.
+if($('psb')){(function(){var q=$('ps'),b=$('psb'),h=$('psh'),r=$('psr'),u=$('pu'),n=0;
+function search(){var term=q.value.trim();if(!term)return;b.disabled=true;h.textContent='Searching…';r.hidden=true;
+var cb='__podcasts'+(++n),s=document.createElement('script'),timer=setTimeout(fail,8000);
+function cleanup(){clearTimeout(timer);delete window[cb];if(s.parentNode)s.parentNode.removeChild(s);b.disabled=false}
+function fail(){cleanup();h.textContent='No answer. The search needs internet on this device (the box\'s own hotspot has none).'}
+window[cb]=function(d){cleanup();var list=(d.results||[]).filter(function(x){return x.feedUrl});
+if(!list.length){h.textContent='Nothing found.';return}
+r.innerHTML=list.map(function(x,k){return '<li><span class="name">'+esc(x.collectionName)+'<span class="meta">'+esc(x.artistName||'')+'</span></span><button class="btn secondary small" type="button" data-k="'+k+'">Use</button></li>'}).join('');
+r.hidden=false;h.textContent='Pick one to fill in its feed address, then save.';
+Array.prototype.forEach.call(r.querySelectorAll('button'),function(x){x.onclick=function(){u.value=list[+x.dataset.k].feedUrl;u.focus()}})};
+s.onerror=fail;s.src='https://itunes.apple.com/search?media=podcast&entity=podcast&limit=8&country=de&term='+encodeURIComponent(term)+'&callback='+cb;
+document.body.appendChild(s)}
+b.onclick=search;q.onkeydown=function(e){if(e.key==='Enter'){e.preventDefault();search()}}})()}
 
 // Upload page: selection, modal dialog, PAR uploads at a time (each connection is capped by the
 // box's small TCP window), byte-accurate progress, per-file status, retry.

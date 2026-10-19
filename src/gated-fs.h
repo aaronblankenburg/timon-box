@@ -41,7 +41,7 @@ void sdGateGive() { xSemaphoreGive(sdGate); }
 // The episode the download task is writing. The task sets path and size before the first byte
 // and then only moves `synced` forward; everything is read under growingMux.
 struct GrowingFile {
-  char path[200] = "";
+  char path[260] = "";  // the audio library takes paths up to 255
   uint32_t synced = 0;    // bytes flushed to the card: safe to read
   uint32_t expected = 0;  // final size of the local file, 0 = not known
   bool done = false;      // no more data will come: complete, given up or cancelled
@@ -109,27 +109,31 @@ bool growingGet(const char *path, uint32_t &synced, uint32_t &expected, bool &do
 class GatedFile : public fs::FileImpl {
   static const uint32_t PROVISIONAL_SIZE = 0x7FFFFFFF;  // size while the server did not say
   static const uint32_t RESUME_LEAD = 32 * 1024;        // after starving, wait for this much data
+  static const uint32_t RETRY_MS = 200;                 // after a read error, reopen no sooner
 
   File _real;
   String _path;
   const char *_name;
   bool _growing;
   uint32_t _pos = 0;
-  uint32_t _realSize = 0;  // size snapshot of _real
+  uint32_t _realSize = 0;   // size snapshot of _real; 0 makes the next read reopen
+  uint32_t _knownSize = 0;  // largest size seen: a read error does not make the file shorter
+  uint32_t _retryAt = 0;    // after a failure: millis() before which no reopen is tried, else 0
   uint32_t _lastExpected = 0;
   bool _needSeek = false;
   bool _hungry = false;
+  uint32_t _readErrors = 0;
 
   // How far the file may be read now, and the size to report.
   void limits(uint32_t &readable, uint32_t &reported) {
-    readable = reported = _realSize;
+    readable = reported = _knownSize;
     if (!_growing) return;
     uint32_t synced, expected;
     bool done;
     if (!growingGet(_path.c_str(), synced, expected, done, false)) {
       // Another episode is downloading now; this one is whatever is on the card.
-      readable = _realSize;
-      reported = _lastExpected > _realSize ? _lastExpected : _realSize;
+      readable = _knownSize;
+      reported = _lastExpected > _knownSize ? _lastExpected : _knownSize;
       return;
     }
     readable = synced;
@@ -144,7 +148,7 @@ class GatedFile : public fs::FileImpl {
 
  public:
   GatedFile(File real, const String &path, bool growing) : _real(real), _path(path), _growing(growing) {
-    _realSize = _real.size();
+    _realSize = _knownSize = _real.size();
     int slash = _path.lastIndexOf('/');
     _name = _path.c_str() + (slash >= 0 ? slash + 1 : 0);
   }
@@ -167,12 +171,16 @@ class GatedFile : public fs::FileImpl {
     _hungry = false;
     // Bulk reads come from the decoder loop and must never block. The few single-byte reads of
     // a resume (frame sync search, nothing is playing then) may wait for the card.
+    bool reopen = !_real || _pos >= _realSize;  // the size snapshot is used up, or a read failed
+    if (reopen && _retryAt && (int32_t)(millis() - _retryAt) < 0) return 0;
     if (!sdGateTake(len >= 64 ? 0 : pdMS_TO_TICKS(1000))) return 0;
-    if (!_real || _pos >= _realSize) {  // the size snapshot is used up: see what is there now
+    if (reopen) {  // see what is there now
       if (_real) _real.close();
       _real = SD.open(_path, FILE_READ);
       _realSize = _real ? _real.size() : 0;
+      if (_realSize > _knownSize) _knownSize = _realSize;
       _needSeek = true;
+      _retryAt = _real ? 0 : millis() + RETRY_MS;
       if (!_real || _pos >= _realSize) {
         sdGateGive();
         return 0;
@@ -185,7 +193,22 @@ class GatedFile : public fs::FileImpl {
     size_t want = len;
     if (want > readable - _pos) want = readable - _pos;
     if (want > _realSize - _pos) want = _realSize - _pos;
+    errno = 0;
     int got = _real.read(buf, want);
+    int err = errno;
+    if (got <= 0) {
+      // The data is there, so this was an SD error. stdio keeps its error flag, every later
+      // read would return 0 and playback would hang silently: reopen at the same spot instead.
+      // Until the header is decoded the library has no end-of-file check, so retrying is the
+      // only way out; _knownSize keeps the reported size, or the library would stop asking.
+      _real.close();
+      _realSize = 0;
+      _retryAt = millis() + RETRY_MS;
+      _readErrors++;
+      if (_readErrors <= 5 || _readErrors % 50 == 0) {
+        Serial.printf("[sd] read error %u in %s at %u (errno %d), reopening\n", _readErrors, _name, _pos, err);
+      }
+    }
     sdGateGive();
     if (got <= 0) return 0;
     _pos += got;

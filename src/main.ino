@@ -445,8 +445,11 @@ String getTag() {
   return hexstr;
 }
 
-void audio_eof_mp3(const char *info) {  // end of file
-  checkBattery(!player.currentlyPlayingFile.equals(info));
+void audio_eof_mp3(const char *info) {  // end of file; `info` is the file name without its folder
+  // The click and the low-battery alert end inside their own wait loops (playClick/playAlert).
+  // Moving on here skipped a track, and the alert's end called checkBattery() recursively.
+  if (strcmp(info, "tap.mp3") == 0 || strcmp(info, "alert.mp3") == 0) return;
+  checkBattery(true);
   player.next();
   if (fileWhenTagInserted == player.currentlyPlayingFile) {
     // shutdown when starting file is reached again

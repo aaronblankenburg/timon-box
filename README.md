@@ -48,6 +48,33 @@ graph TD;
 ![hw_connector](assets/hw_overview_top.jpeg)
 ![hw_connector](assets/hw_peripherals.jpeg)
 
+### Knock-Sensoren (Vor / Zurück)
+Je ein Piezo-Element ist auf eine leicht flexible Fläche geklebt, parallel dazu 100 kΩ und eine 3,3-V-Zenerdiode,
+gelesen über den ADC (GPIO 34 / 35). Beim Drücken fließt über den Widerstand ein Strom proportional zur
+Bewegungsgeschwindigkeit: der ADC sieht *einen* zusammenhängenden Buckel, dessen Fläche der Auslenkung entspricht.
+Musik schüttelt die Fläche auch, aber als Schwingung – lauter Halbwellen mit Nullpausen dazwischen. `src/knock.cpp`
+erkennt einen Druck deshalb an der Form eines einzelnen Buckels (Dauer oder Fläche), nicht am gefilterten Pegel.
+Dafür muss der ADC deutlich öfter gelesen werden als eine Halbwelle dauert; die Hauptschleife kommt während der
+Wiedergabe nur alle ~9 ms vorbei (`audio.loop()` wartet auf den I²S-Puffer), also tastet ein `esp_timer` mit 2 kHz
+auf Core 0 ab. Nur die Aktion (Titel wechseln, Klick) läuft in der Hauptschleife.
+
+Abstimmen über die serielle Konsole:
+- `knockdebug:1` – pro Sekunde und Sensor: Sample-Rate, Anzahl Buckel, längster Buckel, Peak, größte Fläche. Bei lauter
+  Musik zeigt das den Abstand zu den Auslöseschwellen.
+- `knockdebug:2` – zusätzlich einmalig den Rohsignalverlauf des nächsten Buckels ausgeben (µs:Counts).
+- Jeder erkannte Druck meldet `press after <ms>, peak, area`: `after` ≥ `KNOCK_MIN_PRESS_MS` heißt, das Dauer-Kriterium
+  hat gefeuert, sonst die Fläche.
+
+Die Schwellen stehen pro Box in der `platformio.ini`, weil die Gehäusewände unterschiedlich dick sind:
+`RKS_THRESHOLD`/`LKS_THRESHOLD` (Fläche eines Buckels in Counts × ms), `KNOCK_ON_LEVEL` (Pegel, ab dem ein Buckel zählt;
+er endet unter 3/5 davon), `KNOCK_MIN_PRESS_MS` (Dauer, ab der ein ununterbrochener Buckel ein Druck ist) und
+`KNOCK_MAX_GAP_US` (kürzere Einbrüche beenden den Buckel nicht). Eine dünne, lebhafte Wand braucht höhere Pegel und
+Flächen, längere Mindestdauer und kürzere erlaubte Pausen.
+
+Der 100-kΩ-Widerstand bildet mit der Piezo-Kapazität (~20–50 nF) einen Hochpass um 30–80 Hz und dämpft damit gerade
+langsame Drücke, während Töne kaum betroffen sind. Unter ~0,1 V liest der ESP32-ADC 0. Wer sanftes, langsames Drücken
+braucht, tauscht den Widerstand gegen 1 MΩ: langsame Drücke werden etwa 5–10× größer, tiefe Töne höchstens 1,6×.
+
 ## Software Instruction
 ### IDE
 Visual Studio Code with Platform IO Extension (platformio.platformio-ide)

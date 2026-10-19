@@ -97,6 +97,8 @@ void setup() {
   pixel.show();                                  // Send the color data
 
   Serial.begin(115200);
+  leftKnockSensor.begin();
+  rightKnockSensor.begin();
   settings.begin("settings", false);
   restoreToneSettings();
 
@@ -509,11 +511,16 @@ void checkSerialForCommands() {
     if (value == "safe") maxVolumeIsSafe = true;
     if (value == "unsafe") maxVolumeIsSafe = false;
     Serial.println("Set maxVolume to " + maxVolumeIsSafe ? "safe" : "unsafe");
+  } else if (cmd == "knockdebug") {
+    value.trim();
+    int level = constrain(value.toInt(), 0, 2);
+    leftKnockSensor.debug = rightKnockSensor.debug = level;
+    Serial.println(level == 0 ? "knock statistics off" : level == 1 ? "knock statistics on" : "knock statistics on, tracing the next hump");
   } else {
     Serial.println("Command \"" + cmd +
                    "\" is not supported. Supported commands: low[:<-40..6>], "
                    "mid[:<-40..6>], high[:<-40..6>], list, play:<index>, "
-                   "maxVolume:<safe|unsafe>");
+                   "maxVolume:<safe|unsafe>, knockDebug:<0|1|2>");
   }
   Serial.readString();
 }

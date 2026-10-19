@@ -280,9 +280,10 @@ static size_t readFully(HttpStream &http, uint8_t *buf, size_t len) {
 // the audio library skips a tag only 256 bytes per loop) and continuing a partial file with a
 // Range request. Progress is published through `growing`, so the file plays while it grows.
 // One attempt; returns true when the file is complete.
-static bool downloadEpisodeOnce(const String &url, const String &path, bool allowSkip, String &error,
-                                DownloadStats &st, bool &retrySkipless) {
+static bool downloadEpisodeOnce(const String &url, const String &path, bool allowSkip, uint32_t savedTotal,
+                                String &error, DownloadStats &st, bool &retrySkipless, uint32_t &serverTotal) {
   retrySkipless = false;
+  serverTotal = SIZE_UNKNOWN;
   uint32_t local;
   bool localHasId3;
   localEpisodeState(path, local, localHasId3);
@@ -297,19 +298,17 @@ static bool downloadEpisodeOnce(const String &url, const String &path, bool allo
   size_t hdrLen = readFully(probe, hdr, sizeof(hdr));
   bool ranges = probe.status == 206 && probe.hasRange;
   uint32_t total = ranges ? probe.rangeTotal : probe.length;
-  // A file on the card that starts with a tag is a full copy (copied from the other box, or the
-  // tag was kept); one without continues after the skipped tag.
-  uint32_t skip = (allowSkip && !localHasId3) ? id3TagSize(hdr, hdrLen) : 0;
-  if (total != SIZE_UNKNOWN && skip >= total) skip = 0;
-  uint32_t expected = total != SIZE_UNKNOWN ? total - skip : SIZE_UNKNOWN;
-  Serial.printf("[podcast] %s: %s, total %d, id3 %u, on card %u\n", path.c_str(),
-                ranges ? "ranges ok" : "no ranges", total == SIZE_UNKNOWN ? -1 : (int)total, skip, local);
-
-  if (expected != SIZE_UNKNOWN && local == expected) {
+  serverTotal = total;
+  ResumePlan plan = planResume(local, localHasId3, ranges, total, id3TagSize(hdr, hdrLen), allowSkip, savedTotal);
+  uint32_t skip = plan.skip, expected = plan.expected;
+  Serial.printf("[podcast] %s: %s, total %d, id3 %u, on card %u%s\n", path.c_str(), ranges ? "ranges ok" : "no ranges",
+                total == SIZE_UNKNOWN ? -1 : (int)total, skip, local,
+                plan.complete ? ", complete" : plan.restart ? ", starting over" : "");
+  if (plan.complete) {
     growingDone(local);
-    return true;  // already complete
+    return true;
   }
-  if (!ranges || (expected != SIZE_UNKNOWN && local > expected)) local = 0;  // cannot continue: start over
+  if (plan.restart) local = 0;
 
   HttpStream body;
   HttpStream *in = &probe;
@@ -318,7 +317,7 @@ static bool downloadEpisodeOnce(const String &url, const String &path, bool allo
   size_t pendingLen = 0;
   if (ranges) {
     probe.close();
-    uint32_t from = skip + local;
+    uint32_t from = plan.from;
     // Prefer plain HTTP for the long transfer, but only if it serves the same file.
     String plain = String(plainHttpVariant(probe.url.c_str()).c_str());
     bool ok = plain != probe.url && body.open(plain, from, SIZE_UNKNOWN, 3000) && body.status == 206 &&
@@ -473,16 +472,19 @@ static bool downloadEpisodeOnce(const String &url, const String &path, bool allo
   return false;
 }
 
-// With retries: a dropped connection continues where it stopped.
-bool downloadEpisode(const String &url, const String &path, String &error) {
+// With retries: a dropped connection continues where it stopped. savedTotal: the server size the
+// file on the card was started with (SIZE_UNKNOWN if not known); serverTotal: the size now.
+bool downloadEpisode(const String &url, const String &path, uint32_t savedTotal, String &error, uint32_t &serverTotal) {
   static const uint16_t backoffMs[] = {2000, 5000, 10000};
   DownloadStats st;
   st.startedMs = millis();
+  serverTotal = SIZE_UNKNOWN;
   bool allowSkip = true;
   bool ok = false;
   for (int attempt = 0; attempt <= 3 && !podcastCancel; attempt++) {
     bool retrySkipless = false;
-    ok = downloadEpisodeOnce(url, path, allowSkip, error, st, retrySkipless);
+    ok = downloadEpisodeOnce(url, path, allowSkip, savedTotal, error, st, retrySkipless, serverTotal);
+    if (serverTotal != SIZE_UNKNOWN) savedTotal = serverTotal;  // what is on the card now matches it
     if (ok) break;
     if (retrySkipless) {
       allowSkip = false;
@@ -520,7 +522,8 @@ static void podcastDebugTask(void *arg) {
   String error;
   if (podcastWifiUp(error)) {
     logHeap("wifi up");
-    if (!downloadEpisode(job->url, job->path, error)) Serial.printf("[podcast] failed: %s\n", error.c_str());
+    uint32_t total;
+    if (!downloadEpisode(job->url, job->path, SIZE_UNKNOWN, error, total)) Serial.printf("[podcast] failed: %s\n", error.c_str());
     podcastWifiDown();
     logHeap("wifi down");
   } else {

@@ -1,0 +1,266 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rss xmlns:ard="http://www.ard.de/ardNamespace" xmlns:atom="http://www.w3.org/2005/Atom" xmlns:content="http://purl.org/rss/1.0/modules/content/" xmlns:googleplay="http://www.google.com/schemas/play-podcasts/1.0" xmlns:itunes="http://www.itunes.com/dtds/podcast-1.0.dtd" version="2.0">
+  <channel>
+    <atom:link href="https://kinder.wdr.de/radio/diemaus/audio/diemaus-60/diemaus-60-106.podcast" rel="self" type="application/rss+xml" />
+    <title>Die Maus zum Hören</title>
+    <link>https://kinder.wdr.de/radio/diemaus/audio/diemaus-60/diemaus-60-106.html</link>
+    <description>Die Maus zum immer wieder hören. Jeden Tag mit einer neuen Folge, die eine Stunde lang ist. Mit dabei viel Lach- und Sachgeschichten, viel Musik und natürlich mit der Maus und dem Elefanten.</description>
+    <language>de</language>
+    <copyright>Copyright 2026, WDR</copyright>
+    <pubDate>Mon, 19 Oct 2026 04:00:44 GMT</pubDate>
+    <lastBuildDate>Mon, 19 Oct 2026 04:00:44 GMT</lastBuildDate>
+    <managingEditor>podcast@wdr.de (WDR Online Hörfunk)</managingEditor>
+    <webMaster>podcast@wdr.de (WDR Online Hörfunk)</webMaster>
+    <generator>wdr-podcast</generator>
+    <ttl>360</ttl>
+    <category>Kids &amp; Family</category>
+    <itunes:owner>
+      <itunes:email>podcast@wdr.de</itunes:email>
+      <itunes:name>WDR Online Hörfunk</itunes:name>
+    </itunes:owner>
+    <itunes:category text="Kids &amp; Family">
+      <itunes:category text="Education for Kids" />
+    </itunes:category>
+    <itunes:type>episodic</itunes:type>
+    <itunes:author>Westdeutscher Rundfunk</itunes:author>
+    <itunes:explicit>no</itunes:explicit>
+    <itunes:image href="https://www1.wdr.de/mediathek/audio/sendereihen-bilder/mausradio-sendereihenbild-podcast-1-100~_v-Podcast.jpg" />
+    <itunes:keywords>WDR, Die Maus, Podcast, Kinder, Mausradio, Die Sendung mit der Maus, Die Sendung mit der Maus zum Hören, Lach- und Sachgeschichten, Maus, Elefant, Maus zum hören</itunes:keywords>
+    <itunes:summary>Die Maus zum immer wieder hören. Jeden Tag mit einer neuen Folge, die eine Stunde lang ist. Mit dabei viel Lach- und Sachgeschichten, viel Musik und natürlich mit der Maus und dem Elefanten.</itunes:summary>
+    <image>
+      <title>Die Maus zum Hören</title>
+      <url>https://www1.wdr.de/mediathek/audio/sendereihen-bilder/mausradio-sendereihenbild-podcast-1-100~_v-Podcast.jpg</url>
+      <link>https://kinder.wdr.de/radio/diemaus/audio/diemaus-60/diemaus-60-106.html</link>
+      <width>1400</width>
+      <height>1400</height>
+    </image>
+    <item>
+      <title>Erntezeit</title>
+      <link>https://kinder.wdr.de/radio/diemaus/audio/diemaus-60/audio-erntezeit-102.html</link>
+      <description>Die Maus zum Hören - Lach- und Sachgeschichten. Heute: mit Kühen und wie sie gemolken werden, einem Rundgang über eine Streuobstwiese, Kartoffeln und wie sie geerntet werden, mit Nina und natürlich mit der Maus und dem Elefanten. Ihr hört eine Wiederholung. Frage des Tages: Wer hat die erste Kuh gemolken? (06:00) Maustisch: Streuobstwiese (12:44) Prinzessin auf dem Kürbis (24:40) Reportage: Kartoffelernte (38:41) Lachgeschichte: Kanal Vier für das Tier (48:12) Kaninchen und Brennnesseln (52:43) Von Nina Heuser.</description>
+      <content:encoded>
+      Die Maus zum Hören - Lach- und Sachgeschichten. Heute: mit Kühen und wie sie gemolken werden, einem Rundgang über eine Streuobstwiese, Kartoffeln und wie sie geerntet werden, mit Nina und natürlich mit der Maus und dem Elefanten. Ihr hört eine Wiederholung. Frage des Tages: Wer hat die erste Kuh gemolken? (06:00) Maustisch: Streuobstwiese (12:44) Prinzessin auf dem Kürbis (24:40) Reportage: Kartoffelernte (38:41) Lachgeschichte: Kanal Vier für das Tier (48:12) Kaninchen und Brennnesseln (52:43)
+      </content:encoded>
+      <enclosure url="https://wdrmedien-a.akamaihd.net/media/p/public/weltweit/2026/10/12/7b62926f-c897-4840-bf7d-b972d9229d40/7b62926f-c897-4840-bf7d-b972d9229d40_MP3-128.mp3" length="58520663" type="audio/mpeg" />
+      <pubDate>Mon, 19 Oct 2026 04:00:44 GMT</pubDate>
+      <guid isPermaLink="false">/1a1ca6b727d3119ed44ec2b2fed1a99a</guid>
+      <itunes:duration>01:00:06</itunes:duration>
+      <itunes:episodeType>full</itunes:episodeType>
+      <itunes:author>Nina Heuser</itunes:author>
+      <itunes:explicit>no</itunes:explicit>
+      <itunes:image href="https://www1.wdr.de/mediathek/audio/sendereihen-bilder/maus-548~_v-Podcast.jpg" />
+      <itunes:keywords>Sendung mit der Maus, Kinderpodcast, Kinder, Eltern, Familie, Kindermusik, Lach- und Sachgeschichten, Kinderprogramm, Ernte, Kürbis, Kartoffeln, Streuobst, Streuobstwiese, Comedy, Brennnesseln, Kaninchen, Kuh, melken</itunes:keywords>
+      <itunes:summary>Die Maus zum Hören - Lach- und Sachgeschichten. Heute: mit Kühen und wie sie gemolken werden, einem Rundgang über eine Streuobstwiese, Kartoffeln und wie sie geerntet werden, mit Nina und natürlich mit der Maus und dem Elefanten. Ihr hört eine Wiederholung. Frage des Tages: Wer hat die erste Kuh gemolken? (06:00) Maustisch: Streuobstwiese (12:44) Prinzessin auf dem Kürbis (24:40) Reportage: Kartoffelernte (38:41) Lachgeschichte: Kanal Vier für das Tier (48:12) Kaninchen und Brennnesseln (52:43)</itunes:summary>
+      <ard:visibility>
+        <ard:visibleFrom>2026-10-19T06:00:44</ard:visibleFrom>
+        <ard:visibleUntil>2026-11-18T06:00:44</ard:visibleUntil>
+      </ard:visibility>
+      <ard:sendereihe>Die Maus zum Hören</ard:sendereihe>
+    </item>
+    <item>
+      <title>Feuer, Wasser und Sturm</title>
+      <link>https://kinder.wdr.de/radio/diemaus/audio/diemaus-60/audio-feuer-wasser-und-sturm-100.html</link>
+      <description>Die Maus zum Hören - Lach- und Sachgeschichten. Heute: mit Feuer und seinem Gewicht, Musik mit Abwaschwasser, Blitzen und Blitzableitern, mit Marie und natürlich mit der Maus und dem Elefanten. Ihr hört eine Wiederholung. Frage des Tages: Was wiegt Feuer? (02:56) Reportage: Im Windrad (12:06) Hörspiel: Luftpiraten - Alles wird gut (19:21) Maus-Musikküche: Abwaschwasser (33:49)
+Woher wissen Gewittertierchen, wann es gewittert? (43:00) Sachgeschichte: Blitzableiter (50:47) Von Marie Güttge.</description>
+      <content:encoded>
+      Die Maus zum Hören - Lach- und Sachgeschichten. Heute: mit Feuer und seinem Gewicht, Musik mit Abwaschwasser, Blitzen und Blitzableitern, mit Marie und natürlich mit der Maus und dem Elefanten. Ihr hört eine Wiederholung. Frage des Tages: Was wiegt Feuer? (02:56) Reportage: Im Windrad (12:06) Hörspiel: Luftpiraten - Alles wird gut (19:21) Maus-Musikküche: Abwaschwasser (33:49)
+Woher wissen Gewittertierchen, wann es gewittert? (43:00) Sachgeschichte: Blitzableiter (50:47)
+      </content:encoded>
+      <enclosure url="https://wdrmedien-a.akamaihd.net/media/p/public/weltweit/2026/10/09/aa67db4d-6b0a-46d3-8dc8-ff539df77caf/aa67db4d-6b0a-46d3-8dc8-ff539df77caf_MP3-128.mp3" length="58520652" type="audio/mpeg" />
+      <pubDate>Sun, 18 Oct 2026 04:00:04 GMT</pubDate>
+      <guid isPermaLink="false">/9233cbcc37e0856bed00a3bdab4619e8</guid>
+      <itunes:duration>01:00:06</itunes:duration>
+      <itunes:episodeType>full</itunes:episodeType>
+      <itunes:author>Marie Güttge</itunes:author>
+      <itunes:explicit>no</itunes:explicit>
+      <itunes:image href="https://www1.wdr.de/mediathek/audio/sendereihen-bilder/maus-550~_v-Podcast.jpg" />
+      <itunes:keywords>Sendung mit der Maus, Kinderpodcast, Kinder, Eltern, Familie, Kindermusik, Lach- und Sachgeschichten, Kinderprogramm, Feuer, Sturm, Windrad, Luftpiraten, Musikküche, Blitzableiter, Gewitter, Gewitterwürmchen</itunes:keywords>
+      <itunes:summary>Die Maus zum Hören - Lach- und Sachgeschichten. Heute: mit Feuer und seinem Gewicht, Musik mit Abwaschwasser, Blitzen und Blitzableitern, mit Marie und natürlich mit der Maus und dem Elefanten. Ihr hört eine Wiederholung. Frage des Tages: Was wiegt Feuer? (02:56) Reportage: Im Windrad (12:06) Hörspiel: Luftpiraten - Alles wird gut (19:21) Maus-Musikküche: Abwaschwasser (33:49)
+Woher wissen Gewittertierchen, wann es gewittert? (43:00) Sachgeschichte: Blitzableiter (50:47)</itunes:summary>
+      <ard:visibility>
+        <ard:visibleFrom>2026-10-18T06:00:07</ard:visibleFrom>
+        <ard:visibleUntil>2026-11-17T06:00:04</ard:visibleUntil>
+      </ard:visibility>
+      <ard:sendereihe>Die Maus zum Hören</ard:sendereihe>
+    </item>
+    <item>
+      <title>So ein Quatsch</title>
+      <link>https://kinder.wdr.de/radio/diemaus/audio/diemaus-60/audio-so-ein-quatsch-102.html</link>
+      <description>Die Maus zum Hören - Lach- und Sachgeschichten. Heute: mit Grimassen, die geschnitten werden, Streichen im Praxistest, dem Maus-Lieblingslied, mit André und natürlich mit der Maus und dem Elefanten. Ihr hört eine Wiederholung. 
+
+Frage des Tages: Warum muss man auf Toilette, wenn man dolle gekitzelt wird? (06:36)
+Maus-Lieblingslied (14:07) Michel aus Lönneberga - Streiche im Praxistest (17:58) Wortschatzkiste: Grimassen schneiden (39:06) Hörspiel: Luftpiraten - Gefangen von Peer Dekret (44:01) Von André Gatzke.</description>
+      <content:encoded>
+      Die Maus zum Hören - Lach- und Sachgeschichten. Heute: mit Grimassen, die geschnitten werden, Streichen im Praxistest, dem Maus-Lieblingslied, mit André und natürlich mit der Maus und dem Elefanten. Ihr hört eine Wiederholung. 
+
+Frage des Tages: Warum muss man auf Toilette, wenn man dolle gekitzelt wird? (06:36)
+Maus-Lieblingslied (14:07) Michel aus Lönneberga - Streiche im Praxistest (17:58) Wortschatzkiste: Grimassen schneiden (39:06) Hörspiel: Luftpiraten - Gefangen von Peer Dekret (44:01)
+      </content:encoded>
+      <enclosure url="https://wdrmedien-a.akamaihd.net/media/p/public/weltweit/2026/10/09/0e7771ae-f677-4d56-9a18-6b281a56e2e9/0e7771ae-f677-4d56-9a18-6b281a56e2e9_MP3-128.mp3" length="58520668" type="audio/mpeg" />
+      <pubDate>Sat, 17 Oct 2026 04:00:46 GMT</pubDate>
+      <guid isPermaLink="false">/d2f0eb49e841f4b14dc88c5b0ce4f450</guid>
+      <itunes:duration>01:00:06</itunes:duration>
+      <itunes:episodeType>full</itunes:episodeType>
+      <itunes:author>André Gatzke</itunes:author>
+      <itunes:explicit>no</itunes:explicit>
+      <itunes:image href="https://www1.wdr.de/mediathek/audio/sendereihen-bilder/maus-552~_v-Podcast.jpg" />
+      <itunes:keywords>Sendung mit der Maus, Kinderpodcast, Kinder, Eltern, Familie, Kindermusik, Lach- und Sachgeschichten, Kinderprogramm, Streiche, kitzeln, Grimasse, Luftpiraten</itunes:keywords>
+      <itunes:summary>Die Maus zum Hören - Lach- und Sachgeschichten. Heute: mit Grimassen, die geschnitten werden, Streichen im Praxistest, dem Maus-Lieblingslied, mit André und natürlich mit der Maus und dem Elefanten. Ihr hört eine Wiederholung. 
+
+Frage des Tages: Warum muss man auf Toilette, wenn man dolle gekitzelt wird? (06:36)
+Maus-Lieblingslied (14:07) Michel aus Lönneberga - Streiche im Praxistest (17:58) Wortschatzkiste: Grimassen schneiden (39:06) Hörspiel: Luftpiraten - Gefangen von Peer Dekret (44:01)</itunes:summary>
+      <ard:visibility>
+        <ard:visibleFrom>2026-10-17T06:00:46</ard:visibleFrom>
+        <ard:visibleUntil>2026-11-16T06:00:46</ard:visibleUntil>
+      </ard:visibility>
+      <ard:sendereihe>Die Maus zum Hören</ard:sendereihe>
+    </item>
+    <item>
+      <title>Schachmatt</title>
+      <link>https://kinder.wdr.de/radio/diemaus/audio/diemaus-60/audio-schachmatt-108.html</link>
+      <description>Die Maus zum Hören - Lach- und Sachgeschichten. Heute: mit dem Schachspiel, einer berühmten Schachspielerin, erschöpften Luftpiraten, mit André natürlich mit der Maus und dem Elefanten.Du hörst eine Wiederholung:
+
+Frage des Tages - Wer hat Schach erfunden? (01:10)
+Maus - Collage - Levi liebt es Schach zu spielen (09:33)
+Kennst Du...? - Judith Polgar (Schachgroßmeisterin) (21:40)
+Maus-Hörspiel - Luftpiraten (33:10)
+Lachgeschichte - Jimmy Böndchen (46:04)  
+ Von André Gatzke.</description>
+      <content:encoded>
+      Die Maus zum Hören - Lach- und Sachgeschichten. Heute: mit dem Schachspiel, einer berühmten Schachspielerin, erschöpften Luftpiraten, mit André natürlich mit der Maus und dem Elefanten.Du hörst eine Wiederholung:
+
+Frage des Tages - Wer hat Schach erfunden? (01:10)
+Maus - Collage - Levi liebt es Schach zu spielen (09:33)
+Kennst Du...? - Judith Polgar (Schachgroßmeisterin) (21:40)
+Maus-Hörspiel - Luftpiraten (33:10)
+Lachgeschichte - Jimmy Böndchen (46:04)
+      </content:encoded>
+      <enclosure url="https://wdrmedien-a.akamaihd.net/media/p/public/weltweit/2026/10/08/f428371a-c83d-430b-a3bf-829b6c564ca7/f428371a-c83d-430b-a3bf-829b6c564ca7_MP3-128.mp3" length="58520634" type="audio/mpeg" />
+      <pubDate>Fri, 16 Oct 2026 04:00:13 GMT</pubDate>
+      <guid isPermaLink="false">/f0e9c8c0d16b23a9ad6be4bb2102f202</guid>
+      <itunes:duration>01:00:06</itunes:duration>
+      <itunes:episodeType>full</itunes:episodeType>
+      <itunes:author>André Gatzke</itunes:author>
+      <itunes:explicit>no</itunes:explicit>
+      <itunes:image href="https://www1.wdr.de/mediathek/audio/sendereihen-bilder/mzh-schachmatt-100~_v-Podcast.jpg" />
+      <itunes:keywords>Sendung mit der Maus, Kinderpodcast, Kinder, Eltern, Familie, Kindermusik, Schach, Schauspielerin, Judith Polger, Arktis, fechten, Mensch ärgere dich nicht, Schachmatt</itunes:keywords>
+      <itunes:summary>Die Maus zum Hören - Lach- und Sachgeschichten. Heute: mit dem Schachspiel, einer berühmten Schachspielerin, erschöpften Luftpiraten, mit André natürlich mit der Maus und dem Elefanten.Du hörst eine Wiederholung:
+
+Frage des Tages - Wer hat Schach erfunden? (01:10)
+Maus - Collage - Levi liebt es Schach zu spielen (09:33)
+Kennst Du...? - Judith Polgar (Schachgroßmeisterin) (21:40)
+Maus-Hörspiel - Luftpiraten (33:10)
+Lachgeschichte - Jimmy Böndchen (46:04)</itunes:summary>
+      <ard:visibility>
+        <ard:visibleFrom>2026-10-16T06:00:13</ard:visibleFrom>
+        <ard:visibleUntil>2026-11-15T06:00:13</ard:visibleUntil>
+      </ard:visibility>
+      <ard:sendereihe>Die Maus zum Hören</ard:sendereihe>
+    </item>
+    <item>
+      <title>Seile und Drähte</title>
+      <link>https://kinder.wdr.de/radio/diemaus/audio/diemaus-60/audio-seile-und-draehte-102.html</link>
+      <description>Die Maus zum Hören - Lach- und Sachgeschichten. Heute: mit Geschichten über Seile und Drähte, Rolltreppen, leckeren Kohlrouladen, mit Verena natürlich mit der Maus und dem Elefanten. Du hörst eine Wiederholung:
+
+Wortschatzkiste - In den Seilen hängen (06:32)
+Maus-Hörspiel - Luftpiraten (19:11)
+Frage des Tages - Wie funktionieren Rolltreppen? (29:38  )
+Mausfreundbuch - Moritz liebt Technik und den Hochseilgarten (38:00)
+Maustisch - Kohlrouladen (53:41) Von Verena Specks-Ludwig.</description>
+      <content:encoded>
+      Die Maus zum Hören - Lach- und Sachgeschichten. Heute: mit Geschichten über Seile und Drähte, Rolltreppen, leckeren Kohlrouladen, mit Verena natürlich mit der Maus und dem Elefanten. Du hörst eine Wiederholung:
+
+Wortschatzkiste - In den Seilen hängen (06:32)
+Maus-Hörspiel - Luftpiraten (19:11)
+Frage des Tages - Wie funktionieren Rolltreppen? (29:38  )
+Mausfreundbuch - Moritz liebt Technik und den Hochseilgarten (38:00)
+Maustisch - Kohlrouladen (53:41)
+      </content:encoded>
+      <enclosure url="https://wdrmedien-a.akamaihd.net/media/p/public/weltweit/2026/10/08/a9a2fa90-7d84-463b-ac38-56d5f470c470/a9a2fa90-7d84-463b-ac38-56d5f470c470_MP3-128.mp3" length="58520633" type="audio/mpeg" />
+      <pubDate>Thu, 15 Oct 2026 04:00:27 GMT</pubDate>
+      <guid isPermaLink="false">/afa1df865e5adf72313f37d6db6f51be</guid>
+      <itunes:duration>01:00:06</itunes:duration>
+      <itunes:episodeType>full</itunes:episodeType>
+      <itunes:author>Verena Specks-Ludwig</itunes:author>
+      <itunes:explicit>no</itunes:explicit>
+      <itunes:image href="https://www1.wdr.de/mediathek/audio/sendereihen-bilder/mzh-seile-und-draehte-verena-100~_v-Podcast.jpg" />
+      <itunes:keywords>Sendung mit der Maus, Kinderpodcast, Kinder, Eltern, Familie, Kindermusik, Seile, Drähte, Seiltänzerin, Seilbahn, Rolltreppen, Hochseilgarten, Kohlrouladen</itunes:keywords>
+      <itunes:summary>Die Maus zum Hören - Lach- und Sachgeschichten. Heute: mit Geschichten über Seile und Drähte, Rolltreppen, leckeren Kohlrouladen, mit Verena natürlich mit der Maus und dem Elefanten. Du hörst eine Wiederholung:
+
+Wortschatzkiste - In den Seilen hängen (06:32)
+Maus-Hörspiel - Luftpiraten (19:11)
+Frage des Tages - Wie funktionieren Rolltreppen? (29:38  )
+Mausfreundbuch - Moritz liebt Technik und den Hochseilgarten (38:00)
+Maustisch - Kohlrouladen (53:41)</itunes:summary>
+      <ard:visibility>
+        <ard:visibleFrom>2026-10-15T06:00:27</ard:visibleFrom>
+        <ard:visibleUntil>2026-11-14T06:00:27</ard:visibleUntil>
+      </ard:visibility>
+      <ard:sendereihe>Die Maus zum Hören</ard:sendereihe>
+    </item>
+    <item>
+      <title>Guten Morgen!</title>
+      <link>https://kinder.wdr.de/radio/diemaus/audio/diemaus-60/audio-guten-morgen-108.html</link>
+      <description>Die Maus zum Hören - Lach- und Sachgeschichten. Heute: mit Mundgeruch am Morgen, Blüten in der Nacht, der Schule und ihrem Beginn, mit Verena natürlich mit der Maus und dem Elefanten. Du hörst eine Wiederholung:
+
+Erzähl mal - Was machst du morgens im Bad? (01:11)
+Frage des Tages - Warum hat man morgens Mundgeruch? (6:47)
+Maus-Hörspiel - Luftpiraten (23:36)
+Sachgeschichte - Wieso muss man zur Schule immer so früh aufstehen? (35:55)
+Maus- Geschichte - Blüten in der Nacht (53:17) Von Verena Specks-Ludwig.</description>
+      <content:encoded>
+      Die Maus zum Hören - Lach- und Sachgeschichten. Heute: mit Mundgeruch am Morgen, Blüten in der Nacht, der Schule und ihrem Beginn, mit Verena natürlich mit der Maus und dem Elefanten. Du hörst eine Wiederholung:
+
+Erzähl mal - Was machst du morgens im Bad? (01:11)
+Frage des Tages - Warum hat man morgens Mundgeruch? (6:47)
+Maus-Hörspiel - Luftpiraten (23:36)
+Sachgeschichte - Wieso muss man zur Schule immer so früh aufstehen? (35:55)
+Maus- Geschichte - Blüten in der Nacht (53:17)
+      </content:encoded>
+      <enclosure url="https://wdrmedien-a.akamaihd.net/media/p/public/weltweit/2026/10/07/92d9f48d-2dfb-44ee-ab04-0dbbaa84aed1/92d9f48d-2dfb-44ee-ab04-0dbbaa84aed1_MP3-128.mp3" length="58520656" type="audio/mpeg" />
+      <pubDate>Wed, 14 Oct 2026 04:00:13 GMT</pubDate>
+      <guid isPermaLink="false">/f55758ab38c17ac71bb9484c7a71202d</guid>
+      <itunes:duration>01:00:06</itunes:duration>
+      <itunes:episodeType>full</itunes:episodeType>
+      <itunes:author>Verena Specks-Ludwig</itunes:author>
+      <itunes:explicit>no</itunes:explicit>
+      <itunes:image href="https://www1.wdr.de/mediathek/audio/sendereihen-bilder/maus-tassen-verena-100~_v-Podcast.jpg" />
+      <itunes:keywords>Sendung mit der Maus, Kinderpodcast, Kinder, Eltern, Familie, Kindermusik, Bad, morgens, Mundgeruch, früh, aufstehen, Schule, Blüten, Nacht</itunes:keywords>
+      <itunes:summary>Die Maus zum Hören - Lach- und Sachgeschichten. Heute: mit Mundgeruch am Morgen, Blüten in der Nacht, der Schule und ihrem Beginn, mit Verena natürlich mit der Maus und dem Elefanten. Du hörst eine Wiederholung:
+
+Erzähl mal - Was machst du morgens im Bad? (01:11)
+Frage des Tages - Warum hat man morgens Mundgeruch? (6:47)
+Maus-Hörspiel - Luftpiraten (23:36)
+Sachgeschichte - Wieso muss man zur Schule immer so früh aufstehen? (35:55)
+Maus- Geschichte - Blüten in der Nacht (53:17)</itunes:summary>
+      <ard:visibility>
+        <ard:visibleFrom>2026-10-14T06:00:13</ard:visibleFrom>
+        <ard:visibleUntil>2026-11-13T06:00:13</ard:visibleUntil>
+      </ard:visibility>
+      <ard:sendereihe>Die Maus zum Hören</ard:sendereihe>
+    </item>
+    <item>
+      <title>Von Käfern, Katzen und Kühen</title>
+      <link>https://kinder.wdr.de/radio/diemaus/audio/diemaus-60/audio-hier-kannst-du-die-maus-am-morgen-vom-oktober-hoeren-112.html</link>
+      <description>Hat die Käferallee in Grevenbroich wirklich etwas mit Käfern zu tun? Die MausKlasse verrät es dir. Im MausMove vereinen sich Katze und Kuh. Und dann haben wir noch einen tollen Spieletipp für dich: Molly Mampfzahn - nur die Kacke zählt! Von Nina Heuser.</description>
+      <content:encoded>
+      Hat die Käferallee in Grevenbroich wirklich etwas mit Käfern zu tun? Die MausKlasse verrät es dir. Im MausMove vereinen sich Katze und Kuh. Und dann haben wir noch einen tollen Spieletipp für dich: Molly Mampfzahn - nur die Kacke zählt!
+      </content:encoded>
+      <enclosure url="https://wdrmedien-a.akamaihd.net/media/p/public/weltweit/2026/10/14/cc82c7d2-864d-43cb-a7a2-4e07f8b57693/cc82c7d2-864d-43cb-a7a2-4e07f8b57693_MP3-128.mp3" length="116868048" type="audio/mpeg" />
+      <pubDate>Wed, 14 Oct 2026 06:00:12 GMT</pubDate>
+      <guid isPermaLink="false">/06c4c3e5534134ccc2ccb3b52e11c11a</guid>
+      <itunes:duration>02:00:52</itunes:duration>
+      <itunes:episodeType>full</itunes:episodeType>
+      <itunes:author>Nina Heuser</itunes:author>
+      <itunes:explicit>no</itunes:explicit>
+      <itunes:image href="https://www1.wdr.de/mediathek/audio/sendereihen-bilder/mausradio-sendereihenbild-podcast-1-100~_v-Podcast.jpg" />
+      <itunes:keywords>WDR, Maus am Morgen, MausRadio, MausKlasse Grevenbroich, Entdeckertour, Maus Move Katze Kuh, Spieltipp, Molly Mampfzahn, MausNachrichten, Kinder, Kinderradio, Maus, WDR</itunes:keywords>
+      <itunes:summary>Hat die Käferallee in Grevenbroich wirklich etwas mit Käfern zu tun? Die MausKlasse verrät es dir. Im MausMove vereinen sich Katze und Kuh. Und dann haben wir noch einen tollen Spieletipp für dich: Molly Mampfzahn - nur die Kacke zählt!</itunes:summary>
+      <ard:visibility>
+        <ard:visibleFrom>2026-10-14T11:33:27</ard:visibleFrom>
+        <ard:visibleUntil>2026-11-13T08:00:12</ard:visibleUntil>
+      </ard:visibility>
+      <ard:sendereihe>Die Maus zum Hören</ard:sendereihe>
+    </item>
+</channel>
+</rss>

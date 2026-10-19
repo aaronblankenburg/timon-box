@@ -1,0 +1,129 @@
+<?xml version="1.0" encoding="utf-8"?>
+<rss xmlns:itunes="http://www.itunes.com/dtds/podcast-1.0.dtd" xmlns:atom="http://www.w3.org/2005/Atom" xmlns:content="http://purl.org/rss/1.0/modules/content/" version="2.0">
+  <channel> <!--/esi/podcast-xml-podcast-summary.xml?drsearch%3Aprops=%7B%22__typename%22%3A%22Page%22%2C%22pageType%22%3A%22page-podcast-only%22%2C%22sophoraId%22%3A%22kakadu-104%22%2C%22sophoraExternalId%22%3A%22PAPAYA_PODCAST_2730_253%22%2C%22contentType%22%3Anull%2C%22siteOrigin%22%3A%22deutschlandfunk-kultur%22%7D-->
+    <title>Kakadu – Der Kinderpodcast</title>
+ <link>https://www.kakadu.de/kakadu-104.html</link>
+ <atom:link rel="self" type="application/rss+xml" href="https://www.kakadu.de/kakadu-104.xml" />
+ <description>Kakadu ist der Kinderpodcast von Deutschlandfunk Kultur: Bunt, frech, fröhlich und schlau. Wir entdecken gemeinsam die Welt und beantworten die Fragen, die neugierige Kinder stellen! </description>
+ <category>Kids &amp; Family</category>
+ <copyright>Deutschlandradio - deutschlandradio.de</copyright>
+ <ttl>60</ttl>
+ <language>de-DE</language>
+ <pubDate>Mon, 09 Mar 2026 09:58:03 +0100</pubDate>
+ <lastBuildDate>Mon, 09 Mar 2026 09:58:03 +0100</lastBuildDate>
+ <image>
+   <url>https://bilder.deutschlandfunk.de/FI/LE/_8/69/FILE_869f7ed9b25625bceb9bfe2d15fe6f96/kakadu-podcast-100-1920x1920.jpg</url>
+   <title>Kakadu – Der Kinderpodcast</title>
+   <link>https://www.kakadu.de/kakadu-104.html</link>
+   <description>Kakadu ist der Kinderpodcast von Deutschlandfunk Kultur: Bunt, frech, fröhlich und schlau. Wir entdecken gemeinsam die Welt und beantworten die Fragen, die neugierige Kinder stellen! </description>
+ </image>
+ <itunes:subtitle>Die Beiträge zur Sendung</itunes:subtitle>
+ <itunes:new-feed-url>https://www.kakadu.de/kakadu-104.xml</itunes:new-feed-url>
+ <itunes:image href="https://bilder.deutschlandfunk.de/FI/LE/_8/69/FILE_869f7ed9b25625bceb9bfe2d15fe6f96/kakadu-podcast-100-1920x1920.jpg" />
+ <itunes:owner>
+   <itunes:name>Redaktion deutschlandradio.de</itunes:name>
+   <itunes:email>podcast@deutschlandradio.de</itunes:email>
+ </itunes:owner>
+ <itunes:author>Deutschlandfunk Kultur</itunes:author>
+ <itunes:explicit>No</itunes:explicit>
+ <itunes:type>episodic</itunes:type>
+ <itunes:category text="Kids &amp; Family" /> <!--/esi/podcast-xml-podcast-feed.xml?drsearch%3Aprops=%7B%22itemReference%22%3A%7B%22__typename%22%3A%22SophoraReference%22%2C%22sophoraReferenceId%22%3A%22dira_C6378B3CC8AB11F173F548DF3755BF60%22%2C%22primaryType%22%3A%22dradio-nt%3Apage-audio%22%7D%2C%22isTitleFirst%22%3Afalse%2C%22sitePodcastUrl%22%3A%22www.kakadu.de%22%2C%22sortBy%22%3A%22broadcastDate%22%2C%22refSophoraId%22%3A%22kakadu-104%22%2C%22podcastType%22%3A%22episodic%22%2C%22seasonNumber%22%3Anull%7D-->
+    <item>
+  <title>Kakadu - eure Fragen: - Warum darf ich nicht länger Zocken?</title>
+  <link>https://www.kakadu.de/warum-darf-ich-nicht-laenger-zocken-100.html</link>
+  <description>Der KAKADU-Podcast im Humboldt Forum zum Thema:
+    Online-Spiele, Apps und Handys – und wann auch mal gut ist Von Jessica Zeller </description>
+  <guid>33b9bdbf-f101-5795-9917-77e5c0d80d22</guid>
+  <pubDate>Fri, 16 Oct 2026 10:00:39 +0200</pubDate>
+  <enclosure url="https://podcast-mp3.dradio.de/podcast/2026/10/16/kakadu_im_humboldt_forum_111026_zocken_drk_20261016_1000_aa75f364.mp3?refId=kakadu-104" length="27036295" type="audio/mpeg" />
+  <itunes:author>Zeller, Jessica</itunes:author>
+  <itunes:duration>28:06</itunes:duration>
+  <itunes:episodeType>full</itunes:episodeType>
+</item> <!--/esi/podcast-xml-podcast-feed.xml?drsearch%3Aprops=%7B%22itemReference%22%3A%7B%22__typename%22%3A%22SophoraReference%22%2C%22sophoraReferenceId%22%3A%22dira_A202519AC67911F176D148DF3755BF60%22%2C%22primaryType%22%3A%22dradio-nt%3Apage-audio%22%7D%2C%22isTitleFirst%22%3Afalse%2C%22sitePodcastUrl%22%3A%22www.kakadu.de%22%2C%22sortBy%22%3A%22broadcastDate%22%2C%22refSophoraId%22%3A%22kakadu-104%22%2C%22podcastType%22%3A%22episodic%22%2C%22seasonNumber%22%3Anull%7D-->
+    <item>
+  <title>Kakadu - bei euch - Nils wohnt auf dem Wagenplatz</title>
+  <link>https://www.kakadu.de/kakadu-bei-euch-nils-wohnt-auf-dem-wagenplatz-102.html</link>
+  <description>Nils hat einen ungewöhnlichen Wohnort: Seit seiner Geburt wohnt der 11jährige auf einem Wagenplatz. In einem Wagen nur für ihn. Mit Gemeinschaftsküche &quot;Küfa - Küche für alle&quot;. Autorin: Johanna Fricke. Mit Fabian. </description>
+  <content:encoded>
+    <![CDATA[Nils hat einen ungewöhnlichen Wohnort: Seit seiner Geburt wohnt der 11jährige auf einem Wagenplatz. In einem Wagen nur für ihn. Mit Gemeinschaftsküche.]]>
+  </content:encoded>
+  <guid>951254b6-ac9d-5032-8de4-f7e957644d56</guid>
+  <pubDate>Tue, 13 Oct 2026 10:00:00 +0200</pubDate>
+  <enclosure url="https://podcast-mp3.dradio.de/podcast/2026/10/13/kakadu_bei_euch_nils_wohnt_auf_dem_wagenplatz_drk_20261013_1000_cf11e8ba.mp3?refId=kakadu-104" length="12426114" type="audio/mpeg" />
+  <itunes:image href="https://bilder.deutschlandfunk.de/39/23/ad/fb/3923adfb-13a2-474e-8fd8-2165ab7bfd83/kakadu-bauwagen-100-1920x1920.jpg" />
+  <itunes:author>Fricke, Johanna</itunes:author>
+  <itunes:duration>12:53</itunes:duration>
+  <itunes:episodeType>full</itunes:episodeType>
+</item> <!--/esi/podcast-xml-podcast-feed.xml?drsearch%3Aprops=%7B%22itemReference%22%3A%7B%22__typename%22%3A%22SophoraReference%22%2C%22sophoraReferenceId%22%3A%22dira_39060686C33211F1765248DF3755BF60%22%2C%22primaryType%22%3A%22dradio-nt%3Apage-audio%22%7D%2C%22isTitleFirst%22%3Afalse%2C%22sitePodcastUrl%22%3A%22www.kakadu.de%22%2C%22sortBy%22%3A%22broadcastDate%22%2C%22refSophoraId%22%3A%22kakadu-104%22%2C%22podcastType%22%3A%22episodic%22%2C%22seasonNumber%22%3Anull%7D-->
+    <item>
+  <title>Kakadu - eure Fragen: - Wie arbeitet eigentlich ein Bäcker?</title>
+  <link>https://www.kakadu.de/wie-arbeitet-eigentlich-ein-baecker-100.html</link>
+  <description>Wie kommen die Schichten ins Croissant und sind wirklich pupsende Mikroben im Brotteig? Lulu und Fabian schauen für euch in einer echten Backstube nach. Von Paulus Müller </description>
+  <guid>35fce53d-18e4-5f0a-9a40-b1654a756bcf</guid>
+  <pubDate>Fri, 09 Oct 2026 10:00:57 +0200</pubDate>
+  <enclosure url="https://podcast-mp3.dradio.de/podcast/2026/10/09/kakadu_eure_fragen_wie_arbeitet_eigentlich_ein_baecker_drk_20261009_1000_6294be84.mp3?refId=kakadu-104" length="22231437" type="audio/mpeg" />
+  <itunes:image href="https://bilder.deutschlandfunk.de/a1/8f/d6/a1/a18fd6a1-6bb2-464d-ab08-dab19459a549/bild-fuer-eure-frage-wie-arbeitet-ein-baecker-100-1920x1920.jpg" />
+  <itunes:author>Müller, Paulus</itunes:author>
+  <itunes:duration>23:06</itunes:duration>
+  <itunes:episodeType>full</itunes:episodeType>
+</item> <!--/esi/podcast-xml-podcast-feed.xml?drsearch%3Aprops=%7B%22itemReference%22%3A%7B%22__typename%22%3A%22SophoraReference%22%2C%22sophoraReferenceId%22%3A%22dira_6C209794BF3011F17D5E48DF3755BF60%22%2C%22primaryType%22%3A%22dradio-nt%3Apage-audio%22%7D%2C%22isTitleFirst%22%3Afalse%2C%22sitePodcastUrl%22%3A%22www.kakadu.de%22%2C%22sortBy%22%3A%22broadcastDate%22%2C%22refSophoraId%22%3A%22kakadu-104%22%2C%22podcastType%22%3A%22episodic%22%2C%22seasonNumber%22%3Anull%7D-->
+    <item>
+  <title>Kakadu - bei euch - Greta hat Garnelen als Haustiere</title>
+  <link>https://www.kakadu.de/kakadu-bei-euch-greta-hat-garnelen-als-haustiere-102.html</link>
+  <description>Greta findet, dass Garnelen beruhigend sind. Und dass sie eine Menge Quatsch machen. Was sonst noch in ihrem Aquarium so passiert, das erzählt Greta in diesem Podcast. Mit Patricia. </description>
+  <content:encoded>
+    <![CDATA[Greta findet, dass Garnelen beruhigend sind. Und dass sie Quatsch machen. Was sonst noch in ihrem Aquarium so passiert, das erzählt Greta in diesem Podcast.]]>
+  </content:encoded>
+  <guid>da1f15ea-0e79-5e32-88bd-69c8e125e702</guid>
+  <pubDate>Tue, 06 Oct 2026 10:00:00 +0200</pubDate>
+  <enclosure url="https://podcast-mp3.dradio.de/podcast/2026/10/06/kakadu_bei_euch_greta_hat_garnelen_als_haustiere_drk_20261006_1000_a793939d.mp3?refId=kakadu-104" length="12656410" type="audio/mpeg" />
+  <itunes:image href="https://bilder.deutschlandfunk.de/e0/02/72/f4/e00272f4-d647-4935-a19b-40bf4b2e4470/bild-fuer-kakadu-bei-euch-garnelen-als-haustiere-100-1920x1920.jpg" />
+  <itunes:author>Pantel, Patricia</itunes:author>
+  <itunes:duration>13:07</itunes:duration>
+  <itunes:episodeType>full</itunes:episodeType>
+</item> <!--/esi/podcast-xml-podcast-feed.xml?drsearch%3Aprops=%7B%22itemReference%22%3A%7B%22__typename%22%3A%22SophoraReference%22%2C%22sophoraReferenceId%22%3A%22dira_2D3682A8BDAC11F1709148DF3755BF60%22%2C%22primaryType%22%3A%22dradio-nt%3Apage-audio%22%7D%2C%22isTitleFirst%22%3Afalse%2C%22sitePodcastUrl%22%3A%22www.kakadu.de%22%2C%22sortBy%22%3A%22broadcastDate%22%2C%22refSophoraId%22%3A%22kakadu-104%22%2C%22podcastType%22%3A%22episodic%22%2C%22seasonNumber%22%3Anull%7D-->
+    <item>
+  <title>Kakadu - eure Fragen: - Was passiert eigentlich auf einem Bauernhof?</title>
+  <link>https://www.kakadu.de/was-passiert-eigentlich-auf-einem-bauernhof-100.html</link>
+  <description>Die Arbeit auf einem Bauernhof geht sehr früh am Morgen los. Bauer David in der Uckermark steht 6 Uhr morgens auf, und dann geht es an die Arbeit. Autorin: Patricia Pantel. Mit Patricia. </description>
+  <content:encoded>
+    <![CDATA[Die Arbeit auf einem Bauernhof geht sehr früh am Morgen los. Bauer David in der Uckermark steht 6 Uhr morgens auf, und dann geht es an die Arbeit.]]>
+  </content:encoded>
+  <guid>d137db82-a952-5705-b006-fe259e543727</guid>
+  <pubDate>Fri, 02 Oct 2026 10:00:00 +0200</pubDate>
+  <enclosure url="https://podcast-mp3.dradio.de/podcast/2026/10/02/kakadu_eure_fragen_was_macht_ein_bauer_drk_20261002_1000_0ea32e44.mp3?refId=kakadu-104" length="24979518" type="audio/mpeg" />
+  <itunes:image href="https://bilder.deutschlandfunk.de/bb/90/f1/c3/bb90f1c3-2e83-4954-829f-7c4689a5ece6/bild-fuer-kinderfrage-was-passiert-auf-einem-bauernhof-100-1920x1920.jpg" />
+  <itunes:author>Pantel, Patricia</itunes:author>
+  <itunes:duration>25:58</itunes:duration>
+  <itunes:episodeType>full</itunes:episodeType>
+</item> <!--/esi/podcast-xml-podcast-feed.xml?drsearch%3Aprops=%7B%22itemReference%22%3A%7B%22__typename%22%3A%22SophoraReference%22%2C%22sophoraReferenceId%22%3A%22dira_81147646BB6D11F179D148DF3755BF60%22%2C%22primaryType%22%3A%22dradio-nt%3Apage-audio%22%7D%2C%22isTitleFirst%22%3Afalse%2C%22sitePodcastUrl%22%3A%22www.kakadu.de%22%2C%22sortBy%22%3A%22broadcastDate%22%2C%22refSophoraId%22%3A%22kakadu-104%22%2C%22podcastType%22%3A%22episodic%22%2C%22seasonNumber%22%3Anull%7D-->
+    <item>
+  <title>Kakadu - bei euch: - Kathrin fährt auf der &quot;MS Wissenschaft&quot; mit</title>
+  <link>https://www.kakadu.de/kakadu-bei-euch-kathrin-an-bord-der-ms-wissenschaft-100.html</link>
+  <description>Die &quot;MS Wissenschaft&quot; ist ein Schiff auf dem Rhein. Sie gehört dem Vater von Kathrin, und in ihren Sommerferien war Kathrin mit an Bord. Autorin: Claudia Neumeier Mit Ryke. </description>
+  <content:encoded>
+    <![CDATA[Die "MS Wissenschaft" ist ein Schiff auf dem Rhein. Sie gehört dem Vater von Kathrin, und in ihren Sommerferien war Kathrin mit an Bord. Das war spannend!]]>
+  </content:encoded>
+  <guid>637a28fc-d5cb-5661-a06a-1cb6443c7b01</guid>
+  <pubDate>Tue, 29 Sep 2026 10:00:00 +0200</pubDate>
+  <enclosure url="https://podcast-mp3.dradio.de/podcast/2026/09/29/kakadu_bei_euch_kathrin_faehrt_auf_der_ms_wissenschaft_drk_20260929_1000_48ed024f.mp3?refId=kakadu-104" length="12252661" type="audio/mpeg" />
+  <itunes:image href="https://bilder.deutschlandfunk.de/52/fb/c2/7d/52fbc27d-ea7d-4286-968a-d8051f86611c/bild-fuer-kakadu-ms-wissenschaft-100-1920x1920.jpg" />
+  <itunes:author>Neumeier, Claudia</itunes:author>
+  <itunes:duration>12:42</itunes:duration>
+  <itunes:episodeType>full</itunes:episodeType>
+</item> <!--/esi/podcast-xml-podcast-feed.xml?drsearch%3Aprops=%7B%22itemReference%22%3A%7B%22__typename%22%3A%22SophoraReference%22%2C%22sophoraReferenceId%22%3A%22dira_6443C2EEB69811F17DA248DF3755BF60%22%2C%22primaryType%22%3A%22dradio-nt%3Apage-audio%22%7D%2C%22isTitleFirst%22%3Afalse%2C%22sitePodcastUrl%22%3A%22www.kakadu.de%22%2C%22sortBy%22%3A%22broadcastDate%22%2C%22refSophoraId%22%3A%22kakadu-104%22%2C%22podcastType%22%3A%22episodic%22%2C%22seasonNumber%22%3Anull%7D-->
+    <item>
+  <title>Kakadu - eure Fragen: - Warum hängen Fledermäuse kopfüber?</title>
+  <link>https://www.kakadu.de/warum-haengen-fledermaeuse-kopfueber-100.html</link>
+  <description>Fledermäuse schlafen am liebsten kopfüber. Aber warum fallen sie nicht runter? Und wie starten sie von da oben zum Fliegen? Ryke und Ferdinand hängen sich rein – und entdecken Erstaunliches.
+    Von Nicole Silbermann Von Nicole Silbermann </description>
+  <guid>62b11490-64ba-5aea-8973-2f7a59da53ac</guid>
+  <pubDate>Fri, 25 Sep 2026 10:00:48 +0200</pubDate>
+  <enclosure url="https://podcast-mp3.dradio.de/podcast/2026/09/25/kakadu_eure_fragen_warum_haengen_fledermaeuse_kopfueber_drk_20260925_1000_ee417486.mp3?refId=kakadu-104" length="25302183" type="audio/mpeg" />
+  <itunes:image href="https://bilder.deutschlandfunk.de/f7/4d/b5/fd/f74db5fd-9af8-4907-a9e5-72a0a4397bc2/bild-fuer-eure-fragen-warum-haengen-fledermaeuse-kopfueber-100-1920x1920.jpg" />
+  <itunes:author>Silbermann, Nicole</itunes:author>
+  <itunes:duration>26:18</itunes:duration>
+  <itunes:episodeType>full</itunes:episodeType>
+</item>
+</channel>
+</rss>

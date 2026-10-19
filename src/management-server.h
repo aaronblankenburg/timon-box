@@ -327,6 +327,13 @@ void home(AsyncWebServerRequest *request) {
   res->print("<button class=\"btn secondary\" type=\"submit\">Rename</button></div>"
              "<p class=\"hint\">The token id is kept out of sight and attached automatically. Spaces and umlauts are converted.</p></form></div>");
 
+  // Delete card
+  res->print("<div class=\"card\"><div class=\"card-head\"><h2>Delete Album</h2></div>"
+             "<p class=\"hint\">Removes every track and the folder itself. The token stays usable as an empty, unnamed album.</p>");
+  res->printf("<form method=\"POST\" action=\"/deleteAlbum\" onsubmit=\"return confirm('Delete all %d track%s and the folder %s?')\" class=\"actions end\">"
+              "<button class=\"btn destructive\" type=\"submit\">Delete album</button></form></div>",
+              trackCount, trackCount == 1 ? "" : "s", htmlEscape(folder).c_str());
+
   // Upload modal (the file list <ul> moves in here while uploading and back afterwards)
   res->print("<dialog class=\"modal\" id=\"dlg\"><div class=\"card\">"
              "<div class=\"card-head\"><h2 id=\"mt\">Uploading</h2><span class=\"hint mono\" id=\"pr\"></span></div>"
@@ -758,6 +765,51 @@ void handleFolderPathChange(AsyncWebServerRequest *request) {
 // uses the helpers above (filesLock, renameFolder, the upload buffer pool, ...).
 #include "box-sync.h"
 
+// Removes every file in the album folder and the folder itself, then gives the
+// token a fresh, unnamed folder (as a new token gets), so uploads can start right
+// away. Deleting while iterating confuses FATFS's directory cursor, so this takes
+// the first entry, closes the directory and removes it, until nothing is left.
+void handleAlbumDelete(AsyncWebServerRequest *request) {
+  if (syncBusy() || peerTransferActive()) return request->send(409, "text/plain", "A transfer is running, try again later.");
+  if (!filesLock(10000)) return sendBusy(request);
+  String folder = webServerFolderPath, tag = webServerAlbumTag;
+  if (folder.isEmpty()) {
+    filesUnlock();
+    return request->redirect("/home");
+  }
+
+  int removed = 0, failed = 0;
+  for (int guard = 0; guard < 2000; guard++) {
+    esp_task_wdt_reset();
+    File dir = SD.open(folder);
+    File entry = dir ? dir.openNextFile() : File();
+    if (!entry) break;
+    String path = folder + "/" + entry.name();
+    bool isDir = entry.isDirectory();
+    entry.close();
+    dir.close();
+    if (isDir ? SD.rmdir(path) : SD.remove(path)) {
+      removed++;
+    } else if (++failed > 3) {
+      break;  // something in here will not go away; do not spin on it
+    }
+  }
+  bool folderGone = failed == 0 && SD.rmdir(folder);
+
+  String fresh = "/" + tag;
+  if (folderGone) {
+    SD.mkdir(fresh);
+    webServerFolderPath = fresh;
+  }
+  prepareFilesInDir();
+  filesUnlock();
+
+  Serial.printf("Album %s deleted: %d entries removed, %d failed, folder %s\n", folder.c_str(), removed, failed,
+                folderGone ? "removed" : "kept");
+  if (!folderGone) return request->send(500, "text/plain", "Some files could not be deleted; the folder was kept.");
+  request->redirect("/home");
+}
+
 // ---------------------------------------------------------------------------
 // Server lifecycle
 // ---------------------------------------------------------------------------
@@ -789,6 +841,7 @@ void setupWebServer() {
   server.on("/select", HTTP_POST, handleFileSelect);
   server.on("/delete", HTTP_POST, handleFileDelete);
   server.on("/setFolderPath", HTTP_POST, handleFolderPathChange);
+  server.on("/deleteAlbum", HTTP_POST, handleAlbumDelete);
   registerWifiRoutes(server);
   registerSyncRoutes(server);
   server.onNotFound([](AsyncWebServerRequest *request) {

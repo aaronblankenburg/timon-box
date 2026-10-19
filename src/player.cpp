@@ -53,11 +53,10 @@ class Player {
    * supported param: vol with value between 0 and 21
    */
   void handleParams(String path) {
-    int maxVolStart = path.indexOf("vol[") + 4;
-
-    if (maxVolStart > -1) {
-      String m = path.substring(maxVolStart);
-      this->songMaxVolume = m.substring(0, m.indexOf("]")).toInt();
+    int start = path.indexOf("vol[");
+    int end = start >= 0 ? path.indexOf(']', start) : -1;
+    if (end > start + 4) {
+      this->songMaxVolume = path.substring(start + 4, end).toInt();
       Serial.print("Set songMaxVolume to ");
       Serial.println(this->songMaxVolume);
     } else {

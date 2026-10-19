@@ -326,7 +326,7 @@ void podcastCards(Print *res, bool isPodcast, const PodcastConfig &cfg, const Po
                   htmlEscape(st.date).c_str());
     }
     res->printf("<dt>Status</dt><dd>%s</dd>", htmlEscape(podcastStatusText(st, onCard)).c_str());
-    if (st.checked.length()) res->printf("<dt>Last check</dt><dd>%s</dd>", htmlEscape(st.checked).c_str());
+    if (st.checked.length()) res->printf("<dt>Feed last read</dt><dd>%s</dd>", htmlEscape(st.checked).c_str());  // server time of the last successful read
     res->print("</dl>");
     if (st.newFeedUrl.length() && st.newFeedUrl != cfg.url) {
       res->printf("<div class=\"notice\"><i class=\"ic ic-warn\"></i><span>The podcast has moved to <code>%s</code>. "

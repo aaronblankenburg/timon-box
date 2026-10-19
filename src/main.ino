@@ -87,6 +87,7 @@ float batteryAdcValue = 2390.;  // start with full value
 String managementAlbumTag = "";        // album token currently selected in management mode
 unsigned long managementNoTokenSince = 0;
 unsigned long heapLogEveryMs = 0;  // serial "heap:<s>"
+bool shuttingDown = false;         // shutdownBox() was called (on USB power the box stays on)
 unsigned long lastStateSave = 0;
 unsigned long podcastLoadingSince = 0;
 #define PODCAST_LOADING_TIMEOUT_MS 20000  // then play what is on the card; the check carries on
@@ -215,7 +216,7 @@ void loop() {
       static uint32_t lastPos = 0;
       bool running = player.audio.isRunning();
       if (running) lastPos = player.audio.getFilePos();
-      if (wasRunning && !running && recent_tag != "") {
+      if (wasRunning && !running && recent_tag != "" && !shuttingDown) {
         Serial.printf("playback stopped by itself: %s at %u, heap %u, largest %u\n", player.currentlyPlayingFile.c_str(),
                       lastPos, ESP.getFreeHeap(), ESP.getMaxAllocHeap());
       }
@@ -644,12 +645,14 @@ void checkSerialForCommands() {
     value.trim();
     podcastPreferHttp = value.toInt() == 0;
     Serial.println(podcastPreferHttp ? "episodes over plain http where possible" : "episodes always over https");
-  } else if (cmd == "podcasturl") {
+  } else if (cmd == "podcasturl") {  // podcasturl:<url>[ <keep>]
     value.trim();
     PodcastConfig cfg;
-    cfg.url = value;
+    int space = value.indexOf(' ');
+    cfg.url = space > 0 ? value.substring(0, space) : value;
+    if (space > 0) cfg.keep = constrain(value.substring(space + 1).toInt(), 1, PODCAST_KEEP_MAX);
     bool ok = player.albumDirectory().length() && writePodcastConfig(player.albumDirectory(), cfg);
-    Serial.printf("podcast.txt in %s: %s\n", player.albumDirectory().c_str(), ok ? value.c_str() : "not written");
+    Serial.printf("podcast.txt in %s: %s, keep %d\n", player.albumDirectory().c_str(), ok ? cfg.url.c_str() : "not written", cfg.keep);
   } else if (cmd == "dlstop") {
     podcastCancel = true;
   } else if (cmd == "dlplay") {
@@ -703,6 +706,7 @@ void restoreToneSettings() {
 }
 
 void shutdownBox() {
+  shuttingDown = true;
   podcastStop(true);  // close the episode file before the power goes
   // On USB power the supply stays on and the callers keep calling this every loop iteration:
   // say it once, or the console drowns in it.

@@ -90,8 +90,8 @@ der Web-UI und Dateien älterer Firmware haben keine zweite Zeile und beginnen v
 
 ### Podcast-Alben
 Liegt im Albumordner eine `podcast.txt` (Zeile 1: Feed-Adresse, optional `keep=N`), ist der Token ein Podcast. Am
-einfachsten setzt man sie im Management-Modus über die Karte „Podcast“ auf der Upload-Seite; dort gibt es auch eine
-Suche im Apple-Podcast-Verzeichnis, die die Feed-Adresse einträgt. Die Box nutzt das auf der Wi-Fi-Seite gespeicherte
+einfachsten setzt man sie im Management-Modus auf der Seite „Podcast“ (eigener Reiter vor „Wi-Fi“); dort gibt es auch
+eine Suche im Apple-Podcast-Verzeichnis, die die Feed-Adresse einträgt. Die Box nutzt das auf der Wi-Fi-Seite gespeicherte
 Heimnetz.
 
 Beim Auflegen (LED pulsiert grün) verbindet sich die Box mit dem WLAN, liest den Feed und nimmt die **neueste Folge**
@@ -111,11 +111,22 @@ Datei über ein eigenes Dateisystem (`src/gated-fs.h`), das die Endgröße melde
 belegt der Download die Karte, liest die Wiedergabe aus ihrem Puffer weiter, statt zu warten. TLS nur für den Feed,
 bevor etwas spielt; die Folge selbst kommt bevorzugt per `http://` (spart ~45 kB RAM). Ein großer ID3-Tag am Anfang
 (Cover, beim WDR 0,8 MB) wird beim Download weggelassen. Im Player-Modus gibt die Box den nie genutzten
-Bluetooth-Speicher (~55 kB) frei; Bluetooth läuft ohnehin nur nach einem Neustart in den Bluetooth-Modus.
+Bluetooth-Speicher (~55 kB) frei; Bluetooth läuft ohnehin nur nach einem Neustart in den Bluetooth-Modus. Die
+I2S-DMA-Puffer sind auf 16 kB halbiert, damit auch eine Folge nur per HTTPS neben der Wiedergabe Platz hat.
+
+Was dabei auffiel:
+- Der Podcast-Task greift **direkt über FATFS** auf die Karte zu, mit eigenen Dateiobjekten. Liefen beide Tasks über
+  VFS und stdio, zerstörte ein Titelwechsel während des Downloads die Dateien beider Seiten (EBADF beim Schreiben,
+  EACCES beim Lesen). Über das VFS sind höchstens 5 Dateien offen; jede belegt dauerhaft einen 4-kB-Sektorpuffer.
+- Der SD-Treiber des Arduino-Cores meldet ein Schreiben als fehlgeschlagen, sobald nach einem Mehrsektor-Schreiben im
+  Kartenstatus irgendein Bit gesetzt ist. Auf Julius' Karte passiert das alle paar hundert kB, obwohl die Daten da sind.
+  Der Download öffnet die Datei dann neu, prüft ihre Größe und schreibt den Block noch einmal. Er gibt erst auf, wenn
+  das fünfmal ohne 64 kB Fortschritt dazwischen passiert. Die MD5-Summen geladener Folgen stimmen mit `curl` überein.
+- Bringt eine Verbindung weniger als 8 kB/s über 15 s, baut der Download sie neu auf.
 
 Host-Tests für Feed-Parser, Dateinamen und Fortsetzungslogik (echte Feeds verschiedener Hoster als Testdaten):
-`tools/host-test.sh`. Serielle Befehle zum Prüfen auf der Box: `podcast`, `heap[:<s>]`, `md5:<pfad>`,
-`dl:<url>` / `dlplay` / `dlstop`.
+`tools/host-test.sh`. Serielle Befehle zum Prüfen auf der Box: `podcast`, `audio`, `heap[:<s>]`, `md5:<pfad>`,
+`podcasturl:<url> [<keep>]` (setzt den Feed des aufgelegten Albums), `dl:<url>` / `dlplay` / `dlstop`.
 
 ### Token-Bogen
 [tools/token-sheet.html](tools/token-sheet.html) erzeugt den 10 × 15 cm Fotoabzug mit sechs runden Token-Bildern, gleiches Layout wie `src/prepare_tokens.py` (1772 × 1181 px, Kreise mit 515 px). Die Seite ist eine einzelne HTML-Datei ohne Server und ohne Abhängigkeiten, im Look der Management-Web-UI, und führt in drei Schritten durch den Ablauf: Bilder sammeln (Fotos, Kamera, Web-Links, Einfügen, Drag & Drop), jedes Bild im Kreis zuschneiden (Verschieben, Pinch-Zoom, Drehen), fertigen Bogen teilen oder als JPEG speichern. Die Bilder verlassen das Gerät nicht; eine angefangene Sitzung bleibt im Browser gespeichert.

@@ -100,9 +100,9 @@ class Player {
       Serial.println("Failed to open album index file for writing");
       return;
     }
-    Serial.println("Saving playlist with size " + playlist.size());
-    for (uint8_t i = 0; i < playlist.size(); i++) {
-      file.println(playlist[i]);
+    Serial.println("Saving playlist with size " + String(playlist.size()));
+    for (size_t i = 0; i < playlist.size(); i++) {
+      file.println(playlist.get(i));
     }
     Serial.println("Index saved to " + indexFilePath);
     file.close();

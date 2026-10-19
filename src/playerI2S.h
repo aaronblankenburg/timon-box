@@ -35,6 +35,24 @@ class PlayerI2S : public Player {
   PlayerI2S() {}
 
   void startAudio() {
+    // The library installs I2S with 16 DMA buffers of 512 frames: 32 kB, ~186 ms of sound. Half
+    // of that is plenty for this loop, and the 16 kB it frees is what a TLS download (podcasts
+    // served only over https) needs next to the decoder. Same settings as the library otherwise.
+    i2s_driver_uninstall(I2S_NUM_0);
+    i2s_config_t cfg = {};
+    cfg.mode = (i2s_mode_t)(I2S_MODE_MASTER | I2S_MODE_TX);
+    cfg.sample_rate = 16000;
+    cfg.bits_per_sample = I2S_BITS_PER_SAMPLE_16BIT;
+    cfg.channel_format = I2S_CHANNEL_FMT_RIGHT_LEFT;
+    cfg.communication_format = (i2s_comm_format_t)I2S_COMM_FORMAT_STAND_I2S;
+    cfg.intr_alloc_flags = ESP_INTR_FLAG_LEVEL1;
+    cfg.dma_buf_count = 8;
+    cfg.dma_buf_len = 512;
+    cfg.use_apll = false;
+    cfg.tx_desc_auto_clear = true;
+    cfg.fixed_mclk = I2S_PIN_NO_CHANGE;
+    i2s_driver_install(I2S_NUM_0, &cfg, 0, NULL);
+    i2s_zero_dma_buffer(I2S_NUM_0);
     audio.setPinout(I2S_BCLK, I2S_LRC, I2S_DOUT);
     audio.forceMono(true);
   }

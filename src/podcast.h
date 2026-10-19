@@ -34,6 +34,7 @@
 
 volatile TaskHandle_t podcastTask = nullptr;
 volatile bool podcastCancel = false;
+bool podcastPreferHttp = true;  // serial "dltls:1" turns it off, to measure TLS during playback
 
 bool podcastBusy() { return podcastTask != nullptr; }
 
@@ -155,11 +156,16 @@ class HttpStream {
 
   void close() {
     _stream = nullptr;
-    _http.end();  // stops the client and with it the TLS session
-    _secure.reset();
+    _http.end();
+    // end() only stops a client it still believes connected, so one the server has closed
+    // already (HTTP/1.0 does after every response) would keep its TLS buffers, ~40 kB, and
+    // HTTPClient its pointer to it. Stop both here; the objects live as long as this stream.
+    _plain.stop();
+    if (_secure) _secure->stop();
   }
 
  private:
+  // Declared before _http, so they outlive it: HTTPClient's destructor still talks to its client.
   WiFiClient _plain;
   std::unique_ptr<WiFiClientSecure> _secure;  // only for https: its constructor allocates 2.2 kB
   HTTPClient _http;
@@ -288,27 +294,47 @@ static size_t readFully(HttpStream &http, uint8_t *buf, size_t len) {
 // Called once the server has been asked: what will be downloaded, before the first byte.
 typedef std::function<void(uint32_t serverTotal, const ResumePlan &plan)> DownloadPlanned;
 
+// What the first attempt of a session found out, so that a retry goes straight to the file:
+// the probe follows the redirect chain, often over https, and while an episode plays there is
+// no room for a TLS handshake.
+struct EpisodeSource {
+  bool known = false;
+  String url;  // where the body came from (plain http if the host serves it)
+  uint32_t skip = 0, total = SIZE_UNKNOWN;
+};
+
 static bool downloadEpisodeOnce(const String &url, const String &path, bool allowSkip, uint32_t savedTotal,
-                                String &error, DownloadStats &st, bool &retrySkipless, uint32_t &serverTotal,
-                                const DownloadPlanned &planned) {
+                                String &error, DownloadStats &st, bool &retrySkipless, bool &writeError,
+                                uint32_t &serverTotal, const DownloadPlanned &planned, EpisodeSource &src) {
   retrySkipless = false;
+  writeError = false;
   serverTotal = SIZE_UNKNOWN;
   uint32_t local;
   bool localHasId3;
   localEpisodeState(path, local, localHasId3);
 
-  // Probe: the first 10 bytes tell the ID3 size, Content-Range the total and range support.
   HttpStream probe;
-  if (!probe.open(url, 0, 9)) {
-    error = "episode: " + probe.error;
-    return false;
-  }
   uint8_t hdr[10];
-  size_t hdrLen = readFully(probe, hdr, sizeof(hdr));
-  bool ranges = probe.status == 206 && probe.hasRange;
-  uint32_t total = ranges ? probe.rangeTotal : probe.length;
+  size_t hdrLen = 0;
+  bool ranges;
+  uint32_t total, tagSize;
+  if (src.known) {  // a retry: the server already told us everything
+    ranges = true;
+    total = src.total;
+    tagSize = src.skip;
+  } else {
+    // Probe: the first 10 bytes tell the ID3 size, Content-Range the total and range support.
+    if (!probe.open(url, 0, 9)) {
+      error = "episode: " + probe.error;
+      return false;
+    }
+    hdrLen = readFully(probe, hdr, sizeof(hdr));
+    ranges = probe.status == 206 && probe.hasRange;
+    total = ranges ? probe.rangeTotal : probe.length;
+    tagSize = id3TagSize(hdr, hdrLen);
+  }
   serverTotal = total;
-  ResumePlan plan = planResume(local, localHasId3, ranges, total, id3TagSize(hdr, hdrLen), allowSkip, savedTotal);
+  ResumePlan plan = planResume(local, localHasId3, ranges, total, tagSize, allowSkip, savedTotal);
   uint32_t skip = plan.skip, expected = plan.expected;
   Serial.printf("[podcast] %s: %s, total %d, id3 %u, on card %u%s\n", path.c_str(), ranges ? "ranges ok" : "no ranges",
                 total == SIZE_UNKNOWN ? -1 : (int)total, skip, local,
@@ -328,12 +354,23 @@ static bool downloadEpisodeOnce(const String &url, const String &path, bool allo
   if (ranges) {
     probe.close();
     uint32_t from = plan.from;
-    // Prefer plain HTTP for the long transfer, but only if it serves the same file.
-    String plain = String(plainHttpVariant(probe.url.c_str()).c_str());
-    bool ok = plain != probe.url && body.open(plain, from, SIZE_UNKNOWN, 3000) && body.status == 206 &&
-              body.hasRange && body.rangeStart == from && body.rangeTotal == total;
-    if (!ok) ok = body.open(probe.url, from) && body.status == 206 && body.hasRange && body.rangeStart == from &&
-                  body.rangeTotal == total;
+    auto sameFile = [&]() { return body.status == 206 && body.hasRange && body.rangeStart == from && body.rangeTotal == total; };
+    bool ok;
+    if (src.known) {
+      ok = body.open(src.url, from) && sameFile();
+      if (!ok) src.known = false;  // e.g. a signed URL expired: the next attempt probes again
+    } else {
+      // Prefer plain HTTP for the long transfer, but only if it serves the same file.
+      String plain = String(plainHttpVariant(probe.url.c_str()).c_str());
+      ok = podcastPreferHttp && plain != probe.url && body.open(plain, from, SIZE_UNKNOWN, 3000) && sameFile();
+      if (!ok) ok = body.open(probe.url, from) && sameFile();
+      if (ok) {
+        src.known = true;
+        src.url = body.url;
+        src.skip = plan.skip;
+        src.total = total;
+      }
+    }
     if (!ok) {
       error = "episode: " + (body.error.length() ? body.error : String("range request refused"));
       return false;
@@ -383,12 +420,19 @@ static bool downloadEpisodeOnce(const String &url, const String &path, bool allo
   auto writeBlock = [&](size_t len) -> bool {
     unsigned long t0 = millis();
     if (!sdGateTake()) return false;
-    bool ok = out.write(block, len) == len;
+    errno = 0;
+    size_t put = out.write(block, len);
+    int err = errno;
     sdGateGive();
     uint32_t ms = millis() - t0;
     if (ms > st.maxWriteMs) st.maxWriteMs = ms;
-    if (ok) written += len;
-    return ok;
+    if (put != len) {
+      Serial.printf("[podcast] write of %u bytes at %u put %u after %u ms, errno %d, heap %u, largest %u\n", (unsigned)len,
+                    written, (unsigned)put, ms, err, ESP.getFreeHeap(), ESP.getMaxAllocHeap());
+      return false;
+    }
+    written += len;
+    return true;
   };
   auto flushOut = [&]() {
     unsigned long t0 = millis();
@@ -475,6 +519,7 @@ static bool downloadEpisodeOnce(const String &url, const String &path, bool allo
     return true;
   }
   growingSynced(written);
+  writeError = writeFailed;
   if (writeFailed) error = "writing to the SD card failed";
   else if (podcastCancel) error = "cancelled";
   else if (stalled) error = "download stalled";
@@ -484,27 +529,41 @@ static bool downloadEpisodeOnce(const String &url, const String &path, bool allo
 
 // With retries: a dropped connection continues where it stopped. savedTotal: the server size the
 // file on the card was started with (SIZE_UNKNOWN if not known); serverTotal: the size now.
+//
+// A failed write continues too, right away and against a limit of its own: the core's SD driver
+// reports a write as failed when the card's status has any bit set afterwards, also a stale one
+// left by an earlier read, and that happens every few MB while an episode plays. The file is then
+// closed, it keeps what was flushed, and the next round asks the server from there.
 bool downloadEpisode(const String &url, const String &path, uint32_t savedTotal, String &error, uint32_t &serverTotal,
                      const DownloadPlanned &planned = nullptr) {
   static const uint16_t backoffMs[] = {2000, 5000, 10000};
   DownloadStats st;
   st.startedMs = millis();
   serverTotal = SIZE_UNKNOWN;
+  EpisodeSource src;
   bool allowSkip = true;
   bool ok = false;
+  int writeErrors = 0;
   for (int attempt = 0; attempt <= 3 && !podcastCancel; attempt++) {
-    bool retrySkipless = false;
-    ok = downloadEpisodeOnce(url, path, allowSkip, savedTotal, error, st, retrySkipless, serverTotal, planned);
+    bool retrySkipless = false, writeError = false;
+    ok = downloadEpisodeOnce(url, path, allowSkip, savedTotal, error, st, retrySkipless, writeError, serverTotal,
+                             planned, src);
     if (serverTotal != SIZE_UNKNOWN) savedTotal = serverTotal;  // what is on the card now matches it
     if (ok) break;
     if (retrySkipless) {
       allowSkip = false;
+      src.known = false;
       attempt--;  // not a network failure
+      continue;
+    }
+    if (writeError && ++writeErrors <= 40) {
+      attempt--;  // the network is fine: continue at once
       continue;
     }
     Serial.printf("[podcast] attempt %d: %s\n", attempt + 1, error.c_str());
     if (attempt < 3 && !podcastCancel) vTaskDelay(pdMS_TO_TICKS(backoffMs[attempt]));
   }
+  if (writeErrors) Serial.printf("[podcast] %d failed writes continued\n", writeErrors);
   st.sample();
   unsigned long secs = (millis() - st.startedMs) / 1000;
   Serial.printf("[podcast] %s %s: %u kB in %lu s, min heap %u, min largest %u, write max %u ms, flush max %u ms\n",
@@ -938,6 +997,17 @@ static void podcastDebugTask(void *arg) {
   }
   podcastTask = nullptr;
   vTaskDelete(NULL);
+}
+
+bool podcastDebugDownload(const String &url, const String &path);
+String podcastDebugPath;  // where the last dl: went
+
+// dl:<url> -> /spike_<hash>.mp3: one file per URL, so a test never appends one episode to another.
+bool podcastDebugDownload(const String &url) {
+  char path[24];
+  snprintf(path, sizeof(path), "/spike_%04x.mp3", (unsigned)(episodeIdHash(url.c_str()) & 0xFFFF));
+  podcastDebugPath = path;
+  return podcastDebugDownload(url, podcastDebugPath);
 }
 
 bool podcastDebugDownload(const String &url, const String &path) {

@@ -626,13 +626,29 @@ void checkSerialForCommands() {
     logHeap("now");
   } else if (cmd == "dl") {
     value.trim();
-    Serial.println(podcastDebugDownload(value, "/spike.mp3") ? "downloading to /spike.mp3" : "a download is already running");
+    if (podcastDebugDownload(value)) Serial.println("downloading to " + podcastDebugPath);
+    else Serial.println("a download is already running");
+  } else if (cmd == "dltls") {
+    value.trim();
+    podcastPreferHttp = value.toInt() == 0;
+    Serial.println(podcastPreferHttp ? "episodes over plain http where possible" : "episodes always over https");
+  } else if (cmd == "podcasturl") {
+    value.trim();
+    PodcastConfig cfg;
+    cfg.url = value;
+    bool ok = player.albumDirectory().length() && writePodcastConfig(player.albumDirectory(), cfg);
+    Serial.printf("podcast.txt in %s: %s\n", player.albumDirectory().c_str(), ok ? value.c_str() : "not written");
   } else if (cmd == "dlstop") {
     podcastCancel = true;
   } else if (cmd == "dlplay") {
     value.trim();
-    player.playTrack(value.length() ? value : String("/spike.mp3"), 0);
+    player.playTrack(value.length() ? value : podcastDebugPath, 0);
     fileWhenTagInserted = player.currentlyPlayingFile;
+  } else if (cmd == "audio") {
+    Serial.printf("audio: %s, %s, at %u of %u, %u buffered, %u kbit/s, %u s\n", player.audio.isRunning() ? "running" : "not running",
+                  player.currentlyPlayingFile.length() ? player.currentlyPlayingFile.c_str() : "-", player.audio.getFilePos(),
+                  player.audio.getFileSize(), player.audio.inBufferFilled(), player.audio.getBitRate() / 1000,
+                  player.audio.getAudioCurrentTime());
   } else if (cmd == "podcast") {
     uint32_t synced = 0, expected = 0;
     bool done = false;
@@ -658,7 +674,7 @@ void checkSerialForCommands() {
                    "\" is not supported. Supported commands: low[:<-40..6>], "
                    "mid[:<-40..6>], high[:<-40..6>], list, play:<index>, "
                    "maxVolume:<safe|unsafe>, knockDebug:<0|1|2>, heap[:<seconds>], dl:<url>, dlstop, "
-                   "dlplay[:<path>], md5:<path>, podcast");
+                   "dlplay[:<path>], md5:<path>, podcast, audio, dltls:<0|1>, podcasturl:<url>");
   }
   Serial.readString();
 }

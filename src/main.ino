@@ -531,7 +531,11 @@ void restoreToneSettings() {
 }
 
 void shutdownBox() {
-  Serial.println("shutting down");
+  // On USB power the supply stays on and the callers keep calling this every loop iteration:
+  // say it once, or the console drowns in it.
+  static bool announced = false;
+  if (!announced) Serial.println("shutting down");
+  announced = true;
   pixel.setPixelColor(0, pixel.Color(0, 0, 0));  // Set to off (black)
   digitalWrite(POWER_SUPPLY_PIN, LOW);
 }

@@ -8,6 +8,77 @@
 
 #include <ESPAsyncWebServer.h>
 
+#include <memory>
+#include <vector>
+
+// ---------------------------------------------------------------------------
+// Response body in 1 kB blocks
+//
+// AsyncResponseStream keeps the whole body in one cbuf and reallocates (and
+// copies) it on every write beyond the initial size, so a 12 kB page briefly
+// needs 24 kB of *contiguous* heap. After a few dozen uploads the heap is
+// fragmented enough that this fails, and the failed new[] aborts the box.
+// Blocks of 1 kB fit anywhere; the filler hands them out as the socket drains.
+// ---------------------------------------------------------------------------
+
+class PageBuffer : public Print {
+  static constexpr size_t BLOCK = 1024;
+  std::vector<std::unique_ptr<char[]>> blocks;
+  size_t total = 0;
+
+ public:
+  size_t write(uint8_t c) override { return write(&c, 1); }
+
+  size_t write(const uint8_t *data, size_t len) override {
+    size_t done = 0;
+    while (done < len) {
+      size_t off = total % BLOCK;
+      if (off == 0) {
+        char *block = new (std::nothrow) char[BLOCK];
+        if (!block) break;  // the page comes out truncated instead of resetting the box
+        blocks.emplace_back(block);
+      }
+      size_t n = std::min(len - done, BLOCK - off);
+      memcpy(blocks.back().get() + off, data + done, n);
+      done += n;
+      total += n;
+    }
+    return done;
+  }
+
+  size_t length() const { return total; }
+
+  // Copies up to maxLen bytes starting at index; 0 once everything is out.
+  size_t read(uint8_t *dst, size_t maxLen, size_t index) const {
+    if (index >= total) return 0;
+    size_t n = std::min(maxLen, total - index), done = 0;
+    while (done < n) {
+      size_t pos = index + done, off = pos % BLOCK;
+      size_t k = std::min(n - done, BLOCK - off);
+      memcpy(dst + done, blocks[pos / BLOCK].get() + off, k);
+      done += k;
+    }
+    return done;
+  }
+};
+
+// Sends a PageBuffer; the response owns it until the last byte is out.
+//
+// One TCP segment per call on purpose. The server asks for a whole send buffer
+// (5.7 kB) at a time and lwIP copies that into ~1.5 kB segments, so a full write
+// needs the buffer plus four segments of heap at once. On a fragmented heap
+// tcp_write() then fails, returns 0, and ESPAsyncWebServer does not notice: the
+// first 5.7 kB of the page (with the HTTP head) are simply lost and the browser
+// shows the rest as text. Smaller writes need one segment and get through.
+void sendBuffered(AsyncWebServerRequest *request, std::shared_ptr<PageBuffer> page, const char *contentType, bool noStore = false) {
+  static constexpr size_t SEGMENT = 1436;  // TCP MSS on this network
+  AsyncWebServerResponse *response = request->beginResponse(contentType, page->length(), [page](uint8_t *buf, size_t maxLen, size_t index) -> size_t {
+    return page->read(buf, std::min(maxLen, SEGMENT), index);
+  });
+  if (noStore) response->addHeader("Cache-Control", "no-store");
+  request->send(response);
+}
+
 // ---------------------------------------------------------------------------
 // Stylesheet (raw string literal: no printf escaping needed, sent uncopied)
 // ---------------------------------------------------------------------------
@@ -346,7 +417,7 @@ String (*pageSubtitle)() = nullptr;
 // Set by the management server; hides tabs that make no sense yet (Files/Upload without an album token).
 bool (*navItemVisible)(const NavItem &item) = nullptr;
 // Set by the management server; prints a notice above the page content (e.g. "place an album token").
-void (*pageNotice)(AsyncResponseStream *res) = nullptr;
+void (*pageNotice)(Print *res) = nullptr;
 
 String htmlEscape(const String &in) {
   String out;
@@ -401,7 +472,7 @@ uint32_t jsVersion() {
   return hash;
 }
 
-void pageHead(AsyncResponseStream *res, AsyncWebServerRequest *request, const char *activeNav) {
+void pageHead(Print *res, AsyncWebServerRequest *request, const char *activeNav) {
   const char *theme = themeFromCookie(request);
   String subtitle = pageSubtitle ? pageSubtitle() : String("");
   res->print("<!DOCTYPE html><html lang=\"en\"");
@@ -424,7 +495,7 @@ void pageHead(AsyncResponseStream *res, AsyncWebServerRequest *request, const ch
   if (pageNotice) pageNotice(res);
 }
 
-void pageFoot(AsyncResponseStream *res) {
+void pageFoot(Print *res) {
   res->print("</section><footer>" BOX_NAME " &middot; management mode</footer>");
   res->printf("<script src=\"/app.js?v=%08x\"></script>", jsVersion());
   res->print("</main></body></html>");

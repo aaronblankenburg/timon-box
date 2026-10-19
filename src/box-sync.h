@@ -130,7 +130,8 @@ void peerAlbum(AsyncWebServerRequest *request) {
     return;
   }
 
-  AsyncResponseStream *res = request->beginResponseStream("text/plain", 2048);
+  auto page = std::make_shared<PageBuffer>();
+  Print *res = page.get();
   res->printf("album\t%s\n", folderDisplayName(folder, tag).c_str());
   int count = 0;
   File dir = SD.open(folder);
@@ -145,7 +146,7 @@ void peerAlbum(AsyncWebServerRequest *request) {
   filesUnlock();
 
   Serial.printf("[peer] album %s for %s: %d files\n", folder.c_str(), tag.c_str(), count);
-  request->send(res);
+  sendBuffered(request, page, "text/plain");
 }
 
 // The open File has to survive across filler calls, so it lives on the heap and
@@ -868,7 +869,8 @@ static const char *syncFileStatusName(uint8_t status) {
 
 void copyStatusJson(AsyncWebServerRequest *request) {
   SyncState state = syncState;
-  AsyncResponseStream *res = request->beginResponseStream("application/json", 4096);
+  auto page = std::make_shared<PageBuffer>();
+  Print *res = page.get();
   res->printf("{\"state\":\"%s\",\"station\":%s,\"bytes\":%u,\"bytesTotal\":%u,\"heap\":%u",
               syncStateName(state),
               netMode == NET_STATION && WiFi.status() == WL_CONNECTED ? "true" : "false",
@@ -895,10 +897,7 @@ void copyStatusJson(AsyncWebServerRequest *request) {
     res->print(",\"peer\":\"\",\"album\":\"\",\"error\":\"\",\"files\":[]");
   }
   res->printf(",\"total\":%d,\"missing\":%d,\"done\":%d,\"failed\":%d}", total, missing, done, failed);
-
-  AsyncWebServerResponse *response = res;
-  response->addHeader("Cache-Control", "no-store");
-  request->send(response);
+  sendBuffered(request, page, "application/json", true);
 }
 
 void copyScanJson(AsyncWebServerRequest *request) {
@@ -907,7 +906,8 @@ void copyScanJson(AsyncWebServerRequest *request) {
   }
   const char *state = syncBusy() ? "busy" : (syncScanning || !syncScanDone) ? "scanning" : "done";
 
-  AsyncResponseStream *res = request->beginResponseStream("application/json", 1024);
+  auto page = std::make_shared<PageBuffer>();
+  Print *res = page.get();
   res->printf("{\"state\":\"%s\",\"boxes\":[", state);
   if (syncLock(500)) {
     for (size_t i = 0; i < syncPeers.size(); i++) {
@@ -917,10 +917,7 @@ void copyScanJson(AsyncWebServerRequest *request) {
     syncUnlock();
   }
   res->print("]}");
-
-  AsyncWebServerResponse *response = res;
-  response->addHeader("Cache-Control", "no-store");
-  request->send(response);
+  sendBuffered(request, page, "application/json", true);
 }
 
 void copyListPost(AsyncWebServerRequest *request) {
@@ -965,7 +962,8 @@ void copyPage(AsyncWebServerRequest *request) {
     syncUnlock();
   }
 
-  AsyncResponseStream *res = request->beginResponseStream("text/html", 6144);
+  auto page = std::make_shared<PageBuffer>();
+  Print *res = page.get();
   pageHead(res, request, "copy");
   res->printf("<span id=\"cf\" hidden data-station=\"%d\"></span>", station ? 1 : 0);
 
@@ -1010,7 +1008,7 @@ void copyPage(AsyncWebServerRequest *request) {
              "</div></div></dialog>");
 
   pageFoot(res);
-  request->send(res);
+  sendBuffered(request, page, "text/html");
 }
 
 void registerSyncRoutes(AsyncWebServer &server) {

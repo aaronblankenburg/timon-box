@@ -224,7 +224,7 @@ bool navVisible(const NavItem &item) {
 
 // Shown on every page while only the management token is on the box. Polls /album
 // and jumps to the file list as soon as an album token is recognised.
-void albumNotice(AsyncResponseStream *res) {
+void albumNotice(Print *res) {
   if (!currentFolder().isEmpty()) return;
   res->print("<div class=\"notice\" id=\"an\"><i class=\"ic ic-warn\"></i><span><b>Which album?</b> Only the management token is on the box. "
              "Swap it for the token of the album you want to edit. Files, Upload and Copy appear here automatically.</span></div>");
@@ -293,7 +293,8 @@ void home(AsyncWebServerRequest *request) {
   if (folder.isEmpty()) return request->redirect("/wifi");
   uint64_t sdFree = sdTotal > sdUsed ? sdTotal - sdUsed : 0;
 
-  AsyncResponseStream *res = request->beginResponseStream("text/html", 6144);
+  auto page = std::make_shared<PageBuffer>();
+  Print *res = page.get();
   pageHead(res, request, "upload");
 
   // Status card
@@ -340,9 +341,8 @@ void home(AsyncWebServerRequest *request) {
              "<button class=\"btn\" type=\"button\" id=\"ms\" hidden>Show files</button>"
              "</div></div></dialog>");
 
-
   pageFoot(res);
-  request->send(res);
+  sendBuffered(request, page, "text/html");
 }
 
 void listFiles(AsyncWebServerRequest *request) {
@@ -364,7 +364,8 @@ void listFiles(AsyncWebServerRequest *request) {
   filesUnlock();
   if (folder.isEmpty()) return request->redirect("/wifi");
 
-  AsyncResponseStream *res = request->beginResponseStream("text/html", 6144);
+  auto body = std::make_shared<PageBuffer>();
+  Print *res = body.get();
   pageHead(res, request, "files");
 
   res->print("<div class=\"card flush\"><div class=\"card-head\"><h2>Files</h2>");
@@ -418,7 +419,7 @@ void listFiles(AsyncWebServerRequest *request) {
   res->print("</div>");
 
   pageFoot(res);
-  request->send(res);
+  sendBuffered(request, body, "text/html");
 }
 
 // ---------------------------------------------------------------------------

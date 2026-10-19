@@ -532,7 +532,8 @@ void wifiPage(AsyncWebServerRequest *request) {
   String saved = getSavedSsid();
   String hostname = String(boxHostname()) + ".local";
 
-  AsyncResponseStream *res = request->beginResponseStream("text/html", 6144);
+  auto page = std::make_shared<PageBuffer>();
+  Print *res = page.get();
   pageHead(res, request, "wifi");
 
   // Connection card
@@ -597,9 +598,8 @@ void wifiPage(AsyncWebServerRequest *request) {
   }
   res->print("</form></div>");
 
-
   pageFoot(res);
-  request->send(res);
+  sendBuffered(request, page, "text/html");
 }
 
 void registerWifiRoutes(AsyncWebServer &server) {

@@ -126,6 +126,16 @@ bool loadCredentials(String &ssid, String &pass) {
   return ssid.length() > 0;
 }
 
+// Same as loadCredentials(), but works outside management mode (where wifiPrefs is not open).
+bool readSavedCredentials(String &ssid, String &pass) {
+  Preferences prefs;
+  if (!prefs.begin("wifi", true)) return false;  // namespace does not exist yet
+  ssid = prefs.getString("ssid", "");
+  pass = prefs.getString("pass", "");
+  prefs.end();
+  return ssid.length() > 0;
+}
+
 void saveCredentials(const String &ssid, const String &pass) {
   wifiPrefs.putString("ssid", ssid);
   wifiPrefs.putString("pass", pass);

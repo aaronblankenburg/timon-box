@@ -4,7 +4,9 @@
 #include <player.cpp>
 
 #include "Audio.h"
+#include "gated-fs.h"
 #include "management-server.h"
+#include "podcast.h"
 
 #define I2S_DOUT 25
 #define I2S_BCLK GPIO_NUM_27  // I2S
@@ -55,6 +57,17 @@ class PlayerI2S : public Player {
     determineAlbumDir(tag);
     setAlbumFolder(this->albumDir, tag);
     filesUnlock();
+  }
+
+  // Starts `path` at byte `pos` (0 = from the start). While a podcast download runs, every file
+  // goes through gatedFS, so the decoder never waits for the card the downloader writes to.
+  bool playTrack(const String &path, uint32_t pos = 0) {
+    handleParams(path);
+    currentlyPlayingFile = path;
+    fs::FS &card = podcastBusy() ? gatedFS : (fs::FS &)SD;
+    bool ok = audio.connecttoFS(card, path.c_str(), pos);
+    Serial.printf("playing file: %s%s at %u\n", path.c_str(), podcastBusy() ? " (gated)" : "", pos);
+    return ok;
   }
 
   void loop() { audio.loop(); }

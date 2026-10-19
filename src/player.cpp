@@ -31,7 +31,9 @@ class Player {
 
   void startSdCard() {
     spiSD.begin(SD_SCK, SD_MISO, SD_MOSI, SD_CS);
-    if (!SD.begin(SD_CS, spiSD, SD_SPEED)) {
+    // 8 instead of 5 open files: the podcast downloader and the audio library (which opens a
+    // file twice when it starts one) share the card.
+    if (!SD.begin(SD_CS, spiSD, SD_SPEED, "/sd", 8)) {
       Serial.println("Error talking to SD card!");
       sdConnected = false;
     } else {

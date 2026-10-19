@@ -8,6 +8,7 @@
 
 #include "Arduino.h"
 #include "BluetoothA2DPSink.h"
+#include "esp_bt.h"
 #include "knock.cpp"
 #include "playerI2S.h"
 
@@ -83,6 +84,7 @@ unsigned int maxVolume = MAX_VOLUME_SAFE;
 float batteryAdcValue = 2390.;  // start with full value
 String managementAlbumTag = "";        // album token currently selected in management mode
 unsigned long managementNoTokenSince = 0;
+unsigned long heapLogEveryMs = 0;  // serial "heap:<s>"
 
 void setup() {
   pinMode(POWER_SUPPLY_PIN, OUTPUT);
@@ -107,6 +109,15 @@ void setup() {
   pinMode(VOLTAGE_PIN, INPUT);
 
   if (esp_reset_reason() != ESP_RST_SW) bluetoothMode = false;
+  sdGateBegin();
+  if (!bluetoothMode) {
+    // The A2DP library links btStart(), so the core keeps ~55 kB reserved for Bluetooth at boot,
+    // although Bluetooth only ever runs after a restart into Bluetooth mode. Give it back.
+    uint32_t before = ESP.getFreeHeap();
+    esp_err_t err = esp_bt_mem_release(ESP_BT_MODE_BTDM);
+    Serial.printf("Bluetooth memory released (%s): free heap %u -> %u, largest block %u\n", esp_err_to_name(err), before,
+                  ESP.getFreeHeap(), ESP.getMaxAllocHeap());
+  }
   if (bluetoothMode) {
     startBluetooth();
   } else {
@@ -122,6 +133,13 @@ void loop() {
   esp_task_wdt_reset();
   checkSerialForCommands();
   updateBatteryAdc();
+  if (heapLogEveryMs) {
+    static unsigned long lastHeapLog = 0;
+    if (millis() - lastHeapLog >= heapLogEveryMs) {
+      lastHeapLog = millis();
+      logHeap(player.audio.isRunning() ? "playing" : "idle");
+    }
+  }
 
   player.loop();
 
@@ -511,6 +529,24 @@ void checkSerialForCommands() {
     if (value == "safe") maxVolumeIsSafe = true;
     if (value == "unsafe") maxVolumeIsSafe = false;
     Serial.println("Set maxVolume to " + maxVolumeIsSafe ? "safe" : "unsafe");
+  } else if (cmd == "heap") {
+    value.trim();
+    heapLogEveryMs = value.toInt() * 1000UL;
+    logHeap("now");
+  } else if (cmd == "dl") {
+    value.trim();
+    Serial.println(podcastDebugDownload(value, "/spike.mp3") ? "downloading to /spike.mp3" : "a download is already running");
+  } else if (cmd == "dlstop") {
+    podcastCancel = true;
+  } else if (cmd == "dlplay") {
+    value.trim();
+    player.playTrack(value.length() ? value : String("/spike.mp3"), 0);
+    fileWhenTagInserted = player.currentlyPlayingFile;
+  } else if (cmd == "md5") {
+    value.trim();
+    uint32_t size;
+    String sum = fileMd5(value, size);
+    Serial.printf("md5 %s %s (%u bytes)\n", sum.c_str(), value.c_str(), size);
   } else if (cmd == "knockdebug") {
     value.trim();
     int level = constrain(value.toInt(), 0, 2);
@@ -520,7 +556,8 @@ void checkSerialForCommands() {
     Serial.println("Command \"" + cmd +
                    "\" is not supported. Supported commands: low[:<-40..6>], "
                    "mid[:<-40..6>], high[:<-40..6>], list, play:<index>, "
-                   "maxVolume:<safe|unsafe>, knockDebug:<0|1|2>");
+                   "maxVolume:<safe|unsafe>, knockDebug:<0|1|2>, heap[:<seconds>], dl:<url>, dlstop, "
+                   "dlplay[:<path>], md5:<path>");
   }
   Serial.readString();
 }

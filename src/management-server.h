@@ -501,8 +501,17 @@ static void uploadWriterTask(void *) {
     switch (job.op) {
       case UP_OPEN:
         if (filesLock(10000)) {
+          errno = 0;
           c->file = SD.open(c->tmpPath, FILE_WRITE);
           filesUnlock();
+          if (!c->file) {
+            Serial.printf("Upload %s: could not create %s (errno %d), free heap %u, largest block %u\n",
+                          c->filename.c_str(), c->tmpPath.c_str(), errno, ESP.getFreeHeap(), ESP.getMaxAllocHeap());
+            c->message = "Could not create the temp file on the SD card";
+          }
+        } else {
+          Serial.printf("Upload %s: card busy, could not open the temp file\n", c->filename.c_str());
+          c->message = "The SD card was busy for too long";
         }
         if (!c->file) c->failed = true;
         break;
@@ -511,8 +520,16 @@ static void uploadWriterTask(void *) {
         if (!c->failed) {
           bool ok = false;
           if (filesLock(10000)) {
+            errno = 0;
             ok = c->file.write(job.buf, job.len) == job.len;
             filesUnlock();
+            if (!ok) {
+              Serial.printf("Upload %s: write failed after %u bytes (errno %d)\n", c->filename.c_str(), (unsigned)c->written, errno);
+              c->message = "Writing to the SD card failed";
+            }
+          } else {
+            Serial.printf("Upload %s: card busy, write skipped after %u bytes\n", c->filename.c_str(), (unsigned)c->written);
+            c->message = "The SD card was busy for too long";
           }
           if (ok) c->written += job.len;
           else c->failed = true;
@@ -526,13 +543,13 @@ static void uploadWriterTask(void *) {
           String target = webServerFolderPath + "/" + c->filename;
           if (c->failed) {
             SD.remove(c->tmpPath);
-            c->result = 500;
-            c->message = "Writing to the SD card failed";
+            c->result = 500;  // message set where it failed
           } else if (webServerFolderPath.isEmpty()) {
             SD.remove(c->tmpPath);  // token was removed meanwhile
             c->result = 409;
             c->message = "No album selected";
           } else if ((SD.exists(target) && !SD.remove(target)) || !SD.rename(c->tmpPath, target)) {  // overwrite an existing track
+            Serial.printf("Upload %s: could not move %s to %s (errno %d)\n", c->filename.c_str(), c->tmpPath.c_str(), target.c_str(), errno);
             SD.remove(c->tmpPath);
             c->result = 500;
             c->message = "Could not move the file into the album folder";
@@ -605,8 +622,9 @@ void handleUploadBody(AsyncWebServerRequest *request, uint8_t *data, size_t len,
       uploadPost(UP_ABORT, r->ctx, nullptr, 0);
     });
     uploadPost(UP_OPEN, c, nullptr, 0);
-    Serial.printf("Upload start: %s (%u bytes), free heap %u, largest block %u\n",
-                  c->filename.c_str(), (unsigned)total, ESP.getFreeHeap(), ESP.getMaxAllocHeap());
+    Serial.printf("Upload start: %s (%u bytes), free heap %u, largest block %u, %u of %d buffers free\n",
+                  c->filename.c_str(), (unsigned)total, ESP.getFreeHeap(), ESP.getMaxAllocHeap(),
+                  (unsigned)uxQueueMessagesWaiting(uploadFreeBufs), UPLOAD_BUF_COUNT);
   }
 
   UploadReq *r = (UploadReq *)request->_tempObject;
@@ -616,6 +634,9 @@ void handleUploadBody(AsyncWebServerRequest *request, uint8_t *data, size_t len,
     if (!r->buf) {
       if (xQueueReceive(uploadFreeBufs, &r->buf, pdMS_TO_TICKS(5000)) != pdTRUE) {  // writer cannot keep up
         r->buf = nullptr;
+        Serial.printf("Upload %s: no free buffer for 5 s after %u bytes, %u jobs queued for the writer\n",
+                      r->ctx->filename.c_str(), (unsigned)index, (unsigned)uxQueueMessagesWaiting(uploadJobs));
+        r->ctx->message = "The SD writer did not keep up";
         r->ctx->failed = true;
         return;
       }

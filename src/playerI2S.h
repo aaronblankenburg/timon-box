@@ -14,19 +14,21 @@
 
 class PlayerI2S : public Player {
  private:
-  void playFile(String path) {
-    // startSdCard();
-    if (SD.exists(path)) {
-      handleParams(path);
-      currentlyPlayingFile = path;
-      sdConnected = audio.connecttoFS(SD, path.c_str());
-      Serial.println("playing file: " + path);
-    } else {
-      Serial.println("file does not exist, flushing player cache: " + path);
-      flushPlayerCache();
-      loadAlbumDirIntoPlaylist(albumDir);
-      startOrContinueAlbum();
-    }
+  void playFile(String path) { playTrack(path, 0); }
+
+  // While a podcast download runs, every file goes through gatedFS, so the decoder never waits
+  // for the card the downloader writes to.
+  fs::FS &card() { return podcastBusy() ? gatedFS : (fs::FS &)SD; }
+
+  // connecttoFS() also fails when the decoder cannot get its ~23 kB of buffers. Only a card that
+  // no longer answers is worth the reboot in loop().
+  bool startFile(const char *path, uint32_t pos) {
+    if (audio.connecttoFS(card(), path, pos)) return true;
+    Serial.printf("could not start %s, free heap %u, largest block %u\n", path, ESP.getFreeHeap(), ESP.getMaxAllocHeap());
+    File root = SD.open("/");
+    sdConnected = (bool)root;
+    if (root) root.close();
+    return false;
   }
 
  public:
@@ -59,14 +61,27 @@ class PlayerI2S : public Player {
     filesUnlock();
   }
 
-  // Starts `path` at byte `pos` (0 = from the start). While a podcast download runs, every file
-  // goes through gatedFS, so the decoder never waits for the card the downloader writes to.
-  bool playTrack(const String &path, uint32_t pos = 0) {
+  // Starts `path` at byte `pos` (0 = from the start).
+  bool playTrack(String path, uint32_t pos = 0) {
+    if (!card().exists(path)) {
+      // The index lists a track that is gone (deleted or renamed in the web UI): rebuild the
+      // playlist from the folder and start at its first track.
+      Serial.println("file does not exist, rebuilding the playlist: " + path);
+      flushPlayerCache();
+      playlist.clear();
+      loadAlbumDirIntoPlaylist(albumDir);
+      if (playlist.size() == 0 || !card().exists(playlist.get(0))) {
+        Serial.println("nothing to play in " + albumDir);
+        currentlyPlayingFile = "";
+        return false;
+      }
+      path = playlist.get(0);
+      pos = 0;
+    }
     handleParams(path);
     currentlyPlayingFile = path;
-    fs::FS &card = podcastBusy() ? gatedFS : (fs::FS &)SD;
-    bool ok = audio.connecttoFS(card, path.c_str(), pos);
-    Serial.printf("playing file: %s%s at %u\n", path.c_str(), podcastBusy() ? " (gated)" : "", pos);
+    bool ok = startFile(path.c_str(), pos);
+    Serial.printf("playing file: %s at %u%s\n", path.c_str(), pos, podcastBusy() ? " (gated)" : "");
     return ok;
   }
 
@@ -88,7 +103,7 @@ class PlayerI2S : public Player {
     this->songMaxVolume = 0;
     Serial.println("playing click");
     audio.stopSong();
-    sdConnected = audio.connecttoFS(SD, "/tap.mp3");
+    startFile("/tap.mp3", 0);
     unsigned long startTime = millis();
     while (millis() < startTime + 300) loop();
   }
@@ -97,7 +112,7 @@ class PlayerI2S : public Player {
     this->songMaxVolume = 0;
     Serial.println("playing alert");
     audio.stopSong();
-    sdConnected = audio.connecttoFS(SD, "/alert.mp3");
+    startFile("/alert.mp3", 0);
     unsigned long startTime = millis();
     while (millis() < startTime + 4500) loop();
   }

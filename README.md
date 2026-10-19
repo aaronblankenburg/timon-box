@@ -82,6 +82,41 @@ Visual Studio Code with Platform IO Extension (platformio.platformio-ide)
 ### Zustandsautomat
 [doc/state-machine.html](doc/state-machine.html) zeigt die Zustände der Firmware (Wiedergabe, Bluetooth, Management-Modus mit Netzmodus und Token-Regeln) als Mermaid-Diagramme in den LED-Farben, dazu alle Timeouts mit ihren Konstanten. Im Browser öffnen; Mermaid wird vom CDN geladen.
 
+### Weiter an der gemerkten Stelle
+Die Box merkt sich in `last_played.txt` neben dem zuletzt gespielten Titel eine zweite Zeile mit der Byte-Position:
+beim Abnehmen des Tokens, jede Minute während der Wiedergabe und vor dem Ausschalten am Albumende. Beim nächsten
+Auflegen läuft der Titel ~5 s vor dieser Stelle weiter (`RESUME_REWIND_S`), auch nach dem Ausschalten. „Play next“ in
+der Web-UI und Dateien älterer Firmware haben keine zweite Zeile und beginnen von vorn.
+
+### Podcast-Alben
+Liegt im Albumordner eine `podcast.txt` (Zeile 1: Feed-Adresse, optional `keep=N`), ist der Token ein Podcast. Am
+einfachsten setzt man sie im Management-Modus über die Karte „Podcast“ auf der Upload-Seite; dort gibt es auch eine
+Suche im Apple-Podcast-Verzeichnis, die die Feed-Adresse einträgt. Die Box nutzt das auf der Wi-Fi-Seite gespeicherte
+Heimnetz.
+
+Beim Auflegen (LED pulsiert grün) verbindet sich die Box mit dem WLAN, liest den Feed und nimmt die **neueste Folge**
+(nach `pubDate`, Trailer zählen nicht):
+- liegt sie schon ganz auf der Karte, spielt sie sofort von dort, ohne Download;
+- liegt sie teilweise da, spielt der Teil, und der Rest kommt per HTTP-Range nach;
+- fehlt sie, wird sie geladen und spielt, sobald 64 kB da sind, während der Rest im Hintergrund kommt.
+
+Ohne WLAN, bei einem Fehler oder nach 20 s spielt die neueste Folge auf der Karte. Folgen heißen
+`2026-10-19_0400_<Titel>_<id>.mp3`, sortieren also nach Datum; nach dem Ende einer Folge kommt die nächstältere, nach der
+ältesten geht die Box aus. Die neuesten 30 Folgen (`keep`) bleiben, ältere werden gelöscht. `podcast_state.txt` hält fest,
+was die Box zuletzt gefunden hat; die Web-UI zeigt das an. Unterstützt werden MP3-Podcasts (der weit überwiegende Teil),
+für andere Formate meldet die Web-UI „not supported yet“.
+
+Technik: Der Podcast-Task läuft auf Core 0 und schreibt die Folge in 4-kB-Blöcken. Die Wiedergabe liest die wachsende
+Datei über ein eigenes Dateisystem (`src/gated-fs.h`), das die Endgröße meldet und nur gesicherte Daten herausgibt;
+belegt der Download die Karte, liest die Wiedergabe aus ihrem Puffer weiter, statt zu warten. TLS nur für den Feed,
+bevor etwas spielt; die Folge selbst kommt bevorzugt per `http://` (spart ~45 kB RAM). Ein großer ID3-Tag am Anfang
+(Cover, beim WDR 0,8 MB) wird beim Download weggelassen. Im Player-Modus gibt die Box den nie genutzten
+Bluetooth-Speicher (~55 kB) frei; Bluetooth läuft ohnehin nur nach einem Neustart in den Bluetooth-Modus.
+
+Host-Tests für Feed-Parser, Dateinamen und Fortsetzungslogik (echte Feeds verschiedener Hoster als Testdaten):
+`tools/host-test.sh`. Serielle Befehle zum Prüfen auf der Box: `podcast`, `heap[:<s>]`, `md5:<pfad>`,
+`dl:<url>` / `dlplay` / `dlstop`.
+
 ### Token-Bogen
 [tools/token-sheet.html](tools/token-sheet.html) erzeugt den 10 × 15 cm Fotoabzug mit sechs runden Token-Bildern, gleiches Layout wie `src/prepare_tokens.py` (1772 × 1181 px, Kreise mit 515 px). Die Seite ist eine einzelne HTML-Datei ohne Server und ohne Abhängigkeiten, im Look der Management-Web-UI, und führt in drei Schritten durch den Ablauf: Bilder sammeln (Fotos, Kamera, Web-Links, Einfügen, Drag & Drop), jedes Bild im Kreis zuschneiden (Verschieben, Pinch-Zoom, Drehen), fertigen Bogen teilen oder als JPEG speichern. Die Bilder verlassen das Gerät nicht; eine angefangene Sitzung bleibt im Browser gespeichert.
 

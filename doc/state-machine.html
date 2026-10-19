@@ -65,14 +65,18 @@ stateDiagram-v2
 
     state "paused" as P
     state "playing" as PL
+    state "podcastLoading" as PC
     state "bluetoothPaused" as BP
     state "bluetoothPlaying" as BL
 
     [*] --> P: Einschalten
-    P --> PL: Album-Token (gleicher Token wie zuvor: weiter, sonst Playlist laden)
+    P --> PL: Album-Token (gleicher Token wie zuvor: weiter, sonst letzter Titel ab gemerkter Stelle)
+    P --> PC: Podcast-Token (podcast.txt im Ordner, Akku > 20 %)
+    PC --> PL: neueste Folge spielbar · Feed geprüft · offline · 20 s
+    PC --> P: Token raus (Prüfung läuft im Hintergrund weiter)
     PL --> P: Token raus (Position speichern, 3 s Pause)
     P --> [*]: 10 min ohne Token
-    PL --> [*]: 120 min Spielzeit oder Album einmal durch
+    PL --> [*]: 120 min Spielzeit, Album einmal durch oder älteste Folge zu Ende
 
     P --> BP: Bluetooth-Token (Neustart in A2DP)
     BP --> BL: Gerät verbunden / spielt
@@ -101,12 +105,19 @@ stateDiagram-v2
 
     note right of M
       Web-UI: Wi-Fi-Setup sofort,
-      Files/Upload sobald ein
+      Files/Upload/Podcast sobald ein
       Album-Token aufliegt
+    end note
+
+    note left of PC
+      Podcast-Task auf Core 0: WLAN,
+      Feed, neueste Folge laden;
+      lädt weiter, während sie spielt
     end note
 
     class P orange
     class PL green
+    class PC green
     class BP indigo
     class BL blue
     class MC white
@@ -116,7 +127,7 @@ stateDiagram-v2
     </div>
     <div class="legend">
       <span><i class="dot" style="background:#ffb340"></i>Orange: pausiert / eigener Hotspot</span>
-      <span><i class="dot" style="background:#34c759"></i>Grün: spielt</span>
+      <span><i class="dot" style="background:#34c759"></i>Grün: spielt · pulsierend: Podcast wird geprüft</span>
       <span><i class="dot" style="background:#0a84ff"></i>Blau: Bluetooth spielt</span>
       <span><i class="dot" style="background:#5e5ce6"></i>Indigo: Bluetooth pausiert</span>
       <span><i class="dot" style="background:#ffffff"></i>Weiß: verbindet mit Heimnetz</span>
@@ -159,6 +170,12 @@ stateDiagram-v2
         <tbody>
           <tr><td>Auto-Off in paused / bluetoothPaused</td><td class="mono">10 min</td><td><code>MAX_PAUSE_TIME_IN_S</code></td></tr>
           <tr><td>Auto-Off nach Spielzeit</td><td class="mono">120 min</td><td><code>MAX_PLAY_TIME_IN_S</code></td></tr>
+          <tr><td>Position speichern beim Spielen</td><td class="mono">60 s</td><td><code>STATE_SAVE_EVERY_MS</code></td></tr>
+          <tr><td>Fortsetzen vor der gemerkten Stelle</td><td class="mono">5 s</td><td><code>RESUME_REWIND_S</code></td></tr>
+          <tr><td>Podcast: höchstens warten, dann gespeicherte Folge</td><td class="mono">20 s</td><td><code>PODCAST_LOADING_TIMEOUT_MS</code></td></tr>
+          <tr><td>Podcast: WLAN-Verbindung</td><td class="mono">10 s</td><td><code>PODCAST_WIFI_TIMEOUT_MS</code></td></tr>
+          <tr><td>Podcast: Start der Wiedergabe ab</td><td class="mono">64 kB</td><td><code>PODCAST_FIRST_FLUSH</code></td></tr>
+          <tr><td>Podcast: aufbewahrte Folgen (Vorgabe)</td><td class="mono">30</td><td><code>PODCAST_KEEP_DEFAULT</code></td></tr>
           <tr><td>Management ohne Token, kein Album gewählt</td><td class="mono">60 s</td><td><code>MANAGEMENT_NO_TOKEN_TIMEOUT_IN_S</code></td></tr>
           <tr><td>Verbindungsversuch Heimnetz</td><td class="mono">15 s</td><td><code>WIFI_CONNECT_TIMEOUT_MS</code></td></tr>
           <tr><td>Heimnetz weg, dann Hotspot</td><td class="mono">30 s</td><td><code>STA_LOST_TIMEOUT_MS</code></td></tr>

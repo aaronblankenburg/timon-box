@@ -568,7 +568,7 @@ class FeedParser {
 // Episode files
 // ---------------------------------------------------------------------------
 
-inline uint32_t fnv1a(const std::string &s) {
+inline uint32_t episodeIdHash(const std::string &s) {  // FNV-1a
   uint32_t h = 2166136261u;
   for (unsigned char c : s) h = (h ^ c) * 16777619u;
   return h;
@@ -620,7 +620,7 @@ inline std::string episodeFileName(const PodcastEpisode &e) {
     snprintf(prefix, sizeof(prefix), "0000-00-00_0000_");
   }
   char id[8];
-  snprintf(id, sizeof(id), "_%04x", (unsigned)(fnv1a(e.guid.empty() ? e.url : e.guid) & 0xFFFF));
+  snprintf(id, sizeof(id), "_%04x", (unsigned)(episodeIdHash(e.guid.empty() ? e.url : e.guid) & 0xFFFF));
   return std::string(prefix) + fileNamePart(e.title, 100 - strlen(prefix) - strlen(id) - 4) + id + ".mp3";
 }
 

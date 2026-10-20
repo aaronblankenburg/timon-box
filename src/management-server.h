@@ -359,7 +359,17 @@ String podcastStatusText(const PodcastState &st, uint32_t onCard) {
 
 // The Podcast page: what the box found out last (if the album is a podcast), then the feed
 // settings with a search in the Apple Podcasts directory.
-void podcastCards(Print *res, bool isPodcast, const PodcastConfig &cfg, const PodcastState &st, uint32_t onCard, uint64_t sdFree) {
+// `station`: the box is on the home network. In its own hotspot the device has no internet, so the
+// search (in the browser) and the episode list (on the box) cannot work; saving a feed still does.
+void podcastCards(Print *res, bool isPodcast, const PodcastConfig &cfg, const PodcastState &st, uint32_t onCard, uint64_t sdFree,
+                  bool station) {
+  if (!station) {
+    res->print("<div class=\"notice\"><i class=\"ic ic-warn\"></i><span><b>Home network needed.</b> The box is running its own hotspot, "
+               "so there is no internet here: searching and showing episodes work only on the home network. "
+               "A feed address can still be saved; the box loads the episodes in normal mode over the network saved on the "
+               "<a href=\"/wifi\">Wi&#8209;Fi</a> page.</span></div>");
+  }
+  const char *off = station ? "" : " disabled";
   res->print("<div class=\"card\"><div class=\"card-head\"><h2>Podcast</h2>");
   res->print(isPodcast ? "<span class=\"pill ok\"><span class=\"dot\"></span>On</span>" : "<span class=\"pill\">Off</span>");
   res->print("</div>");
@@ -384,11 +394,13 @@ void podcastCards(Print *res, bool isPodcast, const PodcastConfig &cfg, const Po
   res->print("</div>");
 
   res->print("<div class=\"card\"><div class=\"card-head\"><h2>Feed</h2></div>"
-             "<div class=\"field\"><label for=\"ps\">Find a podcast</label><div class=\"row-inline\">"
-             "<input class=\"input\" id=\"ps\" type=\"search\" placeholder=\"Name of the podcast\" spellcheck=\"false\">"
-             "<button class=\"btn secondary\" type=\"button\" id=\"psb\">Search</button></div>"
-             "<p class=\"hint\" id=\"psh\">Searches the Apple Podcasts directory. Needs internet on this device.</p>"
-             "<ul class=\"list\" id=\"psr\" hidden></ul></div>");
+             "<div class=\"field\"><label for=\"ps\">Find a podcast</label><div class=\"row-inline\">");
+  res->printf("<input class=\"input\" id=\"ps\" type=\"search\" placeholder=\"Name of the podcast\" spellcheck=\"false\"%s>"
+              "<button class=\"btn secondary\" type=\"button\" id=\"psb\"%s>Search</button></div>"
+              "<p class=\"hint\" id=\"psh\">%s</p><ul class=\"list\" id=\"psr\" hidden></ul></div>",
+              off, off,
+              station ? "Searches the Apple Podcasts directory. Needs internet on this device."
+                      : "Not available in the box's hotspot: it has no internet.");
   res->print("<form method=\"POST\" action=\"/setPodcast\" accept-charset=\"UTF-8\" class=\"field\">"
              "<label for=\"pu\">Feed address (RSS)</label>");
   res->printf("<input class=\"input\" id=\"pu\" name=\"url\" type=\"url\" value=\"%s\" placeholder=\"https://&hellip;\" "
@@ -408,15 +420,16 @@ void podcastCards(Print *res, bool isPodcast, const PodcastConfig &cfg, const Po
 
   // Single episodes of the feed above, older ones too, loaded by the box (podcast-episodes.h).
   res->printf("<div class=\"card flush\" id=\"ec\" data-sdfree=\"%llu\">", (unsigned long long)sdFree);
-  res->print("<div class=\"card-head\"><h2>Episodes</h2><span class=\"pill neutral mono\" id=\"er\" hidden></span></div>"
+  res->printf("<div class=\"card-head\"><h2>Episodes</h2><span class=\"pill neutral mono\" id=\"er\" hidden></span></div>"
              "<p class=\"hint lead\" id=\"es\">Put single episodes of the podcast above on this token, older ones too. "
              "They are named like the box's own downloads, play in date order and stay until you delete them.</p>"
              "<ul class=\"list\" id=\"el\" hidden></ul>"
              "<div class=\"pager\" id=\"ep\" hidden><button class=\"btn secondary small\" type=\"button\" id=\"em\">Show more</button>"
              "<span class=\"mono\" id=\"en\"></span></div>"
              "<div class=\"pager\"><span class=\"hint\" id=\"eh\"></span><span class=\"actions\">"
-             "<button class=\"btn secondary\" type=\"button\" id=\"eb\">Show episodes</button>"
-             "<button class=\"btn\" type=\"button\" id=\"eg\" hidden disabled>Download</button></span></div></div>");
+             "<button class=\"btn secondary\" type=\"button\" id=\"eb\"%s>Show episodes</button>"
+             "<button class=\"btn\" type=\"button\" id=\"eg\" hidden disabled>Download</button></span></div></div>",
+              off);
 
   // Download dialog, same shape as the upload and copy ones
   res->print("<dialog class=\"modal\" id=\"ed\"><div class=\"card\">"
@@ -525,7 +538,8 @@ void podcastPage(AsyncWebServerRequest *request) {
   auto page = std::make_shared<PageBuffer>();
   Print *res = page.get();
   pageHead(res, request, "podcast");
-  podcastCards(res, isPodcast, podcast, state, episodeOnCard, sdTotal > sdUsed ? sdTotal - sdUsed : 0);
+  bool station = netMode == NET_STATION && WiFi.status() == WL_CONNECTED;
+  podcastCards(res, isPodcast, podcast, state, episodeOnCard, sdTotal > sdUsed ? sdTotal - sdUsed : 0, station);
   pageFoot(res);
   sendBuffered(request, page, "text/html");
 }

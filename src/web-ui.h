@@ -263,7 +263,7 @@ var showEpisodes=null;  // set by the Episodes card: the podcast search shows a 
 function esc(s){return String(s).replace(/[&<>"']/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})}
 function fmt(n){if(n>=1073741824)return (n/1073741824).toFixed(2)+' GB';if(n>=1048576)return (n/1048576).toFixed(1)+' MB';return Math.max(1,Math.round(n/1024))+' kB'}
 function fmtT(s){if(s<60)return Math.ceil(s)+' s';var m=Math.floor(s/60);return m+' min '+Math.round(s-m*60)+' s'}
-function fmtD(ms){if(!ms)return '';var s=Math.round(ms/1000),h=Math.floor(s/3600),m=Math.floor(s/60)%60,x=s%60;return (h?h+':'+(m<10?'0':''):'')+m+':'+(x<10?'0':'')+x}
+function fmtD(ms){if(!ms)return '';var s=Math.floor(ms/1000),h=Math.floor(s/3600),m=Math.floor(s/60)%60,x=s%60;return (h?h+':'+(m<10?'0':''):'')+m+':'+(x<10?'0':'')+x}
 
 // Appearance: cookie "theme=light|dark" overrides the system setting, no cookie = auto.
 (function(){var r=document.documentElement,t=$('tb'),a=$('ta');if(!t||!a)return;

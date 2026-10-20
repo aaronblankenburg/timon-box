@@ -305,9 +305,9 @@ static String megabytes(uint32_t bytes) {
   return buf;
 }
 
-// 1571000 -> "26:11", 3753000 -> "1:02:33"
+// 1570896 -> "26:10", 3753000 -> "1:02:33". Seconds cut off, as podcast feeds and players do.
 String formatDuration(uint32_t ms) {
-  uint32_t s = (ms + 500) / 1000;
+  uint32_t s = ms / 1000;
   char buf[16];
   if (s >= 3600) snprintf(buf, sizeof(buf), "%u:%02u:%02u", (unsigned)(s / 3600), (unsigned)(s / 60 % 60), (unsigned)(s % 60));
   else snprintf(buf, sizeof(buf), "%u:%02u", (unsigned)(s / 60), (unsigned)(s % 60));

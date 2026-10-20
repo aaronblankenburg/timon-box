@@ -80,8 +80,9 @@ void sendBuffered(AsyncWebServerRequest *request, std::shared_ptr<PageBuffer> pa
 }
 
 // ---------------------------------------------------------------------------
-// Favicon: a token with a play sign, the box's whole idea, on a rounded square in the box's
-// colour (BOX_COLOR in platformio.ini), so the two boxes differ in the browser's tabs.
+// Favicon: a token with a play sign, the box's whole idea, in the box's colour (BOX_COLOR in
+// platformio.ini), so the two boxes differ in the browser's tabs. Transparent around the disc:
+// no frame that shows on light or dark tab bars.
 // ---------------------------------------------------------------------------
 
 #ifndef BOX_COLOR
@@ -89,8 +90,8 @@ void sendBuffered(AsyncWebServerRequest *request, std::shared_ptr<PageBuffer> pa
 #endif
 
 static const char FAVICON_SVG[] =
-    "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 32 32\"><rect width=\"32\" height=\"32\" rx=\"8\" fill=\"" BOX_COLOR
-    "\"/><circle cx=\"16\" cy=\"16\" r=\"11\" fill=\"#fff\"/><path d=\"M13.2 10.4v11.2l9.2-5.6z\" fill=\"" BOX_COLOR "\"/></svg>";
+    "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 32 32\"><circle cx=\"16\" cy=\"16\" r=\"15\" fill=\"" BOX_COLOR
+    "\"/><path d=\"M12.6 9.3v13.4l11.1-6.7z\" fill=\"#fff\"/></svg>";
 
 // ---------------------------------------------------------------------------
 // Stylesheet (raw string literal: no printf escaping needed, sent uncopied)

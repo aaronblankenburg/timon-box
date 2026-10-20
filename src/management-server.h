@@ -967,6 +967,29 @@ void setupWebServer() {
     Serial.printf("[http] %s %s from %s, heap %u\n", request->methodToString(), request->url().c_str(), request->client()->remoteIP().toString().c_str(), ESP.getFreeHeap());
     next();
   });
+  // A page opened as http://<hostname>.local repeats a failed request at the box's IP address (see
+  // boxFetch in web-ui.h). That is another origin, so those requests need CORS. Only the box's own
+  // name gets in, and headers a handler set itself stay (/wifi-status has its own for the hotspot).
+  server.addMiddleware([](AsyncWebServerRequest *request, ArMiddlewareNext next) {
+    const AsyncWebHeader *origin = request->getHeader("Origin");
+    String own = String("http://") + boxHostname() + ".local";
+    if (!origin || !origin->value().equalsIgnoreCase(own)) {
+      next();
+      return;
+    }
+    if (request->method() == HTTP_OPTIONS) {  // preflight, e.g. of an upload (Content-Type: application/octet-stream)
+      AsyncWebServerResponse *response = request->beginResponse(204);
+      response->addHeader("Access-Control-Allow-Origin", own.c_str());
+      response->addHeader("Access-Control-Allow-Methods", "GET, POST");
+      response->addHeader("Access-Control-Allow-Headers", "Content-Type");
+      response->addHeader("Access-Control-Max-Age", "600");
+      request->send(response);
+      return;
+    }
+    next();
+    AsyncWebServerResponse *response = request->getResponse();
+    if (response && !response->getHeader("Access-Control-Allow-Origin")) response->addHeader("Access-Control-Allow-Origin", own.c_str());
+  });
   server.on("/home", HTTP_GET, home);
   server.on("/podcast", HTTP_GET, podcastPage);
   server.on("/", HTTP_GET, listFiles);

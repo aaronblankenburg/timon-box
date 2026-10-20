@@ -82,6 +82,17 @@ Visual Studio Code with Platform IO Extension (platformio.platformio-ide)
 ### Zustandsautomat
 [doc/state-machine.html](doc/state-machine.html) zeigt die Zustände der Firmware (Wiedergabe, Bluetooth, Management-Modus mit Netzmodus und Token-Regeln) als Mermaid-Diagramme in den LED-Farben, dazu alle Timeouts mit ihren Konstanten. Im Browser öffnen; Mermaid wird vom CDN geladen.
 
+### Management-Modus im Heimnetz
+Im Heimnetz ist die Box unter `<name>.local` erreichbar, also `timon-box.local` oder `julius-box.local`, und unter ihrer
+IP-Adresse, die im Fuß jeder Seite steht. In manchen WLANs kommen die Multicast-Anfragen, mit denen ein Rechner
+`.local`-Namen auflöst, bei der Box nie an. Direkt per Unicast gestellte Anfragen beantwortet sie dagegen jedes Mal.
+Der Rechner kennt den Namen dann nur, solange er sich ihre letzte Ankündigung merkt, also etwa zwei Minuten. Deshalb
+scheiterte früher oft der dritte oder vierte Upload, und nur ein Neustart der Box half. Dagegen hilft zweierlei:
+- Die Box kündigt ihren Namen im Management-Modus jede Minute neu an (`MDNS_ANNOUNCE_EVERY_MS`).
+- Scheitert eine Anfrage der Seite über den Namen, wiederholt die Seite sie über die IP, und alle weiteren
+  Anfragen gehen direkt dorthin. Das gilt für Uploads und die Statusabfragen. Die Box erlaubt dafür nur Anfragen
+  vom eigenen `.local`-Namen (CORS).
+
 ### Weiter an der gemerkten Stelle
 Die Box merkt sich in `last_played.txt` neben dem zuletzt gespielten Titel eine zweite Zeile mit der Byte-Position:
 beim Abnehmen des Tokens, jede Minute während der Wiedergabe und vor dem Ausschalten am Albumende. Beim nächsten

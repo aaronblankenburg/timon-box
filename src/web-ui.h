@@ -234,6 +234,12 @@ html,.ulist,dialog.modal .card{scrollbar-width:thin;scrollbar-color:var(--text3)
 // elements exist: theme toggle, album notice poll, upload page, Wi-Fi page.
 static const char PAGE_JS[] = R"APPJS((function(){
 var $=function(id){return document.getElementById(id)};
+// <hostname>.local needs a multicast DNS lookup for every new connection, and on some networks the
+// box does not hear those. Once a request to the name fails, it and every later request of the page
+// go to the box's IP address (BOX_IP, set in the page head; the box lets the name's origin in).
+var viaIp=false;function ipBase(){return window.BOX_IP&&/\.local\.?$/i.test(location.hostname)?'http://'+window.BOX_IP:''}
+function boxUrl(p){return viaIp?ipBase()+p:p}
+function boxFetch(p,o){return fetch(boxUrl(p),o).catch(function(e){var b=ipBase();if(viaIp||!b)throw e;viaIp=true;return fetch(b+p,o)})}
 function esc(s){return String(s).replace(/[&<>"']/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})}
 function fmt(n){if(n>=1073741824)return (n/1073741824).toFixed(2)+' GB';if(n>=1048576)return (n/1048576).toFixed(1)+' MB';return Math.max(1,Math.round(n/1024))+' kB'}
 function fmtT(s){if(s<60)return Math.ceil(s)+' s';var m=Math.floor(s/60);return m+' min '+Math.round(s-m*60)+' s'}
@@ -247,7 +253,7 @@ function ap(v){if(v)r.setAttribute('data-theme',v);else r.removeAttribute('data-
 ap(rc());t.onclick=function(){var n=ef()==='dark'?'light':'dark';wc(n);ap(n)};a.onclick=function(){wc(null);ap(null)}})();
 
 // "Which album?" notice: poll until an album token is recognised, then show its files.
-if($('an')){(function(){function c(){fetch('/album',{cache:'no-store'}).then(function(r){return r.json()}).then(function(d){if(d.album)location.href='/';else setTimeout(c,2000)}).catch(function(){setTimeout(c,3000)})}setTimeout(c,2000)})()}
+if($('an')){(function(){function c(){boxFetch('/album',{cache:'no-store'}).then(function(r){return r.json()}).then(function(d){if(d.album)location.href=boxUrl('/');else setTimeout(c,2000)}).catch(function(){setTimeout(c,3000)})}setTimeout(c,2000)})()}
 
 // Podcast card: search the Apple Podcasts directory and put a result's feed address into the
 // form. JSONP, because a page served by the box cannot fetch() another site's API.
@@ -286,12 +292,13 @@ t.textContent=(act?'Uploading · ':'')+done+' of '+items.length+' done'+(act>1?'
 var now=Date.now();samples.push([now,sent]);while(samples.length>2&&now-samples[0][0]>4000)samples.shift();
 if(samples.length>1){var a=samples[0],e=samples[samples.length-1],rate=e[0]>a[0]?(e[1]-a[1])/((e[0]-a[0])/1000):0;
 if(now-startAt>2500&&rate>0)r.textContent=fmt(rate)+'/s · ~'+fmtT((total-sent)/rate)+' left'}}
-function uploadOne(k,cb){var x=items[k],xhr=new XMLHttpRequest();inflight[k]=xhr;x.loaded=0;xhr.open('POST','/upload?name='+encodeURIComponent(x.file.name));xhr.setRequestHeader('Content-Type','application/octet-stream');setSt(k,'uploading','0 %');
+function uploadOne(k,cb){var x=items[k],xhr=new XMLHttpRequest();inflight[k]=xhr;x.loaded=0;xhr.open('POST',boxUrl('/upload?name='+encodeURIComponent(x.file.name)));xhr.setRequestHeader('Content-Type','application/octet-stream');setSt(k,'uploading','0 %');
 xhr.upload.onprogress=function(e){if(!e.lengthComputable)return;x.loaded=e.loaded;progressAll();fp(k).textContent=Math.round(e.loaded/e.total*100)+' %'};
 xhr.upload.onload=function(){x.loaded=x.file.size;setSt(k,'saving','saving')};
 function end(ok,st,txt){delete inflight[k];if(ok)doneBytes+=x.file.size;x.loaded=0;setSt(k,st,txt);progressAll();cb(ok)}
 xhr.onload=function(){if(xhr.status>=200&&xhr.status<300)end(true,'done');else end(false,'failed','HTTP '+xhr.status)};
-xhr.onerror=xhr.ontimeout=function(){end(false,'failed','failed')};
+xhr.onerror=function(){if(!viaIp&&ipBase()){viaIp=true;delete inflight[k];uploadOne(k,cb);return}end(false,'failed','failed')};
+xhr.ontimeout=function(){end(false,'failed','failed')};
 xhr.onabort=function(){end(false,'failed','cancelled')};
 xhr.send(x.file)}
 function openModal(){mslot.appendChild(ul);ul.hidden=false;if(dlg.showModal){if(!dlg.open)dlg.showModal()}else dlg.setAttribute('open','')}
@@ -313,7 +320,7 @@ i.onchange=function(){setFiles(i.files)};
 ['dragleave','drop'].forEach(function(ev){z.addEventListener(ev,function(e){e.preventDefault();z.classList.remove('over')})});
 z.addEventListener('drop',function(e){setFiles(e.dataTransfer.files)});
 document.addEventListener('dragover',function(e){e.preventDefault()});document.addEventListener('drop',function(e){e.preventDefault()});
-u.onclick=run;rb.onclick=run;mc.onclick=function(){if(!busy)return;cancelled=true;Object.keys(inflight).forEach(function(k){inflight[k].abort()})};mx.onclick=closeModal;ms.onclick=function(){location.href='/'};
+u.onclick=run;rb.onclick=run;mc.onclick=function(){if(!busy)return;cancelled=true;Object.keys(inflight).forEach(function(k){inflight[k].abort()})};mx.onclick=closeModal;ms.onclick=function(){location.href=boxUrl('/')};
 })()}
 
 // Wi-Fi page: network list from /wifi-scan, connection result from /wifi-status, hand-over to <box>.local.
@@ -399,11 +406,11 @@ cdg.hidden=copying||!d.missing||!wasCopying;
 if(d.missing)cdg.textContent='Retry '+d.missing+' file'+(d.missing>1?'s':'');
 cdf.hidden=copying||!d.done;
 wasCopying=copying}
-function poll(){fetch('/copy-status',{cache:'no-store'}).then(function(r){return r.json()}).then(function(d){render(d);if(d.state==='listing'||d.state==='copying')setTimeout(poll,1000)}).catch(function(){setTimeout(poll,2000)})}
+function poll(){boxFetch('/copy-status',{cache:'no-store'}).then(function(r){return r.json()}).then(function(d){render(d);if(d.state==='listing'||d.state==='copying')setTimeout(poll,1000)}).catch(function(){setTimeout(poll,2000)})}
 poll();
 cw.onclick=function(){closed=false;cmslot.appendChild(cu);open()};
-cdx.onclick=close;cdf.onclick=function(){location.href='/'};
-function scan(re){fetch('/copy-scan'+(re?'?rescan=1':'')).then(function(r){return r.json()}).then(function(d){
+cdx.onclick=close;cdf.onclick=function(){location.href=boxUrl('/')};
+function scan(re){boxFetch('/copy-scan'+(re?'?rescan=1':'')).then(function(r){return r.json()}).then(function(d){
 if(d.state==='busy'){pl.innerHTML='<li class="status">Busy with a transfer</li>';return}
 if(d.state==='scanning'){pl.innerHTML='<li class="status">Searching…</li>';setTimeout(function(){scan(false)},1200);return}
 if(!d.boxes.length){pl.innerHTML='<li class="status">No other box found. Type its address below; it needs its management token in place.</li>';return}
@@ -436,6 +443,12 @@ String (*pageSubtitle)() = nullptr;
 bool (*navItemVisible)(const NavItem &item) = nullptr;
 // Set by the management server; prints a notice above the page content (e.g. "place an album token").
 void (*pageNotice)(Print *res) = nullptr;
+// Set by the network code: the box's address on the home network, "" while there is none (hotspot).
+// Pages fall back to it when a request to the .local name fails (boxFetch in PAGE_JS). Every new
+// connection to a .local name needs a multicast DNS lookup, and on some networks the box never
+// hears those queries: once the computer's cached answer had expired, the next request (often an
+// upload) failed.
+String (*pageDirectAddress)() = nullptr;
 
 String htmlEscape(const String &in) {
   String out;
@@ -495,7 +508,10 @@ void pageHead(Print *res, AsyncWebServerRequest *request, const char *activeNav)
   String subtitle = pageSubtitle ? pageSubtitle() : String("");
   res->print("<!DOCTYPE html><html lang=\"en\"");
   if (theme[0]) res->printf(" data-theme=\"%s\"", theme);
-  res->printf("><head><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width,initial-scale=1\"><title>" BOX_NAME "</title><link rel=\"stylesheet\" href=\"/css?v=%08x\"></head><body><main>", cssVersion());
+  res->print("><head><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width,initial-scale=1\">");
+  String direct = pageDirectAddress ? pageDirectAddress() : String("");
+  if (direct.length()) res->printf("<script>var BOX_IP='%s'</script>", direct.c_str());
+  res->printf("<title>" BOX_NAME "</title><link rel=\"stylesheet\" href=\"/css?v=%08x\"></head><body><main>", cssVersion());
 
   res->print("<header><div class=\"title-row\"><h1>" BOX_NAME "</h1><div class=\"theme-ctl\">"
              "<button class=\"btn secondary small\" type=\"button\" id=\"ta\" hidden>Auto</button>"
@@ -514,7 +530,10 @@ void pageHead(Print *res, AsyncWebServerRequest *request, const char *activeNav)
 }
 
 void pageFoot(Print *res) {
-  res->print("</section><footer>" BOX_NAME " &middot; management mode</footer>");
+  String direct = pageDirectAddress ? pageDirectAddress() : String("");
+  res->print("</section><footer>" BOX_NAME " &middot; management mode");
+  if (direct.length()) res->printf(" &middot; %s", direct.c_str());
+  res->print("</footer>");
   res->printf("<script src=\"/app.js?v=%08x\"></script>", jsVersion());
   res->print("</main></body></html>");
 }

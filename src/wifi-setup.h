@@ -34,6 +34,11 @@
 #endif
 #define STA_LOST_TIMEOUT_MS 30000  // station link gone for this long -> hotspot
 #define NET_ACTION_GRACE_MS 400    // let the HTTP response reach the browser before touching the radio
+// Some networks never deliver multicast queries to the box (Timon, Oct 2026: a direct query to
+// port 5353 was answered every time, a multicast one never). Computers then cannot look up
+// <hostname>.local once their cached answer (120 s) has expired, although the box's own
+// announcements do reach them. Repeating those keeps the name in their caches.
+#define MDNS_ANNOUNCE_EVERY_MS 60000
 #define AP_TEARDOWN_GRACE_MS 5000  // after a successful connect from the portal: let the page see the result, then drop the hotspot
 
 enum NetMode { NET_CONNECTING,
@@ -227,6 +232,27 @@ void tearDownAccessPoint() {
   Serial.printf("[net] hotspot closed, box reachable as %s.local (%s)\n", boxHostname(), WiFi.localIP().toString().c_str());
 }
 
+// For pages (see pageDirectAddress in web-ui.h): the address on the home network, if the box is on it.
+String directAddress() {
+  if (netMode != NET_STATION || apActive || WiFi.status() != WL_CONNECTED) return String("");
+  return WiFi.localIP().toString();
+}
+
+// Setting the port again makes the mDNS responder announce the service together with the box's
+// address. The first call waits a full period: right after connecting it is still probing.
+void announceMdnsPeriodically() {
+  static unsigned long last = 0;
+  if (!last) last = millis();
+  if (millis() - last < MDNS_ANNOUNCE_EVERY_MS) return;
+  last = millis();
+  esp_err_t err = mdns_service_port_set("_http", "_tcp", 80);
+  static bool logged = false;
+  if (!logged || err != ESP_OK) {
+    Serial.printf("[net] mDNS announced again (%s), from now on every %d s\n", esp_err_to_name(err), MDNS_ANNOUNCE_EVERY_MS / 1000);
+    logged = true;
+  }
+}
+
 void onStaDisconnected(arduino_event_id_t, arduino_event_info_t info) {
   lastDisconnectReason = info.wifi_sta_disconnected.reason;
   Serial.printf("[net] station disconnected, reason %u\n", info.wifi_sta_disconnected.reason);
@@ -242,6 +268,7 @@ void netBegin() {
   WiFi.setSleep(false);  // modem sleep adds 100-300 ms latency per request and slows uploads
   WiFi.setHostname(boxHostname());
   WiFi.onEvent(onStaDisconnected, ARDUINO_EVENT_WIFI_STA_DISCONNECTED);
+  pageDirectAddress = directAddress;
 
   String ssid, pass;
   if (loadCredentials(ssid, pass)) {
@@ -417,6 +444,7 @@ NetMode netLoop() {
         }
       } else {
         staLostSince = 0;
+        announceMdnsPeriodically();
       }
       break;
 

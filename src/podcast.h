@@ -455,6 +455,8 @@ static bool downloadEpisodeOnce(const String &url, const String &path, bool allo
   FIL *out = new (std::nothrow) FIL;
   bool opened = false;
   if (out && sdGateTake()) {
+    // In one gated section with the open, which truncates on a restart: see gated-fs.h.
+    growingStart(path.c_str(), local, expected == SIZE_UNKNOWN ? 0 : expected);
     opened = f_open(out, fatPath(path).c_str(), FA_WRITE | (local > 0 ? FA_OPEN_APPEND : FA_CREATE_ALWAYS)) == FR_OK;
     sdGateGive();
   }
@@ -464,7 +466,6 @@ static bool downloadEpisodeOnce(const String &url, const String &path, bool allo
     error = "cannot write " + path;
     return false;
   }
-  growingStart(path.c_str(), local, expected == SIZE_UNKNOWN ? 0 : expected);
 
   uint32_t written = local, flushed = local;
   size_t fill = 0;

@@ -19,8 +19,10 @@
 //
 // Reading a file that another handle appends to is outside the FATFS contract (FF_FS_LOCK is
 // 0, so nothing stops it). It is safe here because the writer only appends and the reader never
-// reads past the size it saw at its own open. Never remove, rename or truncate the file while
-// it is open.
+// reads past the size it saw at its own open. When the download has to start over, the writer
+// truncates the file; a reader still holding its old handle would follow freed clusters. So every
+// open of the writer counts up `generation`, in the same sdGate section as the open itself, and a
+// reader checks it under the gate and reopens before it reads again.
 
 #include <FS.h>
 #include <FSImpl.h>
@@ -44,17 +46,20 @@ struct GrowingFile {
   char path[260] = "";  // the audio library takes paths up to 255
   uint32_t synced = 0;    // bytes flushed to the card: safe to read
   uint32_t expected = 0;  // final size of the local file, 0 = not known
+  uint32_t generation = 0;  // counts the writer's opens; a new one may have truncated the file
   bool done = false;      // no more data will come: complete, given up or cancelled
   bool hungry = false;    // a reader is waiting for data: flush early
 };
 GrowingFile growing;
 portMUX_TYPE growingMux = portMUX_INITIALIZER_UNLOCKED;
 
+// The writer calls this with sdGate held, right before it opens the file (see the top).
 void growingStart(const char *path, uint32_t synced, uint32_t expected) {
   portENTER_CRITICAL(&growingMux);
   strlcpy(growing.path, path, sizeof(growing.path));
   growing.synced = synced;
   growing.expected = expected;
+  growing.generation++;
   growing.done = false;
   growing.hungry = false;
   portEXIT_CRITICAL(&growingMux);
@@ -91,7 +96,8 @@ bool growingHungry() {
 }
 
 // Copies the state if `path` is the file being downloaded.
-bool growingGet(const char *path, uint32_t &synced, uint32_t &expected, bool &done, bool markHungry = false) {
+bool growingGet(const char *path, uint32_t &synced, uint32_t &expected, bool &done, bool markHungry = false,
+                uint32_t *generation = nullptr) {
   bool match;
   portENTER_CRITICAL(&growingMux);
   match = growing.path[0] && strcmp(growing.path, path) == 0;
@@ -99,10 +105,18 @@ bool growingGet(const char *path, uint32_t &synced, uint32_t &expected, bool &do
     synced = growing.synced;
     expected = growing.expected;
     done = growing.done;
+    if (generation) *generation = growing.generation;
     if (markHungry && !done) growing.hungry = true;
   }
   portEXIT_CRITICAL(&growingMux);
   return match;
+}
+
+// The writer's generation of `path`, 0 if it is not being downloaded.
+uint32_t growingGeneration(const char *path) {
+  uint32_t synced, expected, generation = 0;
+  bool done;
+  return growingGet(path, synced, expected, done, false, &generation) ? generation : 0;
 }
 
 // A read-only file for the audio library, see the comment at the top.
@@ -115,6 +129,7 @@ class GatedFile : public fs::FileImpl {
   String _path;
   const char *_name;
   bool _growing;
+  uint32_t _generation;  // the writer's generation _real was opened in, 0 = none
   uint32_t _pos = 0;
   uint32_t _realSize = 0;   // size snapshot of _real; 0 makes the next read reopen
   uint32_t _knownSize = 0;  // largest size seen: a read error does not make the file shorter
@@ -122,6 +137,9 @@ class GatedFile : public fs::FileImpl {
   uint32_t _lastExpected = 0;
   bool _needSeek = false;
   bool _hungry = false;
+  // Open for the library until close(), whatever _real does in between: the library checks the
+  // file before every read and gives up on it for good once it reports false.
+  bool _open = true;
   uint32_t _readErrors = 0;
 
   // How far the file may be read now, and the size to report.
@@ -147,7 +165,8 @@ class GatedFile : public fs::FileImpl {
   }
 
  public:
-  GatedFile(File real, const String &path, bool growing) : _real(real), _path(path), _growing(growing) {
+  GatedFile(File real, const String &path, uint32_t generation)
+      : _real(real), _path(path), _growing(generation != 0), _generation(generation) {
     _realSize = _knownSize = _real.size();
     int slash = _path.lastIndexOf('/');
     _name = _path.c_str() + (slash >= 0 ? slash + 1 : 0);
@@ -174,6 +193,17 @@ class GatedFile : public fs::FileImpl {
     bool reopen = !_real || _pos >= _realSize;  // the size snapshot is used up, or a read failed
     if (reopen && _retryAt && (int32_t)(millis() - _retryAt) < 0) return 0;
     if (!sdGateTake(len >= 64 ? 0 : pdMS_TO_TICKS(1000))) return 0;
+    uint32_t generation = growingGeneration(_path.c_str());
+    if (generation && generation != _generation) {
+      // The writer has opened the file again since _real was opened, maybe truncating it: drop
+      // the handle and start over with fresh limits on the next call.
+      if (_real) _real.close();
+      _realSize = _knownSize = 0;  // what it had before says nothing about the new file
+      _generation = generation;
+      _growing = true;
+      sdGateGive();
+      return 0;
+    }
     if (reopen) {  // see what is there now
       if (_real) _real.close();
       _real = SD.open(_path, FILE_READ);
@@ -235,6 +265,7 @@ class GatedFile : public fs::FileImpl {
   }
 
   void close() override {
+    _open = false;
     if (!_real) return;
     bool held = sdGateTake(pdMS_TO_TICKS(2000));  // giving a mutex we do not hold would assert
     _real.close();
@@ -253,23 +284,22 @@ class GatedFile : public fs::FileImpl {
   String getNextFileName(void) override { return ""; }
   String getNextFileName(bool *) override { return ""; }
   void rewindDirectory(void) override {}
-  operator bool() override { return (bool)_real; }
+  operator bool() override { return _open; }
 };
 
 class GatedFSImpl : public fs::FSImpl {
  public:
   fs::FileImplPtr open(const char *path, const char *mode, const bool create) override {
     if (mode && mode[0] != 'r') return fs::FileImplPtr();  // the audio library only reads
-    uint32_t synced, expected;
-    bool done;
-    bool isGrowing = growingGet(path, synced, expected, done);
     File real;
+    uint32_t generation = 0;
     if (sdGateTake(pdMS_TO_TICKS(2000))) {
+      generation = growingGeneration(path);  // together with the open, under the gate
       real = SD.open(path, FILE_READ);
       sdGateGive();
     }
     if (!real) return fs::FileImplPtr();
-    return std::make_shared<GatedFile>(real, String(path), isGrowing);
+    return std::make_shared<GatedFile>(real, String(path), generation);
   }
 
   bool exists(const char *path) override {

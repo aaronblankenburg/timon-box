@@ -87,6 +87,13 @@ static bool fatRemove(const String &path) {
   return ok;
 }
 
+static bool fatRename(const String &from, const String &to) {
+  if (!sdGateTake()) return false;
+  bool ok = f_rename(fatPath(from).c_str(), fatPath(to).c_str()) == FR_OK;
+  sdGateGive();
+  return ok;
+}
+
 void logHeap(const char *what) {
   Serial.printf("[heap] %s: free %u, min %u, largest block %u\n", what, ESP.getFreeHeap(), ESP.getMinFreeHeap(),
                 ESP.getMaxAllocHeap());
@@ -700,6 +707,7 @@ bool downloadEpisode(const String &url, const String &path, uint32_t savedTotal,
 #define PODCAST_CONFIG_FILE "/podcast.txt"
 #define PODCAST_STATE_FILE "/podcast_state.txt"
 #define PODCAST_STATE_TMP "/podcast_state.tmp"
+#define PODCAST_KEPT_FILE "/podcast_kept.txt"  // episodes loaded by hand on the Podcast page: never cleaned up
 #define PODCAST_KEEP_DEFAULT 30
 #define PODCAST_KEEP_MAX 500
 
@@ -867,9 +875,63 @@ static uint32_t fileSizeOnCard(const String &path) {
   return size;
 }
 
-// Deletes the oldest episodes beyond `keep`, never `except`. Only runs while nothing plays.
+// The file names in the album's podcast_kept.txt, one per line. Read in pieces: the list grows with
+// every episode loaded by hand, beyond what readSmallFile() takes.
+std::vector<String> podcastKeptNames(const String &dir) {
+  std::vector<String> names;
+  FIL *f = new (std::nothrow) FIL;
+  if (!f) return names;
+  if (sdGateTake()) {
+    if (f_open(f, fatPath(dir + PODCAST_KEPT_FILE).c_str(), FA_READ) == FR_OK) {
+      char buf[256];
+      UINT got = 0;
+      String line;
+      while (f_read(f, buf, sizeof(buf), &got) == FR_OK && got > 0) {
+        for (UINT i = 0; i < got; i++) {
+          if (buf[i] == '\n') {
+            line.trim();
+            if (line.length()) names.push_back(line);
+            line = "";
+          } else {
+            line += buf[i];
+          }
+        }
+      }
+      line.trim();
+      if (line.length()) names.push_back(line);
+      f_close(f);
+    }
+    sdGateGive();
+  }
+  delete f;
+  return names;
+}
+
+bool addPodcastKeptName(const String &dir, const String &name) {
+  FIL *f = new (std::nothrow) FIL;
+  if (!f) return false;
+  bool ok = false;
+  if (sdGateTake()) {
+    if (f_open(f, fatPath(dir + PODCAST_KEPT_FILE).c_str(), FA_WRITE | FA_OPEN_APPEND) == FR_OK) {
+      String line = name + "\n";
+      UINT put = 0;
+      ok = f_write(f, line.c_str(), line.length(), &put) == FR_OK && put == line.length();
+      ok = f_close(f) == FR_OK && ok;
+    }
+    sdGateGive();
+  }
+  delete f;
+  return ok;
+}
+
+// Deletes the oldest episodes beyond `keep`, never `except` and never the ones loaded by hand
+// (podcast_kept.txt), which do not count towards `keep` either. Only runs while nothing plays.
 int podcastRetention(const String &dir, int keep, const String &except) {
   std::vector<String> names = listEpisodes(dir);
+  std::vector<String> kept = podcastKeptNames(dir);
+  names.erase(std::remove_if(names.begin(), names.end(),
+                             [&](const String &n) { return std::find(kept.begin(), kept.end(), n) != kept.end(); }),
+              names.end());
   int removed = 0;
   for (size_t i = 0; i + keep < names.size(); i++) {
     if (names[i] == except) continue;

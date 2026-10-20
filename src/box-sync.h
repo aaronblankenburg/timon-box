@@ -930,7 +930,7 @@ void copyListPost(AsyncWebServerRequest *request) {
     request->redirect("/copy?err=1");
     return;
   }
-  if (syncBusy()) {
+  if (syncBusy() || episodesBusy()) {
     request->redirect("/copy?err=2");
     return;
   }
@@ -939,7 +939,7 @@ void copyListPost(AsyncWebServerRequest *request) {
 }
 
 void copyStartPost(AsyncWebServerRequest *request) {
-  if (syncBusy() || syncState == SYNC_IDLE) {
+  if (syncBusy() || episodesBusy() || syncState == SYNC_IDLE) {
     request->redirect("/copy?err=2");
     return;
   }

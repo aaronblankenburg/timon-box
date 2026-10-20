@@ -121,9 +121,12 @@ ESPAsyncWebServer ist der Fork von ESP32Async, Version 3.x. Er hat `addMiddlewar
     last_played.txt        Zeile 1: Pfad des Titels, Zeile 2: Byte-Position (optional)
     podcast.txt            Zeile 1: Feed-URL, optional "keep=N". Macht das Album zum Podcast
     podcast_state.txt      was der Podcast-Task zuletzt herausfand (key=value)
+    podcast_kept.txt       von Hand geladene Folgen, eine pro Zeile: das Aufräumen lässt sie stehen
 /temp_<n>                  laufender Upload
 /temp_sync0, /temp_sync1   laufende Kopien von der anderen Box
 /spike_<hash>.mp3          Testdownloads von dl:, weg mit dlclean:
+/temp_episodes.txt         Folgenliste des zuletzt gelesenen Feeds (Karte „Episodes“)
+/temp_episode              Folge, die gerade von Hand geladen wird
 ```
 
 `determineAlbumDir(tag)` nimmt den ersten Ordner, dessen Name auf die Kennung endet. Gibt es keinen, legt sie
@@ -226,11 +229,17 @@ Audio-Bibliothek.
    6. Sonst den Zustand schreiben, `POD_DOWNLOADING`, `downloadEpisode()`.
    7. Am Ende WLAN aus, Task beendet sich.
 3. **Wiedergabe:** `podcastLoading` wartet, bis 64 kB auf der Karte sind (`podcastPlayable()`), der Task fertig ist
-   oder 20 s vergangen sind (`PODCAST_LOADING_TIMEOUT_MS`). Dann spielt `startPodcastPlayback()` die Folge des Tasks
-   oder ohne Netz die neueste auf der Karte. War sie der zuletzt gehörte Titel, geht es an der gemerkten Stelle weiter,
-   sonst von vorn. Bei einer wachsenden Datei bleibt die Startposition deutlich hinter dem Geladenen.
-4. **Folgenende:** Nach einer Folge kommt die nächstältere (`olderEpisodeIndex()`). Nach der ältesten geht die Box aus.
-   Hochgeladene Dateien, die keine Episodennamen haben, zählen dabei nicht.
+   oder 20 s vergangen sind (`PODCAST_LOADING_TIMEOUT_MS`). Dann entscheidet `startPodcastPlayback()`:
+   - Hat der Task gerade den Download einer Folge begonnen, die noch gar nicht auf der Karte lag
+     (`podcastNewDownload`), spielt sie von vorn.
+   - Sonst geht es mit dem zuletzt gehörten Titel an der gemerkten Stelle weiter, egal welcher es ist. Die neueste
+     Folge hat Timon dann vermutlich schon gehört.
+   - Ist nichts gemerkt, beginnt die Reihe von vorn, also bei der neuesten Folge.
+   Bei einer wachsenden Datei bleibt die Startposition deutlich hinter dem Geladenen.
+4. **Reihenfolge und Ende:** Die Folgen laufen von neu nach alt, danach die übrigen Dateien des Ordners nach Namen,
+   etwa Uploads (`podcastOrderNext()` in `podcast-feed.h`, `Player::podcastNextIndex()`). Nach der letzten speichert
+   die Box den Anfang der Reihe an Position 0 und geht aus. Das nächste Auflegen beginnt so wieder bei der neuesten.
+   Klopfen geht wie im Album einen Titel vor oder zurück.
 
 `podcastStop(wait, timeoutMs)` setzt `podcastCancel` und wartet auf das Ende des Tasks. Das passiert vor dem
 Ausschalten, vor dem Bluetooth-Neustart und vor dem Management-Modus, dort mit bis zu 20 s, weil dessen WLAN erst
@@ -355,6 +364,8 @@ hat. `/wifi-status` hat für die Hotspot-Seite sein eigenes `*`.
 | `POST /select`, `/delete` | „Play next“ (schreibt `last_played.txt` ohne Position), Titel löschen |
 | `POST /setFolderPath`, `/deleteAlbum` | Ordner umbenennen, Album samt Ordner löschen |
 | `POST /setPodcast` | `podcast.txt` schreiben, mit `remove=1` löschen. URL prüfen: http(s), ≤ 500 Zeichen |
+| `POST /episodes-load`, `GET /episodes?offset=&limit=` | Feed auf der Box lesen, eine Seite Folgen mit „On the box“ |
+| `POST /episodes-download`, `GET /episodes-status`, `POST /episodes-cancel` | Ausgewählte Folgen laden, Fortschritt, Abbruch |
 | `GET /wifi-scan`, `/wifi-status`, `POST /wifi-connect`, `/wifi-forget` | WLAN-Seite |
 | `GET /peer-info`, `/peer-album`, `/peer-file` | Serverseite der Kopierfunktion |
 | `GET /copy-status`, `/copy-scan`, `POST /copy-list`, `/copy-start`, `/copy-cancel` | Kopierseite |
@@ -365,7 +376,30 @@ Unbekannte Pfade leiten auf `/home` um.
 kopiert die Daten nur in einen Pool aus 4 Puffern zu 4 kB. Der Schreib-Task `sdwriter` (Core 1, Priorität 3, 6 kB
 Stack) schreibt sie nach `/temp_<n>` und benennt die Datei am Ende in den Albumordner um. Ein gleichnamiger Titel
 wird dabei überschrieben, und `index.txt` wird gelöscht. Das Empfangs-Timeout ist 60 s. Bricht der Client ab, räumt
-`UP_ABORT` die Temp-Datei weg.
+`UP_ABORT` die Temp-Datei weg. `uploadsActive` zählt laufende Uploads. Während die Box einen Feed per TLS liest, leiht
+sie dem TLS die 16 kB des Pools (`uploadPoolRelease()` und `uploadPoolRefill()`) und weist Uploads mit einer Meldung
+ab.
+
+### Folgen von Hand laden (`podcast-episodes.h`)
+
+Die Karte „Episodes“ auf der Podcast-Seite zeigt die Folgen eines Feeds und lädt ausgewählte in den Albumordner.
+Den Feed liest die Box, denn die meisten Podcast-Server senden keine CORS-Header. MDR erlaubt es, BR und WDR nicht.
+- Ein Worker-Task mit 12 kB Stack startet bei Bedarf, für jeweils einen Auftrag.
+  - **Liste:** `fetchFeed()` mit einem `FeedParser`, der jede Folge an `onItem` meldet und den ganzen Feed liest,
+    höchstens 8 MB. Jede MP3-Folge kommt als Zeile nach `/temp_episodes.txt`: Datum, Datum als Text, Größe laut Feed,
+    Dateiname aus `episodeFileName()`, URL, Titel. Dazu ein Index im RAM, sortiert neu nach alt, höchstens 1000
+    Folgen. Der 1,1 MB große MDR-Feed mit 462 Folgen dauert etwa 16 s.
+  - **Download:** Die Folgen nacheinander mit `downloadEpisode()` nach `/temp_episode` laden. Dann unter `filesLock()`
+    in den Albumordner umbenennen, `filesInDir` aktualisieren, `index.txt` löschen und den Namen in
+    `podcast_kept.txt` eintragen. Den Fortschritt liefert `growingGet()`, Abbrechen geht über `podcastCancel`.
+- Kein Start, während eine Kopie, ein Upload oder schon ein Auftrag läuft, und nur im Heimnetz. Während eines Auftrags
+  lehnen Kopie, Umbenennen und Löschen des Albums mit 409 ab.
+- Die Größenangaben im Feed sind oft falsch, bei MDR zu groß. Die Platzprüfung der Seite ist dadurch nur vorsichtiger.
+  Nach dem Download zeigt der Status die echte Größe.
+- **Speicher:** TLS braucht im Management-Modus rund 50 kB von etwa 85 kB freiem Heap. Ohne Entlastung sank der freie
+  Heap beim Lesen des MDR-Feeds auf 12,5 kB, und eine gleichzeitig angeforderte Seite scheiterte („Failed to
+  allocate“). Deshalb leiht der Worker dem TLS die Upload-Puffer, und die Seite fragt beim Lesen nur alle 2 s nach.
+  Die Downloads selbst laufen meist per http mit rund 60 kB frei.
 
 ### Web-UI (`web-ui.h`)
 
@@ -426,6 +460,7 @@ Musik erzeugt dagegen viele kurze Halbwellen mit Pausen.
 | `podcast` | 0, 1 | 12 kB | Feed, Download, auch für `dl:` |
 | `esp_timer` | 0 | | Abtastung der Klopfsensoren |
 | `sdwriter` | 1, 3 | 6 kB | Upload auf die Karte |
+| `episodes` | 0, 1, bei Bedarf | 12 kB | Feed lesen und Folgen von Hand laden |
 | Sync-Worker | bei Bedarf | 6 kB | Kopie von der anderen Box |
 | AsyncTCP, WLAN | | | Web-Server, Funk |
 

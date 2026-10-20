@@ -11,6 +11,7 @@
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
+#include <functional>
 #include <string>
 
 // Size of a leading ID3v2 tag including its 10-byte header (and footer, if flagged), or 0 if
@@ -294,6 +295,9 @@ class FeedParser {
   std::string newFeedUrl;  // itunes:new-feed-url: the podcast moved
   int itemsSeen = 0;
   uint32_t bytes = 0;
+  // Called for every episode in feed order (trailers left out, any format: check isMp3()). To see
+  // them all, construct with a large maxItems: by default the parser stops after the first five.
+  std::function<void(const PodcastEpisode &)> onItem;
 
   explicit FeedParser(int maxItems = 5, uint32_t maxBytes = 8u << 20) : _maxItems(maxItems), _maxBytes(maxBytes) {}
 
@@ -559,6 +563,7 @@ class FeedParser {
       _lastUtc = _item.date.utc;
       _haveLast = true;
     }
+    if (onItem) onItem(_item);
     bool newer = !_best.valid() || (_item.dated && (!_best.dated || _item.date.utc > _best.date.utc));
     if (newer) _best = _item;
   }

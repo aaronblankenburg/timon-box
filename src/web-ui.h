@@ -227,7 +227,10 @@ html,.ulist,dialog.modal .card{scrollbar-width:thin;scrollbar-color:var(--text3)
 @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
 @media (max-width:420px){h1{font-size:30px}.card{padding:16px}.card.flush{padding:0}.card.flush .card-head,.card.flush .lead{padding-left:16px;padding-right:16px}.card.flush .card-head{padding-top:16px}.list li{padding:8px 16px}.pager{padding:12px 16px}}
 
-.input.narrow{max-width:7em}.grow{flex:1;align-self:center})CSS";
+.input.narrow{max-width:7em}.grow{flex:1;align-self:center}
+.list label.pick{display:flex;align-items:center;gap:14px;flex:1;min-width:0;cursor:pointer}
+.list input[type=checkbox]{width:22px;height:22px;flex:none;margin:0;accent-color:var(--accent)}
+.ulist .fn .meta{color:var(--text3);font-size:13px})CSS";
 
 // Page script for all pages, served as /app.js (versioned, cached, straight from flash so
 // pages stay small and need little heap to render). Each part activates itself when its
@@ -240,6 +243,7 @@ var $=function(id){return document.getElementById(id)};
 var viaIp=false;function ipBase(){return window.BOX_IP&&/\.local\.?$/i.test(location.hostname)?'http://'+window.BOX_IP:''}
 function boxUrl(p){return viaIp?ipBase()+p:p}
 function boxFetch(p,o){return fetch(boxUrl(p),o).catch(function(e){var b=ipBase();if(viaIp||!b)throw e;viaIp=true;return fetch(b+p,o)})}
+var showEpisodes=null;  // set by the Episodes card: the podcast search shows a picked feed's episodes
 function esc(s){return String(s).replace(/[&<>"']/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})}
 function fmt(n){if(n>=1073741824)return (n/1073741824).toFixed(2)+' GB';if(n>=1048576)return (n/1048576).toFixed(1)+' MB';return Math.max(1,Math.round(n/1024))+' kB'}
 function fmtT(s){if(s<60)return Math.ceil(s)+' s';var m=Math.floor(s/60);return m+' min '+Math.round(s-m*60)+' s'}
@@ -265,11 +269,84 @@ function fail(){cleanup();h.textContent='No answer. The search needs internet on
 window[cb]=function(d){cleanup();var list=(d.results||[]).filter(function(x){return x.feedUrl});
 if(!list.length){h.textContent='Nothing found.';return}
 r.innerHTML=list.map(function(x,k){return '<li><span class="name">'+esc(x.collectionName)+'<span class="meta">'+esc(x.artistName||'')+'</span></span><button class="btn secondary small" type="button" data-k="'+k+'">Use</button></li>'}).join('');
-r.hidden=false;h.textContent='Pick one to fill in its feed address, then save.';
-Array.prototype.forEach.call(r.querySelectorAll('button'),function(x){x.onclick=function(){u.value=list[+x.dataset.k].feedUrl;u.focus()}})};
+r.hidden=false;h.textContent='Pick one: its episodes appear below. Save makes this token follow it.';
+Array.prototype.forEach.call(r.querySelectorAll('button'),function(x){x.onclick=function(){u.value=list[+x.dataset.k].feedUrl;if(showEpisodes)showEpisodes();else u.focus()}})};
 s.onerror=fail;s.src='https://itunes.apple.com/search?media=podcast&entity=podcast&limit=8&country=de&term='+encodeURIComponent(term)+'&callback='+cb;
 document.body.appendChild(s)}
 b.onclick=search;q.onkeydown=function(e){if(e.key==='Enter'){e.preventDefault();search()}}})()}
+
+// Episodes card on the Podcast page: the box reads the feed (most feeds do not let a page read
+// them), lists its episodes newest first and loads the picked ones into the album folder, named
+// like its own downloads. The job runs on the box and the page polls, as on the Copy page.
+if($('ec')){(function(){
+var u=$('pu'),card=$('ec'),er=$('er'),es=$('es'),el=$('el'),ep=$('ep'),em=$('em'),en=$('en'),eh=$('eh'),eb=$('eb'),eg=$('eg'),
+dlg=$('ed'),edt=$('edt'),edr=$('edr'),edb=$('edb'),eds=$('eds'),eu=$('eu'),edc=$('edc'),edx=$('edx'),edg=$('edg');
+var free=+card.dataset.sdfree||0,items=[],picked={},listUrl='',total=0,lt=null,jt=null,closed=false,running=false,samples=[],lastJob=null;
+var ST={waiting:'',loading:'up',done:'ok',present:'ok',failed:'err',cancelled:'err'};
+function post(p,b){return boxFetch(p,{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:b})}
+function when(d){if(!d)return 'no date';var p=d.split(/[- :]/);return new Date(+p[0],p[1]-1,+p[2]).toLocaleDateString(undefined,{day:'numeric',month:'short',year:'numeric'})}
+function say(t,bad){es.textContent=t;es.className='hint lead'+(bad?' danger':'')}
+function sum(){var n=0,b=0;for(var k in picked){n++;b+=picked[k]}
+eg.hidden=!items.length;eg.disabled=!n||b>free||running;eg.textContent=n?'Download '+n:'Download';
+eh.textContent=n?n+' episode'+(n>1?'s':'')+' · '+fmt(b)+(b>free?' · not enough space, '+fmt(free)+' free':' · '+fmt(free)+' free'):items.length?'Tick the episodes to put on this token.':'';
+eh.className=b>free?'hint danger':'hint'}
+function row(x){var m=esc(when(x.d))+(x.s?' · '+fmt(x.s):'');
+if(x.on)return '<li><i class="st ok"></i><span class="name">'+esc(x.t)+'<span class="meta">'+m+' · on the box</span></span></li>';
+return '<li><label class="pick"><input type="checkbox" data-id="'+x.id+'" data-s="'+(x.s||0)+'"'+(x.id in picked?' checked':'')+'><span class="name">'+esc(x.t)+'<span class="meta">'+m+'</span></span></label></li>'}
+function render(d,more){
+if(d.state==='listing'){say('Reading the feed…');return}
+if(d.state==='failed'){say(d.error?'The feed could not be read: '+d.error+'.':'The feed could not be read.',true);return}
+if(d.state!=='listed')return;
+listUrl=d.url;total=d.total;items=more?items.concat(d.items):d.items;
+er.hidden=false;er.textContent=total+' episode'+(total===1?'':'s');
+say((d.title?d.title+' · ':'')+'newest first'+(d.skipped?' · '+d.skipped+' not MP3, not shown':''));
+el.innerHTML=items.map(row).join('');el.hidden=!items.length;
+ep.hidden=items.length>=total;en.textContent=items.length+' of '+total;sum()}
+function load(offset){clearTimeout(lt);boxFetch('/episodes?offset='+offset+'&limit=20',{cache:'no-store'}).then(function(r){return r.json()}).then(function(d){
+render(d,offset>0);if(d.state==='listing')lt=setTimeout(function(){load(0)},2000)}).catch(function(){lt=setTimeout(function(){load(offset)},2000)})}
+function show(){var url=u.value.trim();if(!url){u.focus();return}
+picked={};items=[];el.hidden=true;ep.hidden=true;er.hidden=true;sum();say('Reading the feed…');
+post('/episodes-load','url='+encodeURIComponent(url)).then(function(r){
+if(r.status===202)return load(0);return r.text().then(function(t){say(t||'The box could not read the feed.',true)})}).catch(function(){say('The box did not answer.',true)})}
+showEpisodes=show;
+eb.onclick=show;em.onclick=function(){load(items.length)};
+el.onchange=function(e){var c=e.target;if(!c.dataset||c.dataset.id==null)return;if(c.checked)picked[c.dataset.id]=+c.dataset.s;else delete picked[c.dataset.id];sum()};
+function open(){if(dlg.showModal){if(!dlg.open)dlg.showModal()}else dlg.setAttribute('open','')}
+function close(){if(dlg.close){if(dlg.open)dlg.close()}else dlg.removeAttribute('open')}
+dlg.addEventListener('close',function(){closed=true});
+function label(j){if(j.st==='loading')return j.s?Math.min(99,Math.round(j.l/j.s*100))+' %':'loading';
+return {done:'loaded',present:'already here',failed:'failed',cancelled:'cancelled'}[j.st]||'waiting'}
+function rate(d){var now=Date.now();samples.push([now,d.bytes]);while(samples.length>2&&now-samples[0][0]>8000)samples.shift();
+if(samples.length<2)return '';var a=samples[0],e=samples[samples.length-1];if(e[0]-a[0]<3000)return '';
+var r=(e[1]-a[1])/((e[0]-a[0])/1000);return r>0?fmt(r)+'/s · ~'+fmtT((d.bytesTotal-d.bytes)/r)+' left':''}
+function renderJob(d){var jobs=d.jobs||[],wasRunning=running;running=d.state==='running';
+if(!jobs.length){sum();return}
+lastJob=d;
+var ok=jobs.filter(function(j){return j.st==='done'||j.st==='present'}).length,bad=jobs.filter(function(j){return j.st==='failed'}).length,
+pct=d.bytesTotal?Math.min(100,Math.round(d.bytes/d.bytesTotal*100)):0,sp=running?rate(d):'';
+eu.innerHTML=jobs.map(function(j){return '<li><i class="st '+(ST[j.st]||'')+'"></i><span class="fn">'+esc(j.t)+(j.e?'<span class="meta"> · '+esc(j.e)+'</span>':'')+'</span><span class="fp">'+label(j)+'</span><span class="fz">'+fmt(j.s)+'</span></li>'}).join('');
+edb.style.width=(running?pct:100)+'%';edr.textContent=running?pct+' %':'';
+edt.textContent=running?'Loading episodes':d.state==='cancelled'?'Cancelled':bad?'Done, with errors':'Done';
+eds.textContent=running?ok+' of '+jobs.length+' · '+fmt(d.bytes)+' of '+fmt(d.bytesTotal)+(sp?' · '+sp:''):ok+' of '+jobs.length+' on the box'+(bad?' · '+bad+' failed':'');
+edc.hidden=!running;edx.hidden=running;edg.hidden=running||!bad;
+if(running&&!wasRunning)samples=[];
+if(running&&!closed)open();
+if(wasRunning&&!running&&listUrl)load(0);  // the new episodes are on the box now
+sum()}
+function poll(){clearTimeout(jt);boxFetch('/episodes-status',{cache:'no-store'}).then(function(r){return r.json()}).then(function(d){
+renderJob(d);if(d.state==='running')jt=setTimeout(poll,1000)}).catch(function(){jt=setTimeout(poll,2000)})}
+function start(ids){post('/episodes-download','url='+encodeURIComponent(listUrl)+'&ids='+ids.join(',')).then(function(r){
+if(r.status===202){picked={};closed=false;Array.prototype.forEach.call(el.querySelectorAll('input:checked'),function(c){c.checked=false});sum();return poll()}
+return r.text().then(function(t){eh.textContent=t||'The download could not start.';eh.className='hint danger'})}).catch(function(){eh.textContent='The box did not answer.';eh.className='hint danger'})}
+eg.onclick=function(){var ids=Object.keys(picked);if(ids.length)start(ids)};
+edc.onclick=function(){post('/episodes-cancel','')};
+edx.onclick=close;
+edg.onclick=function(){if(lastJob)start(lastJob.jobs.filter(function(j){return j.st==='failed'}).map(function(j){return j.id}))};
+// After a reload: the list the box still has, and a download that may still be running.
+boxFetch('/episodes?offset=0&limit=20',{cache:'no-store'}).then(function(r){return r.json()}).then(function(d){
+if(d.state==='listed'||d.state==='listing'){if(d.url&&!u.value)u.value=d.url;render(d,false);if(d.state==='listing')lt=setTimeout(function(){load(0)},2000)}}).catch(function(){});
+poll();
+})()}
 
 // Upload page: selection, modal dialog, PAR uploads at a time (each connection is capped by the
 // box's small TCP window), byte-accurate progress, per-file status, retry.

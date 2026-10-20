@@ -308,6 +308,58 @@ static void testSynthetic() {
   }
 }
 
+// Every episode through onItem: what the Episodes card on the Podcast page lists.
+static void testAllItems(const std::string &dir) {
+  std::ifstream expected(dir + "/expected.txt");
+  std::string line;
+  while (std::getline(expected, line)) {
+    std::vector<std::string> f = split(line, '\t');
+    if (f.size() != 4) continue;
+    std::string xml = readFile(dir + "/" + f[0] + ".xml");
+    std::vector<PodcastEpisode> all;
+    FeedParser p(1 << 30);
+    p.onItem = [&](const PodcastEpisode &e) { all.push_back(e); };
+    p.push(xml.data(), xml.size());
+    CHECK(all.size() >= 5);  // the fixtures hold the first seven items of each feed
+    const PodcastEpisode *newest = nullptr;
+    for (const PodcastEpisode &e : all) {
+      CHECK(isEpisodeFileName(episodeFileName(e).c_str()));
+      if (!newest || (e.dated && (!newest->dated || e.date.utc > newest->date.utc))) newest = &e;
+    }
+    CHECK(newest && newest->title == f[2]);  // the same newest one as without the callback
+    CHECK_EQ(episodeFileName(*newest), episodeFileName(p.newest()));
+  }
+
+  std::string xml = "<rss><channel><title>Feed</title>" +
+                    item("Trailer", "Mon, 05 Oct 2026 06:00:00 +0200", "<itunes:episodeType>trailer</itunes:episodeType>") +
+                    item("Eins", "Tue, 06 Oct 2026 06:00:00 +0200") + item("Zwei", "Wed, 07 Oct 2026 06:00:00 +0200") +
+                    "</channel></rss>";
+  std::vector<std::string> titles;
+  FeedParser p(1 << 30);
+  p.onItem = [&](const PodcastEpisode &e) { titles.push_back(e.title); };
+  p.push(xml.data(), xml.size());
+  CHECK(titles == (std::vector<std::string>{"Eins", "Zwei"}));  // feed order, no trailer
+}
+
+static void testPodcastOrder() {
+  // Sorted by name, as the playlist is: two uploads, three episodes.
+  std::vector<std::string> names = {"2026-08-11_1000_Alt_1111.mp3", "2026-09-01_1000_Mitte_2222.mp3",
+                                    "2026-10-17_1000_Neu_3333.mp3", "mdrde-aaaa.mp3128.mp3", "mdrde-bbbb.mp3128.mp3"};
+  auto isEp = [&](int i) { return isEpisodeFileName(names[i].c_str()); };
+  int n = (int)names.size();
+  std::vector<int> order;
+  for (int i = podcastOrderNext(n, -1, isEp); i >= 0 && order.size() < 10; i = podcastOrderNext(n, i, isEp)) order.push_back(i);
+  CHECK(order == (std::vector<int>{2, 1, 0, 3, 4}));  // newest to oldest, then the uploads, then the end
+
+  std::vector<std::string> uploadsOnly = {"a.mp3", "b.mp3"};
+  auto none = [&](int i) { return isEpisodeFileName(uploadsOnly[i].c_str()); };
+  CHECK_EQ(podcastOrderNext(2, -1, none), 0);
+  CHECK_EQ(podcastOrderNext(2, 0, none), 1);
+  CHECK_EQ(podcastOrderNext(2, 1, none), -1);
+  CHECK_EQ(podcastOrderNext(0, -1, none), -1);  // empty folder
+  CHECK_EQ(podcastOrderNext(n, 7, isEp), 2);    // unknown current track: start over at the newest
+}
+
 static void testPlanResume() {
   const uint32_t U = SIZE_UNKNOWN;
   ResumePlan p = planResume(0, false, true, 1000, 100, true, U);
@@ -350,6 +402,8 @@ int main(int argc, char **argv) {
   testFixtures(fixtures);
   testSynthetic();
   testPlanResume();
+  testPodcastOrder();
+  testAllItems(fixtures);
   std::cout << checks - failures << " of " << checks << " checks passed\n";
   return failures ? 1 : 0;
 }

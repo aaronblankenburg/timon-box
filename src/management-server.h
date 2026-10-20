@@ -12,6 +12,7 @@
 #include <freertos/task.h>
 
 #include <algorithm>
+#include <atomic>
 #include <vector>
 
 #include "web-ui.h"
@@ -30,6 +31,9 @@ float *batteryAdcValueManagementServer;
 // The loop task switches albums (token swap) while web handlers on the AsyncTCP
 // task read the file list and touch the SD card, so both go through this mutex.
 SemaphoreHandle_t filesMutex = nullptr;
+
+std::atomic<int> uploadsActive{0};  // uploads between their first byte and their end
+bool episodesBusy();                // podcast-episodes.h: episodes are being listed or loaded
 
 bool filesLock(uint32_t waitMs = 3000) {
   return filesMutex && xSemaphoreTake(filesMutex, pdMS_TO_TICKS(waitMs)) == pdTRUE;
@@ -314,7 +318,7 @@ String podcastStatusText(const PodcastState &st, uint32_t onCard) {
 
 // The Podcast page: what the box found out last (if the album is a podcast), then the feed
 // settings with a search in the Apple Podcasts directory.
-void podcastCards(Print *res, bool isPodcast, const PodcastConfig &cfg, const PodcastState &st, uint32_t onCard) {
+void podcastCards(Print *res, bool isPodcast, const PodcastConfig &cfg, const PodcastState &st, uint32_t onCard, uint64_t sdFree) {
   res->print("<div class=\"card\"><div class=\"card-head\"><h2>Podcast</h2>");
   res->print(isPodcast ? "<span class=\"pill ok\"><span class=\"dot\"></span>On</span>" : "<span class=\"pill\">Off</span>");
   res->print("</div>");
@@ -360,6 +364,31 @@ void podcastCards(Print *res, bool isPodcast, const PodcastConfig &cfg, const Po
                "<button class=\"btn destructive\" type=\"submit\">Remove podcast</button></form>");
   }
   res->print("</div>");
+
+  // Single episodes of the feed above, older ones too, loaded by the box (podcast-episodes.h).
+  res->printf("<div class=\"card flush\" id=\"ec\" data-sdfree=\"%llu\">", (unsigned long long)sdFree);
+  res->print("<div class=\"card-head\"><h2>Episodes</h2><span class=\"pill neutral mono\" id=\"er\" hidden></span></div>"
+             "<p class=\"hint lead\" id=\"es\">Put single episodes of the podcast above on this token, older ones too. "
+             "They are named like the box's own downloads, play in date order and stay until you delete them.</p>"
+             "<ul class=\"list\" id=\"el\" hidden></ul>"
+             "<div class=\"pager\" id=\"ep\" hidden><button class=\"btn secondary small\" type=\"button\" id=\"em\">Show more</button>"
+             "<span class=\"mono\" id=\"en\"></span></div>"
+             "<div class=\"pager\"><span class=\"hint\" id=\"eh\"></span><span class=\"actions\">"
+             "<button class=\"btn secondary\" type=\"button\" id=\"eb\">Show episodes</button>"
+             "<button class=\"btn\" type=\"button\" id=\"eg\" hidden disabled>Download</button></span></div></div>");
+
+  // Download dialog, same shape as the upload and copy ones
+  res->print("<dialog class=\"modal\" id=\"ed\"><div class=\"card\">"
+             "<div class=\"card-head\"><h2 id=\"edt\">Loading episodes</h2><span class=\"hint mono\" id=\"edr\"></span></div>"
+             "<div class=\"progress\"><i id=\"edb\"></i></div>"
+             "<p class=\"hint mono\" id=\"eds\"></p>"
+             "<ul class=\"ulist\" id=\"eu\"></ul>"
+             "<p class=\"hint\">The box loads the episodes itself. You can close this page, it keeps going.</p>"
+             "<div class=\"actions end\">"
+             "<button class=\"btn destructive\" type=\"button\" id=\"edc\">Cancel</button>"
+             "<button class=\"btn secondary\" type=\"button\" id=\"edx\" hidden>Close</button>"
+             "<button class=\"btn\" type=\"button\" id=\"edg\" hidden>Retry failed</button>"
+             "</div></div></dialog>");
 }
 
 // ---------------------------------------------------------------------------
@@ -443,6 +472,7 @@ void podcastPage(AsyncWebServerRequest *request) {
   PodcastState state;
   bool isPodcast = false;
   uint32_t episodeOnCard = 0;
+  uint64_t sdTotal = SD.totalBytes(), sdUsed = SD.usedBytes();
   if (!folder.isEmpty()) {
     isPodcast = readPodcastConfig(folder, podcast);
     readPodcastState(folder, state);
@@ -454,7 +484,7 @@ void podcastPage(AsyncWebServerRequest *request) {
   auto page = std::make_shared<PageBuffer>();
   Print *res = page.get();
   pageHead(res, request, "podcast");
-  podcastCards(res, isPodcast, podcast, state, episodeOnCard);
+  podcastCards(res, isPodcast, podcast, state, episodeOnCard, sdTotal > sdUsed ? sdTotal - sdUsed : 0);
   pageFoot(res);
   sendBuffered(request, page, "text/html");
 }
@@ -590,6 +620,36 @@ struct UploadReq {
 
 QueueHandle_t uploadJobs = nullptr;
 QueueHandle_t uploadFreeBufs = nullptr;
+static int uploadBufTotal = 0;  // buffers in the pool
+
+// The pool stays allocated: later it would have to come out of a fragmented heap. Reading a podcast
+// feed over TLS needs the memory more, for its 15 s or so (podcast-episodes.h). While
+// uploadPoolReleased is set the buffers are freed and uploads are turned away.
+std::atomic<bool> uploadPoolReleased{false};
+
+// Frees the pool, if no upload holds a buffer. Returns whether it did.
+bool uploadPoolRelease() {
+  uploadPoolReleased = true;  // first: an upload starting now is turned away
+  if (uploadsActive > 0 || (int)uxQueueMessagesWaiting(uploadFreeBufs) != uploadBufTotal) {
+    uploadPoolReleased = false;
+    return false;
+  }
+  uint8_t *buf;
+  while (xQueueReceive(uploadFreeBufs, &buf, 0) == pdTRUE) free(buf);
+  return true;
+}
+
+void uploadPoolRefill() {
+  int n = 0;
+  for (; n < uploadBufTotal; n++) {
+    uint8_t *buf = (uint8_t *)malloc(UPLOAD_BUF_SIZE);
+    if (!buf) break;
+    xQueueSend(uploadFreeBufs, &buf, 0);
+  }
+  if (n < uploadBufTotal) Serial.printf("upload: only %d of %d buffers back\n", n, uploadBufTotal);
+  uploadBufTotal = n;
+  uploadPoolReleased = false;
+}
 static uint32_t uploadSeq = 0;  // AsyncTCP task only
 
 static void uploadPost(UploadOp op, UploadCtx *ctx, uint8_t *buf, size_t len) {
@@ -676,6 +736,7 @@ static void uploadWriterTask(void *) {
           c->message = "The box is busy, please retry.";
         }
         c->sdMs += millis() - t0;
+        uploadsActive--;
         xSemaphoreGive(c->done);  // the request owns c from here on
         continue;
 
@@ -686,6 +747,7 @@ static void uploadWriterTask(void *) {
           filesUnlock();
         }
         Serial.printf("Upload aborted: %s after %u bytes\n", c->filename.c_str(), (unsigned)c->written);
+        uploadsActive--;
         vSemaphoreDelete(c->done);
         delete c;
         continue;
@@ -704,6 +766,7 @@ void uploadBegin() {
     if (!buf) break;
     xQueueSend(uploadFreeBufs, &buf, 0);
   }
+  uploadBufTotal = buffers;
   xTaskCreatePinnedToCore(uploadWriterTask, "sdwriter", 6144, nullptr, 3, nullptr, 1);
   Serial.printf("upload: %d buffers of %u bytes, free heap %u, largest block %u\n", buffers, (unsigned)UPLOAD_BUF_SIZE, ESP.getFreeHeap(), ESP.getMaxAllocHeap());
 }
@@ -718,10 +781,15 @@ void handleUploadBody(AsyncWebServerRequest *request, uint8_t *data, size_t len,
       return;  // reported by handleUploadDone
     }
     UploadCtx *c = new UploadCtx();
+    uploadsActive++;
     c->tmpPath = "/temp_" + String(++uploadSeq);
     c->filename = request->hasParam("name") ? sanitizeFilename(request->getParam("name")->value()) : "";
     c->startedAt = millis();
     c->done = xSemaphoreCreateBinary();
+    if (uploadPoolReleased) {  // the box reads a podcast feed and lent the buffers to TLS
+      c->failed = true;
+      c->message = "The box is reading a podcast feed. Upload again in a few seconds.";
+    }
     r->ctx = c;
     request->_tempObject = r;
     request->onDisconnect([r]() {  // fires on every disconnect, also after a normal response
@@ -731,7 +799,7 @@ void handleUploadBody(AsyncWebServerRequest *request, uint8_t *data, size_t len,
       r->buf = nullptr;
       uploadPost(UP_ABORT, r->ctx, nullptr, 0);
     });
-    uploadPost(UP_OPEN, c, nullptr, 0);
+    if (!c->failed) uploadPost(UP_OPEN, c, nullptr, 0);
     Serial.printf("Upload start: %s (%u bytes), free heap %u, largest block %u, %u of %d buffers free\n",
                   c->filename.c_str(), (unsigned)total, ESP.getFreeHeap(), ESP.getMaxAllocHeap(),
                   (unsigned)uxQueueMessagesWaiting(uploadFreeBufs), UPLOAD_BUF_COUNT);
@@ -849,6 +917,7 @@ void handleFileSelect(AsyncWebServerRequest *request) {
 }
 
 void handleFolderPathChange(AsyncWebServerRequest *request) {
+  if (episodesBusy()) return request->send(409, "text/plain", "Episodes are being loaded into this album. Rename it when that is done.");
   if (request->hasParam("path", true)) {
     String newFolderPath = request->getParam("path", true)->value();
     newFolderPath.trim();
@@ -866,6 +935,8 @@ void handleFolderPathChange(AsyncWebServerRequest *request) {
 // Peer endpoints, the copy worker and the Copy page. Included here because it
 // uses the helpers above (filesLock, renameFolder, the upload buffer pool, ...).
 #include "box-sync.h"
+// Episodes picked on the Podcast page, loaded by the box. Uses the helpers above and box-sync's busy state.
+#include "podcast-episodes.h"
 
 // Sets the feed of the album (podcast.txt), or with "remove" makes it a plain album again. The
 // episodes on the card stay either way.
@@ -906,7 +977,7 @@ void handlePodcastSet(AsyncWebServerRequest *request) {
 // away. Deleting while iterating confuses FATFS's directory cursor, so this takes
 // the first entry, closes the directory and removes it, until nothing is left.
 void handleAlbumDelete(AsyncWebServerRequest *request) {
-  if (syncBusy() || peerTransferActive()) return request->send(409, "text/plain", "A transfer is running, try again later.");
+  if (syncBusy() || peerTransferActive() || episodesBusy()) return request->send(409, "text/plain", "A transfer is running, try again later.");
   if (!filesLock(10000)) return sendBusy(request);
   String folder = webServerFolderPath, tag = webServerAlbumTag;
   if (folder.isEmpty()) {
@@ -961,6 +1032,7 @@ void setupWebServer() {
   netBegin();
   uploadBegin();
   syncBegin();
+  episodesBegin();
 
   Serial.println("starting management server");
   server.addMiddleware([](AsyncWebServerRequest *request, ArMiddlewareNext next) {  // request log
@@ -1005,6 +1077,7 @@ void setupWebServer() {
   server.on("/setPodcast", HTTP_POST, handlePodcastSet);
   registerWifiRoutes(server);
   registerSyncRoutes(server);
+  registerEpisodeRoutes(server);
   server.onNotFound([](AsyncWebServerRequest *request) {
     request->redirect("/home");
   });

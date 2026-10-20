@@ -116,11 +116,20 @@ Beim Auflegen (LED pulsiert grün) verbindet sich die Box mit dem WLAN, liest de
 - liegt sie teilweise da, spielt der Teil, und der Rest kommt per HTTP-Range nach;
 - fehlt sie, wird sie geladen und spielt, sobald 64 kB da sind, während der Rest im Hintergrund kommt.
 
-Ohne WLAN, bei einem Fehler oder nach 20 s spielt die neueste Folge auf der Karte. Folgen heißen
-`2026-10-19_0400_<Titel>_<id>.mp3`, sortieren also nach Datum; nach dem Ende einer Folge kommt die nächstältere, nach der
-ältesten geht die Box aus. Die neuesten 30 Folgen (`keep`) bleiben, ältere werden gelöscht. `podcast_state.txt` hält fest,
-was die Box zuletzt gefunden hat; die Web-UI zeigt das an. Unterstützt werden MP3-Podcasts (der weit überwiegende Teil),
-für andere Formate meldet die Web-UI „not supported yet“.
+Vorrang hat die neueste Folge nur, wenn ihr Download gerade erst beginnt, sie also neu ist. Sonst geht es mit dem
+zuletzt gehörten Titel an der gemerkten Stelle weiter, auch bei einer älteren Folge. Ohne WLAN, bei einem Fehler oder
+nach 20 s spielt die Box, was auf der Karte liegt. Folgen heißen `2026-10-19_0400_<Titel>_<id>.mp3`, sortieren also
+nach Datum. Die Reihe läuft von der neuesten zur ältesten Folge, danach kommen hochgeladene Dateien nach Namen, dann
+geht die Box aus. Beim nächsten Auflegen beginnt sie wieder mit der neuesten. Die neuesten 30 automatisch geladenen
+Folgen (`keep`) bleiben, ältere werden gelöscht. `podcast_state.txt` hält fest, was die Box zuletzt gefunden hat; die
+Web-UI zeigt das an. Unterstützt werden MP3-Podcasts (der weit überwiegende Teil), für andere Formate meldet die Web-UI
+„not supported yet“.
+
+**Einzelne Folgen laden:** Auf der Seite „Podcast“ zeigt die Karte „Episodes“ die Folgen eines Podcasts, nach der
+Suche oder für die eingetragene Feed-Adresse, neueste zuerst. Ausgewählte Folgen lädt die Box selbst in den
+Albumordner, auch ältere und auch auf einen Token, der kein Podcast ist. Sie heißen wie die eigenen Downloads der Box,
+stehen in `podcast_kept.txt` und werden deshalb nie automatisch gelöscht. Den Feed liest die Box, weil die meisten
+Podcast-Server dem Browser das nicht erlauben.
 
 Technik: Der Podcast-Task läuft auf Core 0 und schreibt die Folge in 4-kB-Blöcken. Die Wiedergabe liest die wachsende
 Datei über ein eigenes Dateisystem (`src/gated-fs.h`), das die Endgröße meldet und nur gesicherte Daten herausgibt;

@@ -57,6 +57,7 @@ kommt der Rest. Die meisten Header definieren globale Variablen und Funktionen. 
 | `knock.cpp` | Klopfsensor: ADC per `esp_timer` mit 2 kHz, erkennt einen Druck an der Buckelform |
 | `podcast-feed.h` | Reines C++: RSS-Parser, Datumsformate, Episoden-Dateinamen, Fortsetzungsplan |
 | `podcast.h` | Podcast-Task: WLAN, Feed, HTTP-Download mit Range, Zustandsdateien, Aufräumen |
+| `podcast-episodes.h` | Karte „Episodes“: Feed auf der Box lesen, einzelne Folgen von Hand laden |
 | `gated-fs.h` | `sdGate` und `GatedFS`: spielt eine Datei, während sie noch geladen wird |
 | `management-server.h` | Web-Server im Management-Modus: Seiten, Upload, Löschen, Umbenennen, Podcast-Reiter |
 | `web-ui.h` | CSS, Seiten-Skript, Kopf, Navigation, `PageBuffer` und `sendBuffered` |

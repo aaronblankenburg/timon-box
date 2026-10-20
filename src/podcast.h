@@ -44,6 +44,9 @@
 
 volatile TaskHandle_t podcastTask = nullptr;
 volatile bool podcastCancel = false;
+// Set when the task starts downloading an episode that was not on the card at all: a new one, which
+// then plays first. Otherwise playback continues where it was left (see startPodcastPlayback).
+volatile bool podcastNewDownload = false;
 bool podcastPreferHttp = true;  // serial "dltls:1" turns it off, to measure TLS during playback
 
 bool podcastBusy() { return podcastTask != nullptr; }
@@ -1030,6 +1033,7 @@ static PodcastPhase podcastRun() {
   writePodcastState(dir, st);
   if (onCard == 0) removeIndexFile(dir);  // a new file appears: the playlist has to be rebuilt
   setPodcastEpisode(path);
+  podcastNewDownload = onCard == 0;
   podcastPhase = POD_DOWNLOADING;
   uint32_t serverTotal;
   bool ok = downloadEpisode(String(ep.url.c_str()), path, same ? st.total : SIZE_UNKNOWN, error, serverTotal,
@@ -1069,6 +1073,7 @@ bool podcastStart(const String &dir) {
     podcastStop(true);
   }
   podcastCancel = false;
+  podcastNewDownload = false;
   podcastPhase = POD_CHECKING;
   podcastTaskDir = dir;
   setPodcastEpisode("");

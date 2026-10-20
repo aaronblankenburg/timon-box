@@ -514,12 +514,14 @@ void audio_eof_mp3(const char *info) {  // end of file; `info` is the file name 
   if (strcmp(info, "tap.mp3") == 0 || strcmp(info, "alert.mp3") == 0) return;
   checkBattery(true);
   if (player.podcastAlbum) {
-    // From the newest episode back to the older ones; after the oldest the box switches off.
-    int older = player.olderEpisodeIndex(player.currentIndex());
-    if (older >= 0) {
-      player.playSongByIndex(older);
+    // Newest episode to the oldest, then the uploaded files. After the last one the box switches
+    // off, and the next start begins with the newest again instead of repeating the last one.
+    int next = player.podcastNextIndex(player.currentIndex());
+    if (next >= 0) {
+      player.playSongByIndex(next);
     } else {
-      player.savePlayingState();
+      int first = player.podcastFirstIndex();
+      if (first >= 0) player.saveLastPlayed(player.trackAt(first), 0);
       shutdownBox();
     }
     return;
@@ -533,23 +535,29 @@ void audio_eof_mp3(const char *info) {  // end of file; `info` is the file name 
   }
 }
 
-// Podcast albums start with the newest episode: the one the podcast task just checked or
-// downloaded, or, without network, the newest on the card. If that is the one heard last, it
-// continues at the remembered spot.
+// Podcast albums: a new episode, whose download the task has just started, plays first and from
+// the start. Otherwise the box continues where it was left, whichever track that was: the newest
+// one has most likely been heard by then. With nothing remembered it starts at the newest.
 void startPodcastPlayback() {
   player.reloadPlaylist();  // the task may have added and removed episodes
-  String path = podcastEpisode();
-  if (path.isEmpty() || player.indexOfTrack(path) < 0) {
-    int newest = player.newestEpisodeIndex();
-    if (newest < 0) {
-      Serial.println("podcast: no episode on the card yet");
-      player.startOrContinueAlbum();  // whatever else is in the folder
-      return;
+  String path, episode = podcastEpisode();
+  uint32_t pos = 0;
+  if (podcastNewDownload && episode.length() && player.indexOfTrack(episode) >= 0) {
+    Serial.println("podcast: a new episode, it plays first");
+    path = episode;
+  } else {
+    path = player.lastPlayedTrack();  // sets lastPosition()
+    pos = player.lastPosition();
+    if (path.isEmpty() || player.indexOfTrack(path) < 0) {
+      int first = player.podcastFirstIndex();
+      if (first < 0) {
+        player.startOrContinueAlbum();  // says that the folder is empty
+        return;
+      }
+      path = player.trackAt(first);
+      pos = 0;
     }
-    path = player.trackAt(newest);
   }
-  String last = player.getLastPlayedSong();
-  uint32_t pos = last == path ? player.lastPosition() : 0;
   uint32_t synced, expected;
   bool done;
   if (pos && growingGet(path.c_str(), synced, expected, done) && !done) {

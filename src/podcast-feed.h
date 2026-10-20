@@ -636,6 +636,32 @@ inline bool isEpisodeFileName(const char *name) {
   return len > 25 && strcasecmp(name + len - 4, ".mp3") == 0;
 }
 
+// The order a podcast folder plays in: episodes newest first, then the other files (uploads) in
+// name order, then the end. The playlist is sorted by name, and episode names start with their
+// date, so the newest episode is the last one. `isEpisode(i)` tells whether entry i is an episode.
+// Returns the entry after `current`, the first one for current = -1, and -1 at the end.
+template <typename IsEpisode>
+inline int podcastOrderNext(int count, int current, IsEpisode isEpisode) {
+  auto firstOther = [&](void) {
+    for (int i = 0; i < count; i++)
+      if (!isEpisode(i)) return i;
+    return -1;
+  };
+  if (current < 0 || current >= count) {
+    for (int i = count - 1; i >= 0; i--)
+      if (isEpisode(i)) return i;
+    return firstOther();
+  }
+  if (isEpisode(current)) {
+    for (int i = current - 1; i >= 0; i--)
+      if (isEpisode(i)) return i;
+    return firstOther();
+  }
+  for (int i = current + 1; i < count; i++)
+    if (!isEpisode(i)) return i;
+  return -1;
+}
+
 // ---------------------------------------------------------------------------
 // Download planning
 // ---------------------------------------------------------------------------

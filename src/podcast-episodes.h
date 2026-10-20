@@ -40,7 +40,12 @@
 #define EPISODES_PAGE_MAX 50
 #define EPISODES_JOBS_MAX 100            // episodes per download job
 #define EPISODES_TASK_STACK 12288        // as the podcast task: the same HTTP and download code
-#define EPISODES_MIN_BLOCK (40 * 1024)   // largest free heap block needed before a TLS connection
+// Heap a job needs: the largest single pieces are the worker's 12 kB stack and TLS's 16.7 kB input
+// buffer, and a TLS session takes ~45 kB in all. Reading a feed leaves the heap fragmented (the
+// largest block was 38.9 kB with 84 kB free), so asking for more in one piece refused every
+// download right after a listing.
+#define EPISODES_MIN_BLOCK (20 * 1024)
+#define EPISODES_MIN_FREE (50 * 1024)
 
 enum EpisodesListState : uint8_t { EL_NONE, EL_LISTING, EL_LISTED, EL_FAILED };
 enum EpisodesJobState : uint8_t { EJ_NONE, EJ_RUNNING, EJ_DONE, EJ_CANCELLED };
@@ -355,7 +360,8 @@ static bool episodesCanStart(AsyncWebServerRequest *request) {
     request->send(409, "text/plain", why);
     return false;
   }
-  if (ESP.getMaxAllocHeap() < EPISODES_MIN_BLOCK) {
+  if (ESP.getMaxAllocHeap() < EPISODES_MIN_BLOCK || ESP.getFreeHeap() < EPISODES_MIN_FREE) {
+    Serial.printf("[episodes] refused: free heap %u, largest block %u\n", ESP.getFreeHeap(), ESP.getMaxAllocHeap());
     request->send(503, "text/plain", "Not enough memory on the box right now. Try again in a moment.");
     return false;
   }

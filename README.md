@@ -79,6 +79,11 @@ braucht, tauscht den Widerstand gegen 1 MΩ: langsame Drücke werden etwa 5–10
 ### IDE
 Visual Studio Code with Platform IO Extension (platformio.platformio-ide)
 
+### Wie die Firmware funktioniert
+[doc/architecture.md](doc/architecture.md) beschreibt die Firmware Modul für Modul: Zustände, SD-Karte, Wiedergabe,
+Podcasts, Management-Modus, Bluetooth, Klopfsensoren, Speicher und Tests. Die Kurzfassung für die Arbeit mit Claude
+steht in [CLAUDE.md](CLAUDE.md).
+
 ### Zustandsautomat
 [doc/state-machine.html](doc/state-machine.html) zeigt die Zustände der Firmware (Wiedergabe, Bluetooth, Management-Modus mit Netzmodus und Token-Regeln) als Mermaid-Diagramme in den LED-Farben, dazu alle Timeouts mit ihren Konstanten. Im Browser öffnen; Mermaid wird vom CDN geladen.
 

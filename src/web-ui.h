@@ -230,7 +230,8 @@ html,.ulist,dialog.modal .card{scrollbar-width:thin;scrollbar-color:var(--text3)
 .input.narrow{max-width:7em}.grow{flex:1;align-self:center}
 .list label.pick{display:flex;align-items:center;gap:14px;flex:1;min-width:0;cursor:pointer}
 .list input[type=checkbox]{width:22px;height:22px;flex:none;margin:0;accent-color:var(--accent)}
-.ulist .fn .meta{color:var(--text3);font-size:13px})CSS";
+.ulist .fn .meta{color:var(--text3);font-size:13px}
+.ulist .fd{color:var(--text3);font-size:13px;font-variant-numeric:tabular-nums;white-space:nowrap;min-width:3.6em;text-align:right})CSS";
 
 // Page script for all pages, served as /app.js (versioned, cached, straight from flash so
 // pages stay small and need little heap to render). Each part activates itself when its
@@ -247,6 +248,7 @@ var showEpisodes=null;  // set by the Episodes card: the podcast search shows a 
 function esc(s){return String(s).replace(/[&<>"']/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})}
 function fmt(n){if(n>=1073741824)return (n/1073741824).toFixed(2)+' GB';if(n>=1048576)return (n/1048576).toFixed(1)+' MB';return Math.max(1,Math.round(n/1024))+' kB'}
 function fmtT(s){if(s<60)return Math.ceil(s)+' s';var m=Math.floor(s/60);return m+' min '+Math.round(s-m*60)+' s'}
+function fmtD(ms){if(!ms)return '';var s=Math.round(ms/1000),h=Math.floor(s/3600),m=Math.floor(s/60)%60,x=s%60;return (h?h+':'+(m<10?'0':''):'')+m+':'+(x<10?'0':'')+x}
 
 // Appearance: cookie "theme=light|dark" overrides the system setting, no cookie = auto.
 (function(){var r=document.documentElement,t=$('tb'),a=$('ta');if(!t||!a)return;
@@ -290,8 +292,9 @@ function sum(){var n=0,b=0;for(var k in picked){n++;b+=picked[k]}
 eg.hidden=!items.length;eg.disabled=!n||b>free||running;eg.textContent=n?'Download '+n:'Download';
 eh.textContent=n?n+' episode'+(n>1?'s':'')+' · '+fmt(b)+(b>free?' · not enough space, '+fmt(free)+' free':' · '+fmt(free)+' free'):items.length?'Tick the episodes to put on this token.':'';
 eh.className=b>free?'hint danger':'hint'}
-function row(x){var m=esc(when(x.d))+(x.s?' · '+fmt(x.s):'');
-if(x.on)return '<li><i class="st ok"></i><span class="name">'+esc(x.t)+'<span class="meta">'+m+' · on the box</span></span></li>';
+function row(x){var m=esc(when(x.d))+(x.ms?' · '+fmtD(x.ms):'');
+if(x.on)return '<li><i class="st ok"></i><span class="name">'+esc(x.t)+'<span class="meta">'+m+' · '+fmt(x.rs)+' · on the box</span></span></li>';
+if(x.s)m+=' · ≈ '+fmt(x.s);  // what the feed says: often off by a third
 return '<li><label class="pick"><input type="checkbox" data-id="'+x.id+'" data-s="'+(x.s||0)+'"'+(x.id in picked?' checked':'')+'><span class="name">'+esc(x.t)+'<span class="meta">'+m+'</span></span></label></li>'}
 function render(d,more){
 if(d.state==='listing'){say('Reading the feed…');return}
@@ -324,7 +327,7 @@ if(!jobs.length){sum();return}
 lastJob=d;
 var ok=jobs.filter(function(j){return j.st==='done'||j.st==='present'}).length,bad=jobs.filter(function(j){return j.st==='failed'}).length,
 pct=d.bytesTotal?Math.min(100,Math.round(d.bytes/d.bytesTotal*100)):0,sp=running?rate(d):'';
-eu.innerHTML=jobs.map(function(j){return '<li><i class="st '+(ST[j.st]||'')+'"></i><span class="fn">'+esc(j.t)+(j.e?'<span class="meta"> · '+esc(j.e)+'</span>':'')+'</span><span class="fp">'+label(j)+'</span><span class="fz">'+fmt(j.s)+'</span></li>'}).join('');
+eu.innerHTML=jobs.map(function(j){return '<li><i class="st '+(ST[j.st]||'')+'"></i><span class="fn">'+esc(j.t)+(j.e?'<span class="meta"> · '+esc(j.e)+'</span>':'')+'</span><span class="fp">'+label(j)+'</span><span class="fd">'+fmtD(j.ms)+'</span><span class="fz">'+fmt(j.s)+'</span></li>'}).join('');
 edb.style.width=(running?pct:100)+'%';edr.textContent=running?pct+' %':'';
 edt.textContent=running?'Loading episodes':d.state==='cancelled'?'Cancelled':bad?'Done, with errors':'Done';
 eds.textContent=running?ok+' of '+jobs.length+' · '+fmt(d.bytes)+' of '+fmt(d.bytesTotal)+(sp?' · '+sp:''):ok+' of '+jobs.length+' on the box'+(bad?' · '+bad+' failed':'');
@@ -357,11 +360,16 @@ var items=[],total=0,doneBytes=0,startAt=0,samples=[],busy=false,cancelled=false
 function fp(k){return $('it'+k).querySelector('.fp')}
 function setFiles(list){if(busy)return;var a=[],skipped=0;for(var k=0;k<list.length;k++){var f=list[k];if(f.type==='audio/mpeg'||/\.mp3$/i.test(f.name))a.push(f);else skipped++}
 items=a.map(function(f){return{file:f,status:'pending',loaded:0}});total=0;items.forEach(function(x){total+=x.file.size});doneBytes=0;b.style.width='0';u.textContent='Upload';
-ul.hidden=!items.length;ul.innerHTML=items.map(function(x,k){return '<li id="it'+k+'"><i class="st"></i><span class="fn">'+esc(x.file.name)+'</span><span class="fp"></span><span class="fz">'+fmt(x.file.size)+'</span></li>'}).join('');
+ul.hidden=!items.length;ul.innerHTML=items.map(function(x,k){return '<li id="it'+k+'"><i class="st"></i><span class="fn">'+esc(x.file.name)+'</span><span class="fp"></span><span class="fd"></span><span class="fz">'+fmt(x.file.size)+'</span></li>'}).join('');
+probeAll();
 if(!items.length){ph.textContent=skipped?'Only MP3 files can be uploaded':'No files selected';ph.className='hint';u.disabled=true;return}
 var s=items.length+' file'+(items.length>1?'s':'')+' · '+fmt(total)+(skipped?' · '+skipped+' skipped (not MP3)':'');
 if(total>SD_FREE){ph.textContent=s+' · not enough space on the SD card ('+fmt(SD_FREE)+' free)';ph.className='hint danger';u.disabled=true}
 else{ph.textContent=s+' · '+fmt(SD_FREE-total)+' will stay free';ph.className='hint';u.disabled=false}}
+// Durations of the picked files from the browser's own decoder, one file at a time.
+var probeGen=0;function probeAll(){var gen=++probeGen,k=0;(function next(){if(gen!==probeGen||k>=items.length)return;var i=k++,a=new Audio(),url=URL.createObjectURL(items[i].file);
+function done(){URL.revokeObjectURL(url);a.removeAttribute('src');next()}
+a.preload='metadata';a.onloadedmetadata=function(){var li=$('it'+i);if(gen===probeGen&&li&&isFinite(a.duration))li.querySelector('.fd').textContent=fmtD(a.duration*1000);done()};a.onerror=done;a.src=url})()}
 function setSt(k,st,txt){items[k].status=st;var li=$('it'+k);li.firstChild.className='st '+({uploading:'up',saving:'sv',done:'ok',failed:'err'}[st]||'');fp(k).textContent=txt||''}
 function progressAll(){var sent=doneBytes,done=0,act=0;items.forEach(function(x){if(x.status==='done')done++;else if(x.status==='uploading'||x.status==='saving'){act++;sent+=x.loaded}});
 var pct=total?Math.min(100,Math.round(sent/total*100)):0;b.style.width=pct+'%';
@@ -454,7 +462,7 @@ function render(d){
 var files=d.files||[],copying=d.state==='copying',pct=d.bytesTotal?Math.min(100,Math.round(d.bytes/d.bytesTotal*100)):0,job=files.filter(function(f){return f.status!=='present'}).length,act=files.filter(function(f){return f.status==='copying'}).length,tr=function(n){return n+(n===1?' track':' tracks')};
 ct.textContent=d.album?'Album: '+d.album:'Album';
 cu.hidden=!files.length;
-cu.innerHTML=files.map(function(f){return '<li><i class="st '+(ST[f.status]||'')+'"></i><span class="fn">'+esc(f.name)+'</span><span class="fp">'+label(f)+'</span><span class="fz">'+fmt(f.size)+'</span></li>'}).join('');
+cu.innerHTML=files.map(function(f){return '<li><i class="st '+(ST[f.status]||'')+'"></i><span class="fn">'+esc(f.name)+'</span><span class="fp">'+label(f)+'</span><span class="fd">'+fmtD(f.ms)+'</span><span class="fz">'+fmt(f.size)+'</span></li>'}).join('');
 if(copying&&!wasCopying){closed=false;samples=[]}
 if(copying&&!closed){cmslot.appendChild(cu);open()}
 cw.hidden=!(copying&&closed);

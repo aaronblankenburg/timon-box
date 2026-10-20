@@ -6,6 +6,7 @@
 // reader, so the parser is checked against something other than itself.
 
 #include "../../src/podcast-feed.h"
+#include "../../src/mp3-info.h"
 
 #include <cstdio>
 #include <fstream>
@@ -322,8 +323,14 @@ static void testAllItems(const std::string &dir) {
     p.push(xml.data(), xml.size());
     CHECK(all.size() >= 5);  // the fixtures hold the first seven items of each feed
     const PodcastEpisode *newest = nullptr;
+    size_t timed = 0;
     for (const PodcastEpisode &e : all) {
       CHECK(isEpisodeFileName(episodeFileName(e).c_str()));
+      CHECK(e.seconds < 6 * 3600);
+      if (e.seconds) timed++;
+    }
+    CHECK(timed + 1 >= all.size());  // every item has an itunes:duration; one feed writes 00:00:00 once
+    for (const PodcastEpisode &e : all) {
       if (!newest || (e.dated && (!newest->dated || e.date.utc > newest->date.utc))) newest = &e;
     }
     CHECK(newest && newest->title == f[2]);  // the same newest one as without the callback
@@ -339,6 +346,92 @@ static void testAllItems(const std::string &dir) {
   p.onItem = [&](const PodcastEpisode &e) { titles.push_back(e.title); };
   p.push(xml.data(), xml.size());
   CHECK(titles == (std::vector<std::string>{"Eins", "Zwei"}));  // feed order, no trailer
+}
+
+static void testDurations() {
+  CHECK_EQ(parseFeedDuration("1:02:33"), 3753u);
+  CHECK_EQ(parseFeedDuration("00:26:11"), 1571u);
+  CHECK_EQ(parseFeedDuration("26:11"), 1571u);
+  CHECK_EQ(parseFeedDuration(" 1571 "), 1571u);
+  CHECK_EQ(parseFeedDuration("1571.4"), 1571u);
+  CHECK_EQ(parseFeedDuration(""), 0u);
+  CHECK_EQ(parseFeedDuration("about an hour"), 0u);
+  CHECK_EQ(parseFeedDuration(":30"), 0u);
+  CHECK_EQ(parseFeedDuration("1:2:3:4"), 0u);
+
+  std::string xml = "<rss xmlns:itunes=\"http://www.itunes.com/dtds/podcast-1.0.dtd\"><channel><title>Feed</title>" +
+                    item("Eins", "Tue, 06 Oct 2026 06:00:00 +0200", "<itunes:duration>00:26:11</itunes:duration>") +
+                    item("Zwei", "Wed, 07 Oct 2026 06:00:00 +0200") + "</channel></rss>";
+  std::vector<PodcastEpisode> all;
+  FeedParser p(1 << 30);
+  p.onItem = [&](const PodcastEpisode &e) { all.push_back(e); };
+  p.push(xml.data(), xml.size());
+  CHECK_EQ(all.size(), 2u);
+  if (all.size() == 2) {
+    CHECK_EQ(all[0].seconds, 1571u);
+    CHECK_EQ(all[1].seconds, 0u);  // a duration does not carry over to the next item
+  }
+}
+
+// MPEG frames for mp3Info(): `hdr` repeated every frameLength bytes, from `at` on.
+static std::vector<uint8_t> frames(const uint8_t hdr[4], size_t frameLength, size_t at, size_t total) {
+  std::vector<uint8_t> b(total, 0);
+  for (size_t i = at; i + 4 <= total; i += frameLength) memcpy(&b[i], hdr, 4);
+  return b;
+}
+
+static void testMp3Info() {
+  // CBR, MPEG 1 layer III, 128 kbit/s, 44.1 kHz, stereo: 417-byte frames.
+  const uint8_t cbr[4] = {0xFF, 0xFB, 0x90, 0x00};
+  Mp3Frame f;
+  CHECK(mp3ParseHeader(cbr, f));
+  CHECK_EQ(f.bitrate, 128000u);
+  CHECK_EQ(f.sampleRate, 44100u);
+  CHECK_EQ(f.length, 417u);
+  CHECK_EQ(f.samples, 1152u);
+  std::vector<uint8_t> b = frames(cbr, 417, 200, 4096);
+  b[3] = 0xFF;  // junk: a sync at 3 without a frame behind it
+  b[4] = 0xFB;
+  b[5] = 0x90;
+  Mp3Info info;
+  CHECK(mp3Info(b.data(), b.size(), 10000000, info));
+  CHECK_EQ(info.ms, (uint32_t)((10000000ull - 200) * 8000 / 128000));  // 10 MB: 624987 ms
+  CHECK(!info.frameCount);
+
+  // VBR with a Xing header: 10000 frames of 1152 samples at 44.1 kHz.
+  b = frames(cbr, 417, 0, 4096);
+  memcpy(&b[4 + 32], "Xing", 4);
+  const uint8_t flags[4] = {0, 0, 0, 0x0F}, count[4] = {0, 0, 0x27, 0x10};
+  memcpy(&b[4 + 32 + 4], flags, 4);
+  memcpy(&b[4 + 32 + 8], count, 4);
+  CHECK(mp3Info(b.data(), b.size(), 5000000, info));
+  CHECK_EQ(info.ms, 261224u);
+  CHECK(info.frameCount);
+
+  // MPEG 2 layer III, 64 kbit/s, 22.05 kHz, mono, LAME "Info" header after 9 bytes of side info.
+  const uint8_t m2[4] = {0xFF, 0xF3, 0x80, 0xC0};
+  CHECK(mp3ParseHeader(m2, f));
+  CHECK_EQ(f.samples, 576u);
+  CHECK_EQ(f.length, 208u);
+  b = frames(m2, 208, 0, 2048);
+  memcpy(&b[4 + 9], "Info", 4);
+  const uint8_t thousand[4] = {0, 0, 0x03, 0xE8};
+  memcpy(&b[4 + 9 + 4], flags, 4);
+  memcpy(&b[4 + 9 + 8], thousand, 4);
+  CHECK(mp3Info(b.data(), b.size(), 1000000, info));
+  CHECK_EQ(info.ms, 26122u);
+
+  // VBRI (Fraunhofer) 32 bytes after the header.
+  b = frames(cbr, 417, 0, 4096);
+  memcpy(&b[36], "VBRI", 4);
+  memcpy(&b[36 + 14], count, 4);
+  CHECK(mp3Info(b.data(), b.size(), 5000000, info));
+  CHECK_EQ(info.ms, 261224u);
+
+  std::vector<uint8_t> zeros(4096, 0);
+  CHECK(!mp3Info(zeros.data(), zeros.size(), 1000000, info));
+  const uint8_t freeFormat[4] = {0xFF, 0xFB, 0x00, 0x00};
+  CHECK(!mp3ParseHeader(freeFormat, f));
 }
 
 static void testPodcastOrder() {
@@ -404,6 +497,8 @@ int main(int argc, char **argv) {
   testPlanResume();
   testPodcastOrder();
   testAllItems(fixtures);
+  testDurations();
+  testMp3Info();
   std::cout << checks - failures << " of " << checks << " checks passed\n";
   return failures ? 1 : 0;
 }

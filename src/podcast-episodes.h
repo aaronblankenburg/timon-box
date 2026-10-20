@@ -51,15 +51,16 @@ struct EpisodeIndexEntry {
   uint32_t offset;  // where the episode's line starts in EPISODES_LIST_FILE
 };
 
-// One line of EPISODES_LIST_FILE: date \t when \t size \t file \t url \t title
+// One line of EPISODES_LIST_FILE: date \t when \t size \t seconds \t file \t url \t title
 struct EpisodeLine {
-  uint32_t date = 0, size = 0;
+  uint32_t date = 0, size = 0, seconds = 0;
   String when, file, url, title;
 };
 
 struct EpisodeJob {
   int id = -1;  // position in the newest-first list
   String title, file, url;
+  uint32_t ms = 0;    // duration from the feed
   uint32_t size = 0;  // what the feed says until the file is there, then the real size
   uint8_t status = EJS_WAITING;
   String error;
@@ -104,23 +105,24 @@ static std::vector<EpisodeLine> readEpisodeLines(const std::vector<uint32_t> &of
         buf[got] = 0;
         char *end = strchr(buf, '\n');
         if (end) *end = 0;
-        char *field[6] = {};
+        char *field[7] = {};
         int n = 0;
-        for (char *p = buf; n < 6;) {
+        for (char *p = buf; n < 7;) {
           field[n++] = p;
           char *tab = strchr(p, '\t');
           if (!tab) break;
           *tab = 0;
           p = tab + 1;
         }
-        if (n < 6) continue;
+        if (n < 7) continue;
         EpisodeLine &l = lines[i];
         l.date = strtoul(field[0], nullptr, 10);
         l.when = field[1];
         l.size = strtoul(field[2], nullptr, 10);
-        l.file = field[3];
-        l.url = field[4];
-        l.title = field[5];
+        l.seconds = strtoul(field[3], nullptr, 10);
+        l.file = field[4];
+        l.url = field[5];
+        l.title = field[6];
       }
       f_close(f);
     }
@@ -184,8 +186,8 @@ static void episodesListFeed(const String &url) {
     }
     uint32_t date = e.dated && e.date.utc > 0 ? (uint32_t)e.date.utc : 0;
     EpisodeIndexEntry entry = {date, written + pending.length()};
-    pending += String(date) + "\t" + when + "\t" + String(e.length) + "\t" + episodeFileName(e).c_str() + "\t" +
-               oneField(e.url) + "\t" + oneField(e.title) + "\n";
+    pending += String(date) + "\t" + when + "\t" + String(e.length) + "\t" + String(e.seconds) + "\t" +
+               episodeFileName(e).c_str() + "\t" + oneField(e.url) + "\t" + oneField(e.title) + "\n";
     if (index.size() < EPISODES_MAX) {
       index.push_back(entry);
     } else {  // a long feed: keep the newest
@@ -420,11 +422,13 @@ void episodesListJson(AsyncWebServerRequest *request) {
   res->printf("{\"state\":\"%s\",\"url\":\"%s\",\"title\":\"%s\",\"error\":\"%s\",\"total\":%d,\"skipped\":%d,\"offset\":%d,\"items\":[",
               episodesListStateName(state), jsonEscape(url).c_str(), jsonEscape(title).c_str(), jsonEscape(error).c_str(),
               total, skipped, offset);
+  // s: size as the feed says (often wrong); rs: the real one of an episode already on the card.
   for (size_t i = 0; i < lines.size(); i++) {
     const EpisodeLine &l = lines[i];
-    bool onCard = folder.length() && l.file.length() && fileSizeOnCard(folder + "/" + l.file) > 0;
-    res->printf("%s{\"id\":%d,\"t\":\"%s\",\"d\":\"%s\",\"s\":%u,\"on\":%s}", i ? "," : "", offset + (int)i,
-                jsonEscape(l.title).c_str(), jsonEscape(l.when).c_str(), (unsigned)l.size, onCard ? "true" : "false");
+    uint32_t real = folder.length() && l.file.length() ? fileSizeOnCard(folder + "/" + l.file) : 0;
+    res->printf("%s{\"id\":%d,\"t\":\"%s\",\"d\":\"%s\",\"s\":%u,\"rs\":%u,\"ms\":%u,\"on\":%s}", i ? "," : "",
+                offset + (int)i, jsonEscape(l.title).c_str(), jsonEscape(l.when).c_str(), (unsigned)l.size, (unsigned)real,
+                (unsigned)(l.seconds * 1000), real ? "true" : "false");
   }
   res->print("]}");
   sendBuffered(request, page, "application/json", true);
@@ -470,6 +474,7 @@ void episodesDownloadPost(AsyncWebServerRequest *request) {
     job.file = lines[i].file;
     job.url = lines[i].url;
     job.size = lines[i].size;
+    job.ms = lines[i].seconds * 1000;
     jobs.push_back(job);
   }
   if (jobs.empty()) {
@@ -530,9 +535,9 @@ void episodesStatusJson(AsyncWebServerRequest *request) {
     }
     bytes += loaded;
     bytesTotal += size;
-    res->printf("%s{\"id\":%d,\"t\":\"%s\",\"s\":%u,\"l\":%u,\"st\":\"%s\",\"e\":\"%s\"}", i ? "," : "", j.id,
-                jsonEscape(j.title).c_str(), (unsigned)size, (unsigned)loaded, episodeJobStatusName(j.status),
-                jsonEscape(j.error).c_str());
+    res->printf("%s{\"id\":%d,\"t\":\"%s\",\"s\":%u,\"ms\":%u,\"l\":%u,\"st\":\"%s\",\"e\":\"%s\"}", i ? "," : "",
+                j.id, jsonEscape(j.title).c_str(), (unsigned)size, (unsigned)j.ms, (unsigned)loaded,
+                episodeJobStatusName(j.status), jsonEscape(j.error).c_str());
   }
   res->printf("],\"bytes\":%llu,\"bytesTotal\":%llu}", (unsigned long long)bytes, (unsigned long long)bytesTotal);
   sendBuffered(request, page, "application/json", true);

@@ -414,11 +414,18 @@ Den Feed liest die Box, denn die meisten Podcast-Server senden keine CORS-Header
   Abfragen per Skript sollten `boxFetch` benutzen.
 - Die Podcast-Suche fragt die iTunes-Suche per JSONP, weil Apples API keine CORS-Header sendet.
 - HTML immer mit `htmlEscape()`, JSON mit `jsonEscape()` maskieren.
+- **Größe und Dauer** stehen bei jedem Titel: in der Dateiliste, beim Kopieren, bei den Podcast-Folgen und vor dem
+  Upload. Die Dauer liest `mp3DurationMs()` aus dem Kopf der Datei: ID3-Header lesen, hinter den Tag springen, 4 kB
+  lesen, dann `mp3Info()` aus `mp3-info.h`. Mit Xing/Info- oder VBRI-Header ist sie exakt, sonst aus Größe und Bitrate
+  berechnet. Bei Folgen, die noch nicht auf der Karte liegen, kommen Dauer und Größe aus dem Feed (`itunes:duration`,
+  `length`); die Größe zeigt die Seite dort als ungefähr an. Vor dem Upload bestimmt der Browser die Dauer, eine Datei
+  nach der anderen. `fmtD()` und `formatDuration()` schreiben sie als `26:11` oder `1:02:33`.
 
 ### Kopieren zwischen den Boxen (`box-sync.h`)
 
 Die liefernde Box braucht nur ihren Management-Token: `/peer-album` und `/peer-file` finden das Album über die
-Kennung in der Anfrage. Die holende Box startet bei Bedarf einen Worker-Task mit 6 kB Stack. Er lädt die Titelliste,
+Kennung in der Anfrage. `/peer-album` liefert pro Titel eine Zeile `<Größe>,<Dauer in ms>\t<Name>`. Ältere Firmware
+liest die Größe mit `strtoul` und hört am Komma auf, versteht die Zeilen also weiterhin. Die holende Box startet bei Bedarf einen Worker-Task mit 6 kB Stack. Er lädt die Titelliste,
 ermittelt, was lokal fehlt, und holt zwei Dateien parallel, jede über eine eigene Temp-Datei (`/temp_sync0`,
 `/temp_sync1`). Die Kopierseite stellt nur Aufträge ein
 und fragt den Status ab. Die Übertragung überlebt also ein Neuladen der Seite. Die unvollständige Podcast-Folge wird

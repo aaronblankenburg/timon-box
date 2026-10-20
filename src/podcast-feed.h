@@ -211,9 +211,36 @@ inline bool parseFeedDate(const char *s, FeedDate &d) {
 // Feed parsing
 // ---------------------------------------------------------------------------
 
+// itunes:duration: "1:02:33", "26:11", "1571" or "1571.4" -> seconds, 0 if unreadable.
+inline uint32_t parseFeedDuration(const std::string &s) {
+  uint32_t parts[3] = {0, 0, 0};
+  int n = 0, digits = 0;
+  size_t i = 0;
+  while (i < s.size() && isspace((unsigned char)s[i])) i++;
+  for (; i < s.size(); i++) {
+    char c = s[i];
+    if (isdigit((unsigned char)c)) {
+      if (n == 0) n = 1;
+      if (++digits > 9) return 0;
+      parts[n - 1] = parts[n - 1] * 10 + (c - '0');
+    } else if (c == ':' && n > 0 && n < 3) {
+      n++;
+    } else if (c == '.' || isspace((unsigned char)c)) {
+      break;  // fractions of a second do not matter
+    } else {
+      return 0;
+    }
+  }
+  if (n == 1) return parts[0];
+  if (n == 2) return parts[0] * 60 + parts[1];
+  if (n == 3) return parts[0] * 3600 + parts[1] * 60 + parts[2];
+  return 0;
+}
+
 struct PodcastEpisode {
   std::string title, guid, url, type, episodeType, pubDate;
   uint32_t length = 0;  // as the feed says; often wrong, only for display
+  uint32_t seconds = 0;  // itunes:duration, 0 = not given
   bool dated = false;
   FeedDate date;
 
@@ -316,7 +343,7 @@ class FeedParser {
 
  private:
   enum Mode { TEXT, ENTITY, OPEN, NAME, ATTRS, CLOSE, BANG, COMMENT, CDATA, SKIP };
-  enum Field { NONE, TITLE, PUBDATE, DCDATE, GUID, EPISODETYPE, CHANNEL_TITLE, NEW_FEED_URL };
+  enum Field { NONE, TITLE, PUBDATE, DCDATE, GUID, EPISODETYPE, DURATION, CHANNEL_TITLE, NEW_FEED_URL };
   static const size_t MAX_NAME = 64, MAX_ATTRS = 4096, MAX_TEXT = 1024;
 
   int _maxItems;
@@ -516,6 +543,7 @@ class FeedParser {
         else if (_name == "dc:date") startCapture(DCDATE);
         else if (_name == "guid") startCapture(GUID);
         else if (local == "episodeType") startCapture(EPISODETYPE);
+        else if (local == "duration") startCapture(DURATION);
       }
     } else if (!_itemLevel && _channelLevel && parent == _channelLevel && !selfClosing) {
       if (_name == "title" && !_seenItem && channelTitle.empty()) startCapture(CHANNEL_TITLE);
@@ -539,6 +567,7 @@ class FeedParser {
         case DCDATE: _dcDate = value; break;
         case GUID: _item.guid = value; break;
         case EPISODETYPE: _item.episodeType = value; break;
+        case DURATION: _item.seconds = parseFeedDuration(value); break;
         case CHANNEL_TITLE: channelTitle = value; break;
         case NEW_FEED_URL: newFeedUrl = value; break;
         default: break;

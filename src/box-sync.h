@@ -113,8 +113,9 @@ void peerInfo(AsyncWebServerRequest *request) {
   request->send(response);
 }
 
-// One line "album\t<display name>", then one "<size>\t<name>" per track.
-// Line based on purpose: the fetching box parses this without a JSON parser.
+// One line "album\t<display name>", then one "<size>,<duration ms>\t<name>" per track.
+// Line based on purpose: the fetching box parses this without a JSON parser. Older firmware reads
+// the size with strtoul and stops at the comma, so it still understands the lines.
 void peerAlbum(AsyncWebServerRequest *request) {
   String tag = request->hasParam("tag") ? request->getParam("tag")->value() : "";
   if (!isValidTag(tag)) {
@@ -140,7 +141,8 @@ void peerAlbum(AsyncWebServerRequest *request) {
   File dir = SD.open(folder);
   while (File entry = dir.openNextFile()) {
     if (!entry.isDirectory() && String(entry.name()).endsWith(".mp3") && partial != entry.name() && count < SYNC_MAX_FILES) {
-      res->printf("%u\t%s\n", (unsigned)entry.size(), entry.name());
+      esp_task_wdt_reset();  // up to 200 header reads
+      res->printf("%u,%u\t%s\n", (unsigned)entry.size(), (unsigned)mp3DurationMs(entry), entry.name());
       count++;
     }
     entry.close();
@@ -273,6 +275,7 @@ struct SyncFile {
   uint32_t size;
   uint32_t loaded;  // bytes fetched so far, for the row in the UI
   uint8_t status;
+  uint32_t ms;  // duration, 0 = the other box did not say
 };
 
 struct PeerBox {
@@ -443,7 +446,9 @@ static void syncListAlbum(const String &input) {
     if (!isValidTrackName(rest)) continue;
     bool present = std::find(local.begin(), local.end(), rest) != local.end();
     uint32_t size = strtoul(head.c_str(), nullptr, 10);
-    files.push_back({rest, size, 0, (uint8_t)(present ? SF_PRESENT : SF_PENDING)});
+    int comma = head.indexOf(',');
+    uint32_t ms = comma > 0 ? strtoul(head.c_str() + comma + 1, nullptr, 10) : 0;  // older firmware sends none
+    files.push_back({rest, size, 0, (uint8_t)(present ? SF_PRESENT : SF_PENDING), ms});
     if (!present) {
       missing++;
       missingBytes += size;
@@ -891,8 +896,9 @@ void copyStatusJson(AsyncWebServerRequest *request) {
       if (file.status == SF_DONE) done++;
       if (file.status == SF_FAILED) failed++;
       if (i) res->print(',');
-      res->printf("{\"name\":\"%s\",\"size\":%u,\"loaded\":%u,\"status\":\"%s\"}",
-                  jsonEscape(file.name).c_str(), (unsigned)file.size, (unsigned)file.loaded, syncFileStatusName(file.status));
+      res->printf("{\"name\":\"%s\",\"size\":%u,\"ms\":%u,\"loaded\":%u,\"status\":\"%s\"}",
+                  jsonEscape(file.name).c_str(), (unsigned)file.size, (unsigned)file.ms, (unsigned)file.loaded,
+                  syncFileStatusName(file.status));
     }
     res->print("]");
     syncUnlock();

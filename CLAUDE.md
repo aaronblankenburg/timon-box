@@ -56,6 +56,7 @@ kommt der Rest. Die meisten Header definieren globale Variablen und Funktionen. 
 | `playerI2S.h` | `PlayerI2S`: Audio-Bibliothek, I²S, Start eines Titels, Klick und Alarm |
 | `knock.cpp` | Klopfsensor: ADC per `esp_timer` mit 2 kHz, erkennt einen Druck an der Buckelform |
 | `podcast-feed.h` | Reines C++: RSS-Parser, Datumsformate, Episoden-Dateinamen, Fortsetzungsplan |
+| `mp3-info.h` | Reines C++: Dauer einer MP3 aus Frame-Kopf und Xing/Info- oder VBRI-Header |
 | `podcast.h` | Podcast-Task: WLAN, Feed, HTTP-Download mit Range, Zustandsdateien, Aufräumen |
 | `podcast-episodes.h` | Karte „Episodes“: Feed auf der Box lesen, einzelne Folgen von Hand laden |
 | `gated-fs.h` | `sdGate` und `GatedFS`: spielt eine Datei, während sie noch geladen wird |

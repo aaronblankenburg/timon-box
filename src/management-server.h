@@ -18,6 +18,7 @@
 #include "web-ui.h"
 #include "wifi-setup.h"
 #include "podcast.h"
+#include "mp3-info.h"
 
 #define PAGE_SIZE 10
 #define LAST_PLAYED_FILE_NAME "/last_played.txt"
@@ -304,6 +305,46 @@ static String megabytes(uint32_t bytes) {
   return buf;
 }
 
+// 1571000 -> "26:11", 3753000 -> "1:02:33"
+String formatDuration(uint32_t ms) {
+  uint32_t s = (ms + 500) / 1000;
+  char buf[16];
+  if (s >= 3600) snprintf(buf, sizeof(buf), "%u:%02u:%02u", (unsigned)(s / 3600), (unsigned)(s / 60 % 60), (unsigned)(s % 60));
+  else snprintf(buf, sizeof(buf), "%u:%02u", (unsigned)(s / 60), (unsigned)(s % 60));
+  return buf;
+}
+
+// Duration of an open MP3 file in ms, 0 when it cannot tell (mp3-info.h). Reads the ID3v2 header
+// and 4 kB of audio behind the tag, so a big cover picture costs a seek, not a read. Caller holds
+// filesLock.
+uint32_t mp3DurationMs(File &f) {
+  uint32_t size = f.size(), ms = 0;
+  uint8_t *buf = (uint8_t *)malloc(4096);
+  if (!buf) return 0;
+  if (f.seek(0)) {
+    size_t n = f.read(buf, 10);
+    uint32_t tag = id3TagSize(buf, n);
+    if (tag < size && f.seek(tag)) {
+      n = f.read(buf, 4096);
+      Mp3Info info;
+      if (mp3Info(buf, n, size - tag, info)) ms = info.ms;
+    }
+  }
+  free(buf);
+  return ms;
+}
+
+// The same for a file on the card; also gives its size. Caller holds filesLock.
+uint32_t trackDurationMs(const String &path, uint32_t *size = nullptr) {
+  if (size) *size = 0;
+  File f = SD.open(path, FILE_READ);
+  if (!f) return 0;
+  if (size) *size = f.size();
+  uint32_t ms = mp3DurationMs(f);
+  f.close();
+  return ms;
+}
+
 String podcastStatusText(const PodcastState &st, uint32_t onCard) {
   if (st.result == "ok" && st.complete) return "The newest episode is on the card.";
   if (st.result == "unsupported") return st.error + ".";
@@ -504,6 +545,12 @@ void listFiles(AsyncWebServerRequest *request) {
   int first = std::min(page * PAGE_SIZE, total);
   int last = std::min(first + PAGE_SIZE, total);
   std::vector<String> pageFiles(filesInDir.begin() + first, filesInDir.begin() + last);
+  std::vector<uint32_t> sizes, durations;  // ten files a page: a header read each is cheap
+  for (const String &name : pageFiles) {
+    uint32_t size = 0;
+    durations.push_back(trackDurationMs(folder + "/" + name, &size));
+    sizes.push_back(size);
+  }
   String lastPlayedFileName = folder.isEmpty() ? "" : getLastPlayedFileName(folder);
   filesUnlock();
   if (folder.isEmpty()) return request->redirect("/wifi");
@@ -520,9 +567,13 @@ void listFiles(AsyncWebServerRequest *request) {
     res->print("<p class=\"empty\">No tracks yet. Upload some MP3 files.</p>");
   } else {
     res->print("<ul class=\"list\">");
-    for (const String &fileName : pageFiles) {
+    for (size_t k = 0; k < pageFiles.size(); k++) {
+      const String &fileName = pageFiles[k];
       String escaped = htmlEscape(fileName);
       bool isNext = lastPlayedFileName.endsWith(fileName);
+      String meta = megabytes(sizes[k]);
+      if (durations[k]) meta += " &middot; " + formatDuration(durations[k]);
+      if (isNext) meta = "Plays next &middot; " + meta;
 
       String display = trackDisplayName(fileName);
       int dot = fileName.lastIndexOf('.');
@@ -531,8 +582,8 @@ void listFiles(AsyncWebServerRequest *request) {
       res->printf("<li><form method=\"POST\" action=\"/select\"><input type=\"hidden\" name=\"filename\" value=\"%s\">"
                   "<button class=\"icon-btn%s\" type=\"submit\" aria-label=\"Play next\"><i class=\"ic ic-play\"></i></button></form>",
                   escaped.c_str(), isNext ? " playing" : "");
-      res->printf("<span class=\"name\">%s<span class=\"ext\">%s</span>%s</span>",
-                  htmlEscape(display).c_str(), htmlEscape(ext).c_str(), isNext ? "<span class=\"meta\">Plays next</span>" : "");
+      res->printf("<span class=\"name\">%s<span class=\"ext\">%s</span><span class=\"meta\">%s</span></span>",
+                  htmlEscape(display).c_str(), htmlEscape(ext).c_str(), meta.c_str());
       res->printf("<form method=\"POST\" action=\"/delete\" onsubmit=\"return confirm('Delete %s?')\"><input type=\"hidden\" name=\"filename\" value=\"%s\">"
                   "<button class=\"icon-btn destructive\" type=\"submit\" aria-label=\"Delete\"><i class=\"ic ic-trash\"></i></button></form></li>",
                   escaped.c_str(), escaped.c_str());

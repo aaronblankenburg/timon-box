@@ -414,6 +414,9 @@ Den Feed liest die Box, denn die meisten Podcast-Server senden keine CORS-Header
   Abfragen per Skript sollten `boxFetch` benutzen.
 - Die Podcast-Suche fragt die iTunes-Suche per JSONP, weil Apples API keine CORS-Header sendet.
 - HTML immer mit `htmlEscape()`, JSON mit `jsonEscape()` maskieren.
+- **Favicon:** ein Token mit Play-Zeichen als SVG aus dem Flash (`FAVICON_SVG`, auch unter `/favicon.ico`), in der
+  Farbe aus `BOX_COLOR` in `platformio.ini`: Timon blau, Julius orange, damit sich die Tabs unterscheiden.
+- In einem Podcast-Album sortiert die Dateiliste wie die Wiedergabe: Folgen neu nach alt, dann die übrigen Dateien.
 - **Größe und Dauer** stehen bei jedem Titel: in der Dateiliste, beim Kopieren, bei den Podcast-Folgen und vor dem
   Upload. Die Dauer liest `mp3DurationMs()` aus dem Kopf der Datei: ID3-Header lesen, hinter den Tag springen, 4 kB
   lesen, dann `mp3Info()` aus `mp3-info.h`. Mit Xing/Info- oder VBRI-Header ist sie exakt, sonst aus Größe und Bitrate

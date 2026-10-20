@@ -80,6 +80,19 @@ void sendBuffered(AsyncWebServerRequest *request, std::shared_ptr<PageBuffer> pa
 }
 
 // ---------------------------------------------------------------------------
+// Favicon: a token with a play sign, the box's whole idea, on a rounded square in the box's
+// colour (BOX_COLOR in platformio.ini), so the two boxes differ in the browser's tabs.
+// ---------------------------------------------------------------------------
+
+#ifndef BOX_COLOR
+#define BOX_COLOR "#0071e3"
+#endif
+
+static const char FAVICON_SVG[] =
+    "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 32 32\"><rect width=\"32\" height=\"32\" rx=\"8\" fill=\"" BOX_COLOR
+    "\"/><circle cx=\"16\" cy=\"16\" r=\"11\" fill=\"#fff\"/><path d=\"M13.2 10.4v11.2l9.2-5.6z\" fill=\"" BOX_COLOR "\"/></svg>";
+
+// ---------------------------------------------------------------------------
 // Stylesheet (raw string literal: no printf escaping needed, sent uncopied)
 // ---------------------------------------------------------------------------
 static const char PAGE_CSS[] = R"CSS(:root{color-scheme:light dark;--bg:#f5f5f7;--card:#fff;--text:#1d1d1f;--text2:#6e6e73;--text3:#86868b;--accent:#0071e3;--accent-tint:rgba(0,113,227,.12);--accent-ring:rgba(0,113,227,.3);--danger:#ff3b30;--danger-tint:rgba(255,59,48,.12);--ok:#34c759;--ok-tint:rgba(52,199,89,.14);--warn:#ff9f0a;--warn-tint:rgba(255,159,10,.16);--sep:rgba(0,0,0,.08);--seg:#e8e8ed;--seg-active:#fff;--field:#fff;--row-hover:rgba(0,0,0,.03);--shadow:0 2px 12px rgba(0,0,0,.06);--shadow-seg:0 1px 3px rgba(0,0,0,.12)}
@@ -229,7 +242,9 @@ html,.ulist,dialog.modal .card{scrollbar-width:thin;scrollbar-color:var(--text3)
 
 .input.narrow{max-width:7em}.grow{flex:1;align-self:center}
 .list label.pick{display:flex;align-items:center;gap:14px;flex:1;min-width:0;cursor:pointer}
-.list input[type=checkbox]{width:22px;height:22px;flex:none;margin:0;accent-color:var(--accent)}
+.list input[type=checkbox]{-webkit-appearance:none;appearance:none;width:18px;height:18px;flex:none;margin:0;border-radius:50%;border:1.5px solid var(--text3);background:transparent center/11px no-repeat;cursor:pointer;transition:background-color .15s,border-color .15s}
+.list input[type=checkbox]:checked{border-color:var(--accent);background-color:var(--accent);background-image:url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 18 18' fill='none' stroke='white' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'><path d='M3.5 9.5l3.5 3.5 7.5-8'/></svg>")}
+.list input[type=checkbox]:focus-visible{outline:2px solid var(--accent-ring);outline-offset:2px}
 .ulist .fn .meta{color:var(--text3);font-size:13px}
 .ulist .fd{color:var(--text3);font-size:13px;font-variant-numeric:tabular-nums;white-space:nowrap;min-width:3.6em;text-align:right})CSS";
 
@@ -578,6 +593,11 @@ static uint32_t fnv1a(const char *p) {
   return h;
 }
 
+uint32_t faviconVersion() {
+  static uint32_t hash = fnv1a(FAVICON_SVG);
+  return hash;
+}
+
 uint32_t cssVersion() {
   static uint32_t hash = fnv1a(PAGE_CSS);
   return hash;
@@ -596,7 +616,9 @@ void pageHead(Print *res, AsyncWebServerRequest *request, const char *activeNav)
   res->print("><head><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width,initial-scale=1\">");
   String direct = pageDirectAddress ? pageDirectAddress() : String("");
   if (direct.length()) res->printf("<script>var BOX_IP='%s'</script>", direct.c_str());
-  res->printf("<title>" BOX_NAME "</title><link rel=\"stylesheet\" href=\"/css?v=%08x\"></head><body><main>", cssVersion());
+  res->printf("<title>" BOX_NAME "</title><link rel=\"icon\" type=\"image/svg+xml\" href=\"/favicon.svg?v=%08x\">"
+              "<link rel=\"stylesheet\" href=\"/css?v=%08x\"></head><body><main>",
+              faviconVersion(), cssVersion());
 
   res->print("<header><div class=\"title-row\"><h1>" BOX_NAME "</h1><div class=\"theme-ctl\">"
              "<button class=\"btn secondary small\" type=\"button\" id=\"ta\" hidden>Auto</button>"
@@ -621,6 +643,15 @@ void pageFoot(Print *res) {
   res->print("</footer>");
   res->printf("<script src=\"/app.js?v=%08x\"></script>", jsVersion());
   res->print("</main></body></html>");
+}
+
+// Also answers /favicon.ico, which browsers ask for on their own: an SVG there beats a redirect
+// to a page.
+void faviconHandler(AsyncWebServerRequest *request) {
+  AsyncWebServerResponse *response =
+      request->beginResponse(200, "image/svg+xml", (const uint8_t *)FAVICON_SVG, sizeof(FAVICON_SVG) - 1);
+  response->addHeader("Cache-Control", "public, max-age=31536000");
+  request->send(response);
 }
 
 void cssHandler(AsyncWebServerRequest *request) {

@@ -540,7 +540,17 @@ void listFiles(AsyncWebServerRequest *request) {
   // Snapshot the page of files under the lock, render afterwards.
   if (!filesLock()) return sendBusy(request);
   String folder = webServerFolderPath;
-  std::sort(filesInDir.begin(), filesInDir.end());
+  if (!folder.isEmpty() && SD.exists(folder + PODCAST_CONFIG_FILE)) {
+    // A podcast album lists in the order it plays: episodes newest first, then the other files
+    // by name (podcastOrderNext in podcast-feed.h).
+    std::sort(filesInDir.begin(), filesInDir.end(), [](const String &a, const String &b) {
+      bool ea = isEpisodeFileName(a.c_str()), eb = isEpisodeFileName(b.c_str());
+      if (ea != eb) return ea;
+      return ea ? b < a : a < b;
+    });
+  } else {
+    std::sort(filesInDir.begin(), filesInDir.end());
+  }
   int total = filesInDir.size();
   int first = std::min(page * PAGE_SIZE, total);
   int last = std::min(first + PAGE_SIZE, total);
@@ -1117,6 +1127,8 @@ void setupWebServer() {
   server.on("/podcast", HTTP_GET, podcastPage);
   server.on("/", HTTP_GET, listFiles);
   server.on("/css", HTTP_GET, cssHandler);
+  server.on("/favicon.svg", HTTP_GET, faviconHandler);
+  server.on("/favicon.ico", HTTP_GET, faviconHandler);
   server.on("/app.js", HTTP_GET, jsHandler);
   server.on("/album", HTTP_GET, albumJson);
 

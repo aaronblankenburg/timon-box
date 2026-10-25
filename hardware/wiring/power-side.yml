@@ -1,0 +1,120 @@
+# Power side of the box and the 7-pin cable to the main board, see doc/hardware.md.
+# Render with WireViz 0.4.1 and Graphviz: wireviz -f s hardware/wiring/power-side.yml
+
+options:
+  color_mode: full
+
+connectors:
+  Hauptplatine J4:
+    type: JST XH, 2,5 mm
+    subtype: Buchse, 7-polig
+    pinlabels: ["+5V", GND, HOLD (GPIO 33), SENSE (GPIO 39), SW_TOKEN (GPIO 32), D+ (CH340C), D− (CH340C)]
+    show_pincount: false
+  Boost:
+    type: Boost-Modul
+    subtype: feste 5 V
+    pinlabels: [IN+, IN−, OUT+, OUT−]
+    show_pincount: false
+  Power Latch J1:
+    type: Power Latch V2
+    subtype: Lötpads J1
+    pinlabels: [Vcc, Hold, Sense 50%, Trigger +, Trigger In, Trigger Out, GND]
+    show_pincount: false
+  Power Latch Rückseite:
+    type: Power Latch V2
+    subtype: Footprint des TP4056
+    pinlabels: [5v +, GND, Bat+, Bat−]
+    show_pincount: false
+  TP4056:
+    type: Lademodul
+    subtype: mit Schutzschaltung
+    pinlabels: [IN+, IN−, OUT+, OUT−, B+, B−]
+    show_pincount: false
+  "18650":
+    type: Li-Ion-Zelle
+    pinlabels: [Plus, Minus]
+    show_pincount: false
+  USB-C:
+    type: USB-C-Buchse
+    subtype: 5,1 kΩ an CC1 und CC2
+    pinlabels: [VBUS, GND, D+, D−]
+    show_pincount: false
+  Mikroschalter:
+    type: 12,8 × 5,8 mm
+    subtype: Token drückt ihn
+    pinlabels: [C, "NO", "NC"]  # quoted, plain NO would be read as false
+    show_pincount: false
+  2N7000 ESP:
+    type: TO-92
+    notes: hält die Box, solange der ESP32 HOLD setzt
+    pinlabels: [D, G, S]
+    show_pincount: false
+  2N7000 USB:
+    type: TO-92
+    notes: hält die Box, solange an D− Spannung liegt
+    pinlabels: [D, G, S]
+    show_pincount: false
+
+cables:
+  Kabel 7-polig:
+    wirecount: 7
+    colors: [RD, BK, BU, YE, OG, GN, WH]
+  # short loose wires: no title and no count, only the rows that say where each wire goes
+  W1: &wires
+    category: bundle
+    show_name: false
+    show_wirecount: false
+    wirecount: 2
+  W2: *wires
+  W3: *wires
+  W4:
+    <<: *wires
+    wirecount: 1
+  W5: *wires
+  W6: *wires
+  W7: *wires
+
+connections:
+  # the 7-pin cable fans out on the power side
+  - - Hauptplatine J4: [1-2]
+    - Kabel 7-polig: [1-2]
+    - Boost: [OUT+, OUT−]
+  - - Hauptplatine J4: [3]
+    - Kabel 7-polig: [3]
+    - 2N7000 ESP: [G]
+  - - Hauptplatine J4: [4-5]
+    - Kabel 7-polig: [4-5]
+    - Power Latch J1: [Sense 50%, Trigger Out]
+  - - Hauptplatine J4: [6-7]
+    - Kabel 7-polig: [6-7]
+    - USB-C: [D+, D−]
+  # switched supply to the boost converter
+  - - Power Latch J1: [Vcc, GND]
+    - W1: [1-2]
+    - Boost: [IN+, IN−]
+  # token switch
+  - - Power Latch J1: [Trigger +, Trigger In]
+    - W2: [1-2]
+    - Mikroschalter: [C, "NO"]
+  # both 2N7000 tie Hold to Vcc
+  - - Power Latch J1: [Vcc, Hold]
+    - W3: [1-2]
+    - 2N7000 ESP: [D, S]
+  - - Power Latch J1: [Vcc, Hold]
+    - W7: [1-2]
+    - 2N7000 USB: [D, S]
+  - - USB-C: [D−]
+    - W4: [1]
+    - 2N7000 USB: [G]
+  # charging
+  - - USB-C: [VBUS, GND]
+    - W5: [1-2]
+    - TP4056: [IN+, IN−]
+  - - "18650": [Plus, Minus]
+    - W6: [1-2]
+    - TP4056: [B+, B−]
+  # the module sits on the back of the latch, its corner pads soldered onto the footprint
+  # (pin mates take pin numbers: IN+, IN-, OUT+, OUT- onto 5v +, GND, Bat+, Bat-)
+  - - TP4056: [1-4]
+    - -->
+    - Power Latch Rückseite: [1-4]

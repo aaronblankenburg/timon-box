@@ -64,6 +64,7 @@ flowchart LR
 | `hardware/power-latch/` | KiCad-Projekt der Power Latch V2 (`power-latch-v2.kicad_*`), Footprint des TP4056-Moduls |
 | `hardware/power-latch/power-latch-v2-schematic.pdf` | Schaltplan |
 | `hardware/power-latch/power-latch-v2-gerber.zip` | Gerber und Bohrdaten, 2 Lagen |
+| `hardware/wiring/power-side.yml` | Verdrahtung der Stromseite für WireViz, daraus `power-side.svg` |
 | `sdcard/` | `tap.mp3` und `alert.mp3` fürs Wurzelverzeichnis der SD-Karte |
 
 Die Projekte sind mit KiCad 8 gezeichnet. Die Symbole stecken im Schaltplan, die Footprints in der Platine. Die Gerber
@@ -169,6 +170,15 @@ Foto `hw_hack.jpeg` zeigt einen davon auf den Pads `Hold` und `Vcc`. Einschalten
 aus, liegt an `Vcc` keine Spannung.
 
 ## Verkabelung
+
+Das Diagramm zeigt die Stromseite und das 7-polige Kabel zur Hauptplatine. Jede Zeile in einem Kabel nennt beide
+Enden. Anklicken vergrößert es.
+
+[![Verdrahtung der Stromseite](../hardware/wiring/power-side.svg)](../hardware/wiring/power-side.svg)
+
+Die Quelle ist `hardware/wiring/power-side.yml`. Wer die Verdrahtung ändert, ändert diese Datei und erzeugt das SVG
+neu: `pip install wireviz==0.4.1`, dazu Graphviz, dann `wireviz -f s hardware/wiring/power-side.yml`. Die Tabellen
+unten sagen dasselbe als Text.
 
 ### Kabel zwischen Hauptplatine und Stromseite
 

@@ -6,7 +6,8 @@ WLAN und zwei Piezo-„Klopftasten“ für Vor und Zurück. Es gibt zwei Boxen, 
 haben aber unterschiedlich empfindliche Gehäusewände: PlatformIO-Envs `timon` und `julius`.
 
 Ausführlich, Modul für Modul: **[doc/architecture.md](doc/architecture.md)**. Diese Datei hier ist das Minimum, um
-loszulegen. Lies den passenden Abschnitt dort, bevor du ein Teilsystem änderst.
+loszulegen. Lies den passenden Abschnitt dort, bevor du ein Teilsystem änderst. Platinen, Teile und Verkabelung:
+**[doc/hardware.md](doc/hardware.md)**, die KiCad-Projekte liegen unter `hardware/`.
 
 ## Regeln
 
@@ -86,7 +87,8 @@ kommt der Rest. Die meisten Header definieren globale Variablen und Funktionen. 
 7. **Bluetooth:** Läuft nur nach `ESP.restart()` mit gesetztem RTC-Flag. Im Player-Modus wird der BT-Speicher
    freigegeben. Die Meldung „i2s_driver_install failed“ im BT-Modus ist harmlos, der Ton funktioniert.
 8. **Klopfsensoren:** `leftKnockSensor` hängt an `RKS_PIN` und `rightKnockSensor` an `LKS_PIN`, die Namen sind
-   vertauscht. Die Schwellen stehen pro Box in `platformio.ini`.
+   vertauscht. Auch die Platine ist seitenverkehrt beschriftet: J2 „R Btn“ gehört zum Piezo an der linken Wand. Die
+   Schwellen stehen pro Box in `platformio.ini`.
 9. **Seriell:** Ein schlichtes Öffnen des Ports setzte die Box nicht zurück. Schaltet man mit pyserial vor dem Öffnen
    DTR und RTS ab, startet sie neu. Steckt man die Box ab, solange der Port noch offen ist, bekommt sie beim
    Wiederanstecken die nächste ttyUSB-Nummer.

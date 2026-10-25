@@ -10,7 +10,7 @@ Stand: Oktober 2026, Branch `podcast`.
 ## 1. Hardware und Pins
 
 ESP32-WROOM ohne PSRAM, 4 MB Flash mit Partition `huge_app.csv`. Arduino-ESP32 2.0.17 auf ESP-IDF 4.4, Plattform
-`espressif32@^6.11.0`.
+`espressif32@^6.11.0`. Platinen, Teile und Verkabelung beschreibt [hardware.md](hardware.md).
 
 | Funktion | Pins | Anmerkung |
 |---|---|---|
@@ -461,7 +461,8 @@ Musik erzeugt dagegen viele kurze Halbwellen mit Pausen.
 - Die Schwellen stehen pro Box in `platformio.ini`. Julius hat dünnere Wände, höhere Pegel und kürzere Lücken.
   `knockdebug:1` zeigt pro Sekunde Statistiken, `knockdebug:2` zusätzlich den Rohverlauf des nächsten Buckels.
 - Die Namen sind vertauscht: `leftKnockSensor` liest `RKS_PIN` (34) und ruft `previous()` auf. `rightKnockSensor`
-  liest `LKS_PIN` (35) und ruft `next()` auf.
+  liest `LKS_PIN` (35) und ruft `next()` auf. Auf der Platine ebenso: GPIO 34 hängt an J2 „R Btn“, dessen Piezo an
+  der linken Wand klebt.
 
 ## 10. Tasks, Kerne und Speicher
 

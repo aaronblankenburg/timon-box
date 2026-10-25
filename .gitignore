@@ -13,3 +13,10 @@ android/app/build/
 android/.gradle/
 android/.kotlin/
 android/local.properties
+
+# KiCad (hardware/): local settings, caches, backups
+hardware/**/*.kicad_prl
+hardware/**/fp-info-cache
+hardware/**/*-backups/
+hardware/**/~*.lck
+hardware/**/_autosave-*

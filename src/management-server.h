@@ -1,30 +1,67 @@
 #ifndef MANAGEMENT_WEB_SERVER
 #define MANAGEMENT_WEB_SERVER
 
-#include <DNSServer.h>
 #include <ESPAsyncWebServer.h>
 #include <SD.h>
 #include <SPI.h>
+#include <WiFi.h>
+#include <esp_task_wdt.h>
+#include <freertos/FreeRTOS.h>
+#include <freertos/queue.h>
+#include <freertos/semphr.h>
+#include <freertos/task.h>
 
-#include <unordered_map>
+#include <algorithm>
+#include <atomic>
 #include <vector>
+
+#include "web-ui.h"
+#include "wifi-setup.h"
+#include "podcast.h"
+#include "mp3-info.h"
 
 #define PAGE_SIZE 10
 #define LAST_PLAYED_FILE_NAME "/last_played.txt"
 
-DNSServer dnsServer;
-
 AsyncWebServer server(80);
-String webServerFolderPath = "/";
+String webServerFolderPath = "";  // empty until an album token is placed
+String webServerAlbumTag = "";    // RFID id of that token; folders are named <name>_<tag>
 std::vector<String> filesInDir;
+float *batteryAdcValueManagementServer;
 
-String getLastPlayedFileName() {
-  if (!SD.exists(webServerFolderPath + LAST_PLAYED_FILE_NAME)) {
-    Serial.println("Failed to open file for reading");
+// The loop task switches albums (token swap) while web handlers on the AsyncTCP
+// task read the file list and touch the SD card, so both go through this mutex.
+SemaphoreHandle_t filesMutex = nullptr;
+
+std::atomic<int> uploadsActive{0};  // uploads between their first byte and their end
+bool episodesBusy();                // podcast-episodes.h: episodes are being listed or loaded
+
+bool filesLock(uint32_t waitMs = 3000) {
+  return filesMutex && xSemaphoreTake(filesMutex, pdMS_TO_TICKS(waitMs)) == pdTRUE;
+}
+
+void filesUnlock() { xSemaphoreGive(filesMutex); }
+
+// Snapshot of the selected album folder ("" = none). Safe from any task.
+String currentFolder() {
+  String copy;
+  if (filesLock()) {
+    copy = webServerFolderPath;
+    filesUnlock();
+  }
+  return copy;
+}
+
+// ---------------------------------------------------------------------------
+// SD helpers (caller holds filesMutex when running on the web server task)
+// ---------------------------------------------------------------------------
+
+String getLastPlayedFileName(const String &folder) {
+  if (!SD.exists(folder + LAST_PLAYED_FILE_NAME)) {
     return "";
   }
 
-  File file = SD.open(webServerFolderPath + LAST_PLAYED_FILE_NAME);
+  File file = SD.open(folder + LAST_PLAYED_FILE_NAME);
 
   String fileName;
   while (file.available()) {
@@ -34,15 +71,15 @@ String getLastPlayedFileName() {
   return fileName;
 }
 
-void deleteLastPlayedFile() {
-  if (SD.exists(webServerFolderPath + LAST_PLAYED_FILE_NAME)) {
-    SD.remove(webServerFolderPath + LAST_PLAYED_FILE_NAME);
+void deleteLastPlayedFile(const String &folder) {
+  if (SD.exists(folder + LAST_PLAYED_FILE_NAME)) {
+    SD.remove(folder + LAST_PLAYED_FILE_NAME);
   }
 }
 
-void deleteIndexFiles() {
-  if (SD.exists(webServerFolderPath + "/index.txt")) {
-    SD.remove(webServerFolderPath + "/index.txt");
+void deleteIndexFiles(const String &folder) {
+  if (SD.exists(folder + "/index.txt")) {
+    SD.remove(folder + "/index.txt");
   }
 }
 
@@ -86,9 +123,11 @@ String sanitizeFilename(const String &input) {
   return result;
 }
 
+// Moves the album folder to "<newFolder>_<tag>"; the token id is always appended
+// here, the UI never shows it. Caller holds filesMutex.
 bool renameFolder(const String &oldFolder, String &newFolder) {
-  String tag = oldFolder.substring(max(oldFolder.lastIndexOf("_"), (int)oldFolder.length() - 14));
-  if (!newFolder.endsWith(tag)) {
+  const String &tag = webServerAlbumTag;
+  if (!tag.isEmpty() && !newFolder.endsWith(tag)) {
     newFolder += "_" + tag;
   }
 
@@ -142,160 +181,10 @@ bool renameFolder(const String &oldFolder, String &newFolder) {
   }
 }
 
-void css(AsyncWebServerRequest *request) {
-  AsyncResponseStream *response = request->beginResponseStream("text/css");
-  response->printf("*,::after,::before{box-sizing:border-box}html{font-family:system-ui,'Segoe UI',Roboto,Helvetica,Arial,sans-serif,'Apple Color Emoji','Segoe UI Emoji';line-height:1.15;-webkit-text-size-adjust:100%%;-moz-tab-size:4;tab-size:4}body{margin:0}table{text-indent:0;border-color:inherit}button,input,select{font-family:inherit;font-size:100%%;line-height:1.15;margin:0}button,select{text-transform:none}[type=button],[type=reset],[type=submit],button{-webkit-appearance:button}::-moz-focus-inner{border-style:none;padding:0}:-moz-focusring{outline:1px dotted ButtonText}:-moz-ui-invalid{box-shadow:none}progress{vertical-align:baseline}::-webkit-inner-spin-button,::-webkit-outer-spin-button{height:auto}[type=search]{-webkit-appearance:textfield;outline-offset:-2px}::-webkit-search-decoration{-webkit-appearance:none}::-webkit-file-upload-button{-webkit-appearance:button;font:inherit}[type=button],[type=color],[type=file],[type=range],[type=reset],[type=submit],button,label>[type=checkbox]:enabled,label>[type=radio]:enabled{cursor:pointer}[readonly]{cursor:default}:disabled,[aria-disabled=true],[type=checkbox][id]:disabled+[for],[type=radio][id]:disabled+[for]{cursor:not-allowed}[draggable=true]{cursor:grab}[draggable=true]:active{cursor:grabbing}:root{--max-body-width:48rem}html{height:100%%;line-height:1.4}h1,h2,h3{line-height:1.15}body{display:flex;flex-direction:column;width:calc(100%% - 1rem);max-width:var(--max-body-width);min-height:100%%;margin:0 auto;overflow-wrap:break-word}table{display:block;overflow-x:auto}audio{width:100%%}[type=range],progress{display:block;width:100%%;height:2.25rem}[type=color]{height:2.25rem;vertical-align:top}[type=button],[type=reset],[type=submit],button,td{padding:.5rem}[type=email],[type=hidden],[type=number],[type=password],[type=search],[type=tel],[type=text],[type=url],input:not([type]){display:block;width:100%%;height:2.25rem;padding:.5rem}[type=file]{display:block;width:100%%;height:2.25rem;padding-top:.35rem}[type=date],[type=datetime-local],[type=month],[type=time],[type=week]{display:block;width:100%%;height:2.25rem;padding:.4rem .5rem}select{display:block;width:100%%;min-height:2.25rem;padding:.45rem .5rem}[type=image]{vertical-align:bottom}label>[type=color]{margin-left:.25rem}label{display:flex;flex-wrap:wrap;column-gap:.25rem;align-items:center;width:100%%;margin-top:1rem}[type=checkbox]+label,[type=radio]+label{display:inline-flex;width:unset;vertical-align:text-bottom}label>[type=checkbox],label>[type=radio]{min-height:1rem}[aria-current=date],[aria-current=location],[aria-current=page],[aria-current=step],[aria-current=time],[aria-current=true]{font-weight:700}li{margin-top:.5rem;margin-bottom:.5rem}@media (width <= 50rem){table{width:calc(100%% + 1rem);margin-left:-.5rem}}@media (hover:hover){body{overflow-x:hidden}nav{display:flex;background-color:var(--background-color);border-bottom:var(--border-width) solid var(--border-color)}body>nav{position:relative;left:calc(-50vw + 50%%);width:100vw}nav ul{padding-left:0}body>nav>ul{width:calc(var(--max-body-width) + 2rem);padding-right:.5rem;padding-left:.5rem;margin:.5rem auto}nav ul li{position:relative;display:inline-block}nav>ul>li{padding:.5rem;margin:0}nav ul li a{text-decoration:none;white-space:nowrap}nav ul li ul{position:absolute;left:-9999px;z-index:1;min-width:calc(100%% + var(--border-width) * 2);padding:.25rem .5rem;margin-top:.5rem;margin-left:calc(-.5rem - var(--border-width));background-color:var(--background-color);border:var(--border-width) solid var(--border-color);border-radius:var(--border-radius)}nav ul li ul li{width:100%%}nav ul li ul li ul{min-width:calc(100%% + 1rem + var(--border-width) * 2);margin-top:.75rem}nav :focus~ul,nav :focus~ul ul,nav ul li:hover ul,nav ul ul:focus-within{left:initial}nav li>:not(ul,a,:only-child){cursor:default}nav li>:not(ul,:only-child)::after{content:\" ▾\"}}@media not all and (hover:hover){nav{position:relative;left:calc(-50vw + 50%%);width:100vw;padding-top:2rem;background-image:url(data:image/svg+xml;utf8,SVG_REPLACED);background-repeat:no-repeat;background-position:top;border-bottom:var(--border-width) solid var(--border-color)}nav>*{display:none}nav:hover>ul{display:inherit}nav:hover>:not(ul){display:unset}@media (prefers-color-scheme:dark){nav{background-image:url(data:image/svg+xml;utf8,SVG_REPLACED)}}}:root{color-scheme:light dark;--border-radius:0.25rem;--border-width:1px;--light-border-color:#dbdbdb;--light-border-hover-color:#b5b5b5;--light-background-color:#fff;--light-highlighted-background-color:#f5f5f5;--light-text-color:#363636;--light-danger-color:#f14668;--light-danger-text-color:#fff;--light-danger-hover-color:#f03a5f;--light-success-color:#48c774;--light-success-text-color:#fff;--light-success-hover-color:#3ec46d;--light-danger-text-background-color:#fde0e6;--light-success-text-background-color:#effaf3;--light-code-text-color:#f14668;--light-code-background-color:#f5f5f5;--light-link-color:#3273dc;--light-link-visited-color:#b86bff;--light-link-hover-color:#363636;--light-link-active-color:#363636;--dark-border-color:#5f6267;--dark-border-hover-color:#bcbebd;--dark-background-color:#202124;--dark-highlighted-background-color:#292b2e;--dark-text-color:#fff;--dark-danger-color:#770018;--dark-danger-text-color:#fff;--dark-danger-hover-color:#6b0015;--dark-success-color:#006624;--dark-success-text-color:#fff;--dark-success-hover-color:#006122;--dark-danger-text-background-color:#770018;--dark-success-text-background-color:#006624;--dark-code-text-color:#f1a0b0;--dark-code-background-color:#292b2e;--dark-link-color:#90b3ed;--dark-link-visited-color:#cb93ff;--dark-link-hover-color:#fff;--dark-link-active-color:#fff;--border-color:var(--light-border-color);--border-hover-color:var(--light-border-hover-color);--background-color:var(--light-background-color);--highlighted-background-color:var(--light-highlighted-background-color);--text-color:var(--light-text-color);--danger-color:var(--light-danger-color);--danger-text-color:var(--light-danger-text-color);--danger-hover-color:var(--light-danger-hover-color);--success-color:var(--light-success-color);--success-text-color:var(--light-success-text-color);--success-hover-color:var(--light-success-hover-color);--danger-text-background-color:var(--light-danger-text-background-color);--success-text-background-color:var(--light-success-text-background-color);--code-text-color:var(--light-code-text-color);--code-background-color:var(--light-code-background-color);--link-color:var(--light-link-color);--link-visited-color:var(--light-link-visited-color);--link-hover-color:var(--light-link-hover-color);--link-active-color:var(--light-link-active-color)}@media (prefers-color-scheme:dark){:root{--border-color:var(--dark-border-color);--border-hover-color:var(--dark-border-hover-color);--background-color:var(--dark-background-color);--highlighted-background-color:var(--dark-highlighted-background-color);--text-color:var(--dark-text-color);--danger-color:var(--dark-danger-color);--danger-text-color:var(--dark-danger-text-color);--danger-hover-color:var(--dark-danger-hover-color);--success-color:var(--dark-success-color);--success-text-color:var(--dark-success-text-color);--success-hover-color:var(--dark-success-hover-color);--danger-text-background-color:var(--dark-danger-text-background-color);--success-text-background-color:var(--dark-success-text-background-color);--code-text-color:var(--dark-code-text-color);--code-background-color:var(--dark-code-background-color);--link-color:var(--dark-link-color);--link-visited-color:var(--dark-link-visited-color);--link-hover-color:var(--dark-link-hover-color);--link-active-color:var(--dark-link-active-color)}}input{border-radius:var(--border-radius)}body{color:var(--text-color);background-color:var(--background-color)}a{color:var(--link-color);text-decoration:none}a:visited{color:var(--link-visited-color)}a:hover,a[aria-current=page]{color:var(--link-hover-color)}a:active{color:var(--link-active-color)}button,select{color:var(--text-color);background-color:var(--background-color);border:var(--border-width) solid var(--border-color);border-radius:var(--border-radius)}[type=button],[type=color],[type=date],[type=datetime-local],[type=email],[type=hidden],[type=month],[type=number],[type=password],[type=search],[type=tel],[type=text],[type=time],[type=url],[type=week],input:not([type]){color:var(--text-color);background-color:var(--background-color);border:var(--border-width) solid var(--border-color)}[type=reset]{color:var(--danger-text-color);background-color:var(--danger-color);border:var(--border-width) solid transparent}[type=submit],button:not([type]){color:var(--success-text-color);background-color:var(--success-color);border:var(--border-width) solid transparent}[type=date]:disabled,[type=datetime-local]:disabled,[type=email]:disabled,[type=hidden]:disabled,[type=month]:disabled,[type=number]:disabled,[type=password]:disabled,[type=search]:disabled,[type=tel]:disabled,[type=text]:disabled,[type=time]:disabled,[type=url]:disabled,[type=week]:disabled,input:not([type]):disabled,select:disabled{background-color:var(--highlighted-background-color)}[type=date]:enabled,[type=datetime-local]:enabled,[type=month]:enabled,[type=time]:enabled,[type=week]:enabled,select:enabled{background-color:var(--background-color)}[type=button]:focus,[type=color]:focus,[type=date]:focus,[type=datetime-local]:focus,[type=email]:focus,[type=hidden]:focus,[type=image]:focus,[type=month]:focus,[type=number]:focus,[type=password]:focus,[type=reset]:focus,[type=search]:focus,[type=submit]:focus,[type=tel]:focus,[type=text]:focus,[type=time]:focus,[type=url]:focus,[type=week]:focus,button:focus,button:not([type]):focus,input:not([type]):focus,select:focus{border-color:var(--border-hover-color);outline:0;box-shadow:0 0 .2rem .01rem var(--border-hover-color)}[type=image]:enabled:hover{filter:brightness(95%%)}[type=button]:enabled:hover,[type=color]:enabled:hover,[type=date]:enabled:hover,[type=datetime-local]:enabled:hover,[type=email]:enabled:hover,[type=hidden]:enabled:hover,[type=month]:enabled:hover,[type=number]:enabled:hover,[type=password]:enabled:hover,[type=range]:enabled:hover,[type=search]:enabled:hover,[type=tel]:enabled:hover,[type=text]:enabled:hover,[type=time]:enabled:hover,[type=url]:enabled:hover,[type=week]:enabled:hover,button:enabled:hover,input:not([type]):enabled:hover,select:enabled:hover{border-color:var(--border-hover-color)}[type=reset]:enabled:hover{background-color:var(--danger-hover-color);border-color:transparent}[type=submit]:enabled:hover,button:not([type]):enabled:hover{background-color:var(--success-hover-color);border-color:transparent}table{border-collapse:collapse}tbody>tr:not(:first-child){border-top:var(--border-width) solid var(--border-color)}tbody>tr:nth-child(2n){background-color:var(--highlighted-background-color)}:disabled,[aria-disabled=true],[type=checkbox][id]:disabled+[for],[type=radio][id]:disabled+[for]{opacity:.5}:invalid:not(form){border-color:var(--danger-color);border-style:solid;border-width:var(--border-width)}:disabled :disabled,[aria-disabled=true] [aria-disabled=true]{opacity:unset}:invalid:not([type=checkbox],:focus){box-shadow:none}:invalid:not([type=checkbox]):focus{border-color:var(--danger-hover-color);outline:0;box-shadow:0 0 .2rem .05rem var(--danger-hover-color)}:invalid:not(form):enabled:hover{border-color:var(--danger-hover-color)}");
-
-  request->send(response);
-}
-
-void home(AsyncWebServerRequest *request) {
-  AsyncResponseStream *response = request->beginResponseStream("text/html");
-
-  response->printf("<link rel='stylesheet' href='/css' />");
-  response->printf("<h1>Timon-Box</h1>");
-  response->printf("<h2>Album directory: %s</h2><br>", webServerFolderPath.c_str());
-
-  response->printf("<nav><ul><li><a href='/'>Files</a></li></ul></nav>");
-
-  response->printf("<h3>Rename Folder</h3>");
-
-  response->printf("<form method='POST' action='/setFolderPath' accept-charset='UTF-8'>");
-  response->printf("<input type='text' name='path' value='%s' required> ", webServerFolderPath.c_str());
-  response->printf("<button type='submit'>Rename Folder</button>");
-  response->printf("</form><br>");
-
-  response->printf("<h3>File Upload</h3>");
-
-  response->printf("<form id='uploadForm' enctype='multipart/form-data'>");
-  response->printf("<input type='file' id='fileInput' accept='audio/mpeg' multiple>");
-  response->printf("<button type='button' onclick='uploadFiles()'>Upload</button><br><br>");
-  response->printf("<progress id='progress' value='0' max='0'></progress>");
-
-  response->printf("<script>");
-  response->printf("let files=[],uploaded=0;function uploadFiles(){const input=document.getElementById('fileInput');files=input.files;uploaded=0;if(files.length===0)return alert('No files selected!');document.getElementById('progress').removeAttribute('value');document.getElementById('progress').max=files.length;uploadNextFile()}function uploadNextFile(){if(uploaded>=files.length){location.reload();return}const formData=new FormData();formData.append('files',files[uploaded]);fetch('/upload',{method:'POST',body:formData}).then(()=>{uploaded++;document.getElementById('progress').value=uploaded;document.getElementById('progress').max=files.length;uploadNextFile()}).catch(err=>{alert('Upload failed: '+err)})}");
-  response->printf("</script>");
-
-  request->send(response);
-}
-
-void listFiles(AsyncWebServerRequest *request) {
-  AsyncResponseStream *response = request->beginResponseStream("text/html");
-
-  response->printf("<link rel='stylesheet' href='/css' />");
-  response->printf("<h1>Timon-Box</h1>");
-  response->printf("<h2>Album directory: %s</h2><br>", webServerFolderPath.c_str());
-
-  // Sort the filesInDir alphanumerically
-  std::sort(filesInDir.begin(), filesInDir.end());
-
-  int page = 0;
-  if (request->hasParam("page")) {
-    page = request->getParam("page")->value().toInt();
-  }
-  response->printf("<nav><ul><li><a href='/home'>Upload</a></li>");
-
-  if (page > 0) {
-    response->printf("<li><a class='button' href='/?page=%d'>Previous</a></li> ", page - 1);
-  }
-  if (filesInDir.size() > (page + 1) * PAGE_SIZE) {
-    response->printf("<li><a class='button' href='/?page=%d'>Next</a></li>", page + 1);
-  }
-  response->printf("</ul></nav>");
-  response->printf("<h3>File Management</h3>");
-
-  response->printf("<table><caption>%d files</caption><thead><tr><th>Playing</th><th>Name</th><th>Delete</th></tr></thead><tbody>", filesInDir.size());
-  String lastPlayedFileName = getLastPlayedFileName();
-  for (int i = (page * PAGE_SIZE); i < std::min((page + 1) * PAGE_SIZE, (int)filesInDir.size()); i++) {
-    String fileName = filesInDir.at(i);
-    String selectButtonLabel = lastPlayedFileName.endsWith(fileName) ? "&#x25B6;" : "&#x25B7;";
-    response->printf("<tr><td><form method='POST' action='/select' style='margin:0'><input type='hidden' name='filename' value='%s'><button type='submit'>%s</button></form></td><td>%s</td><td style='text-align:right'><form method='POST' action='/delete' style='margin:0'><input type='hidden' name='filename' value='%s'><button type='submit' style='background-color:red'>&#x274C;</button></form></td></tr>", fileName.c_str(), selectButtonLabel, fileName.c_str(), fileName.c_str());
-  }
-  response->printf("</tbody></table>");
-
-  request->send(response);
-}
-
-void handleUpload(AsyncWebServerRequest *request, String filename, size_t index, uint8_t *data, size_t len, bool final) {
-  String logmessage = "Client:" + request->client()->remoteIP().toString() + " " + request->url();
-  // Serial.println(logmessage);
-
-  if (!index) {
-    logmessage = "Upload Start: " + String(filename);
-    // open the file on first call and store the file handle in the request object
-    request->_tempFile = SD.open("/temp", "w");
-    Serial.println(logmessage);
-  }
-
-  if (len) {
-    // stream the incoming chunk to the opened file
-    request->_tempFile.write(data, len);
-    // logmessage = "Writing file: " + String(filename) + " index=" + String(index) + " len=" + String(len);
-    // Serial.println(logmessage);
-  }
-
-  if (final) {
-    logmessage = "Upload Complete: " + String(filename) + ",size: " + String(index + len);
-    // close the file handle as the upload is now doneu
-    request->_tempFile.close();
-    filename = sanitizeFilename(filename);
-    SD.rename("/temp", webServerFolderPath + "/" + filename);
-    filesInDir.erase(std::remove(filesInDir.begin(), filesInDir.end(), filename), filesInDir.end());
-    filesInDir.push_back(filename);
-    deleteIndexFiles();
-    Serial.println(logmessage);
-    request->send(200, "text/plain", "File uploaded successfully");
-  }
-}
-
-void handleFileDelete(AsyncWebServerRequest *request) {
-  if (request->hasParam("filename", true)) {
-    String fileName = request->getParam("filename", true)->value();
-    String filePath = webServerFolderPath + "/" + fileName;
-    if (SD.exists(filePath)) {
-      SD.remove(filePath);
-      filesInDir.erase(std::remove(filesInDir.begin(), filesInDir.end(), fileName), filesInDir.end());
-      if (getLastPlayedFileName() == filePath) {
-        deleteLastPlayedFile();
-      }
-    }
-  }
-
-  deleteIndexFiles();
-  request->redirect(request->header("referer"));
-}
-
-void handleFileSelect(AsyncWebServerRequest *request) {
-  if (request->hasParam("filename", true)) {
-    String fileName = request->getParam("filename", true)->value();
-    String filePath = webServerFolderPath + "/" + fileName;
-    if (SD.exists(filePath)) {
-      File file = SD.open(webServerFolderPath + LAST_PLAYED_FILE_NAME, FILE_WRITE);
-      if (!file) {
-        Serial.println("Failed to open file for writing");
-        return;
-      }
-      if (file.print(filePath)) {
-        Serial.println(filePath);
-      }
-      file.close();
-    }
-  }
-  request->redirect(request->header("referer"));
-}
-
-void handleFolderPathChange(AsyncWebServerRequest *request) {
-  if (request->hasParam("path", true)) {
-    String newFolderPath = request->getParam("path", true)->value();
-    if (renameFolder(webServerFolderPath, newFolderPath)) webServerFolderPath = newFolderPath;
-  }
-  deleteLastPlayedFile();
-  deleteIndexFiles();
-  request->redirect("/");
-}
-
+// Scans webServerFolderPath for .mp3 files into filesInDir. Caller holds filesMutex.
 void prepareFilesInDir() {
-  if (!filesInDir.empty()) return;
+  filesInDir.clear();
+  if (webServerFolderPath.isEmpty()) return;
 
   File dir = SD.open(webServerFolderPath);
 
@@ -310,31 +199,973 @@ void prepareFilesInDir() {
   Serial.println(String(filesInDir.size()) + " files loaded from " + webServerFolderPath);
 }
 
-void setupWebServer(String path) {
+// ---------------------------------------------------------------------------
+// Album selection (loop task, driven by the RFID token)
+// ---------------------------------------------------------------------------
+
+// Caller holds filesMutex (see PlayerI2S::selectAlbumForManagement, which also
+// resolves the folder on the SD card under the same lock).
+void setAlbumFolder(const String &path, const String &tag) {
   webServerFolderPath = path;
-
+  webServerAlbumTag = tag;
   prepareFilesInDir();
+}
 
-  WiFi.softAP("Timon-Box");
-  IPAddress IP = WiFi.softAPIP();
-  Serial.print("AP IP address: ");
-  Serial.println(IP);
+// ---------------------------------------------------------------------------
+// Presentation helpers
+// ---------------------------------------------------------------------------
+
+// Subtitle shown under the box name on every page.
+String albumSubtitle() {
+  String folder = currentFolder();
+  if (folder.isEmpty()) return "Place an album token on the box to manage its files";
+  return "Album folder <code>" + htmlEscape(folder) + "</code>";
+}
+
+// Files, Upload and Copy only make sense with an album token in place.
+bool navVisible(const NavItem &item) {
+  if (strcmp(item.key, "wifi") == 0) return true;
+  return !currentFolder().isEmpty();
+}
+
+// Shown on every page while only the management token is on the box. Polls /album
+// and jumps to the file list as soon as an album token is recognised.
+void albumNotice(Print *res) {
+  if (!currentFolder().isEmpty()) return;
+  res->print("<div class=\"notice\" id=\"an\"><i class=\"ic ic-warn\"></i><span><b>Which album?</b> Only the management token is on the box. "
+             "Swap it for the token of the album you want to edit. Files, Upload and Copy appear here automatically.</span></div>");
+}
+
+void sendBusy(AsyncWebServerRequest *request);
+
+void albumJson(AsyncWebServerRequest *request) {
+  if (!filesLock()) return sendBusy(request);
+  String json = "{\"album\":\"" + jsonEscape(webServerFolderPath) + "\",\"tracks\":" + String(filesInDir.size()) + "}";
+  filesUnlock();
+  AsyncWebServerResponse *response = request->beginResponse(200, "application/json", json);
+  response->addHeader("Cache-Control", "no-store");
+  request->send(response);
+}
+
+// "/Bibi_Blocksberg_047a8772d42a81" -> "Bibi_Blocksberg", "/047a8772d42a81" -> "" (unnamed album).
+// The token id never shows up in the UI; renameFolder re-attaches it.
+String folderDisplayName(const String &folder, const String &tag) {
+  String name = folder;
+  if (name.startsWith("/")) name = name.substring(1);
+  if (tag.isEmpty()) return name;
+  if (name == tag) return "";
+  if (name.endsWith("_" + tag)) return name.substring(0, name.length() - tag.length() - 1);
+  return name;
+}
+
+// Same conversion as getBattery() in main.ino, kept here because only the raw ADC value is shared.
+int batteryMilliVolts() {
+  return ::map((uint)*batteryAdcValueManagementServer, 1994, 2390, 3685, 4322);
+}
+
+int batteryPercent() {
+  return constrain(::map(batteryMilliVolts(), 3200, 4200, 0, 100), 0, 100);
+}
+
+// 3.2 GB / 512 MB
+String formatBytes(uint64_t bytes) {
+  const double GB = 1024.0 * 1024.0 * 1024.0;
+  const double MB = 1024.0 * 1024.0;
+  char buf[24];
+  if (bytes >= GB) {
+    snprintf(buf, sizeof(buf), "%.1f GB", bytes / GB);
+  } else {
+    snprintf(buf, sizeof(buf), "%.0f MB", bytes / MB);
+  }
+  return String(buf);
+}
+
+void sendBusy(AsyncWebServerRequest *request) {
+  request->send(503, "text/plain", "The box is busy, please retry.");
+}
+
+// "2026-10-19_0400_Erntezeit_1a2b.mp3" -> "2026-10-19 04:00 · Erntezeit"; other names: underscores
+// become spaces, without the extension.
+String trackDisplayName(const String &fileName) {
+  int dot = fileName.lastIndexOf('.');
+  String base = dot > 0 ? fileName.substring(0, dot) : fileName;
+  if (!isEpisodeFileName(fileName.c_str())) {
+    base.replace('_', ' ');
+    return base;
+  }
+  String title = base.substring(16, base.lastIndexOf('_'));
+  title.replace('_', ' ');
+  if (base.startsWith("0000-00-00")) return title;
+  return base.substring(0, 10) + " " + base.substring(11, 13) + ":" + base.substring(13, 15) + " \xc2\xb7 " + title;
+}
+
+static String megabytes(uint32_t bytes) {
+  char buf[16];
+  snprintf(buf, sizeof(buf), "%.1f MB", bytes / 1048576.0);
+  return buf;
+}
+
+// 1570896 -> "26:10", 3753000 -> "1:02:33". Seconds cut off, as podcast feeds and players do.
+String formatDuration(uint32_t ms) {
+  uint32_t s = ms / 1000;
+  char buf[16];
+  if (s >= 3600) snprintf(buf, sizeof(buf), "%u:%02u:%02u", (unsigned)(s / 3600), (unsigned)(s / 60 % 60), (unsigned)(s % 60));
+  else snprintf(buf, sizeof(buf), "%u:%02u", (unsigned)(s / 60), (unsigned)(s % 60));
+  return buf;
+}
+
+// Duration of an open MP3 file in ms, 0 when it cannot tell (mp3-info.h). Reads the ID3v2 header
+// and 4 kB of audio behind the tag, so a big cover picture costs a seek, not a read. Caller holds
+// filesLock.
+uint32_t mp3DurationMs(File &f) {
+  uint32_t size = f.size(), ms = 0;
+  uint8_t *buf = (uint8_t *)malloc(4096);
+  if (!buf) return 0;
+  if (f.seek(0)) {
+    size_t n = f.read(buf, 10);
+    uint32_t tag = id3TagSize(buf, n);
+    if (tag < size && f.seek(tag)) {
+      n = f.read(buf, 4096);
+      Mp3Info info;
+      if (mp3Info(buf, n, size - tag, info)) ms = info.ms;
+    }
+  }
+  free(buf);
+  return ms;
+}
+
+// The same for a file on the card; also gives its size. Caller holds filesLock.
+uint32_t trackDurationMs(const String &path, uint32_t *size = nullptr) {
+  if (size) *size = 0;
+  File f = SD.open(path, FILE_READ);
+  if (!f) return 0;
+  if (size) *size = f.size();
+  uint32_t ms = mp3DurationMs(f);
+  f.close();
+  return ms;
+}
+
+String podcastStatusText(const PodcastState &st, uint32_t onCard) {
+  if (st.result == "ok" && st.complete) return "The newest episode is on the card.";
+  if (st.result == "unsupported") return st.error + ".";
+  if (st.result == "offline") return "No Wi-Fi at the last check (" + st.error + "). The episodes on the card play.";
+  if (st.result == "error") return "The last check failed: " + st.error + ".";
+  if (st.file.length() && !st.complete) {
+    return st.size ? "Partly downloaded: " + megabytes(onCard) + " of " + megabytes(st.size) + ". It continues next time."
+                   : "Partly downloaded. It continues next time.";
+  }
+  return "Not checked yet: place the token on the box in normal mode.";
+}
+
+// The Podcast page: what the box found out last (if the album is a podcast), then the feed
+// settings with a search in the Apple Podcasts directory.
+// `station`: the box is on the home network. In its own hotspot the device has no internet, so the
+// search (in the browser) and the episode list (on the box) cannot work; saving a feed still does.
+void podcastCards(Print *res, bool isPodcast, const PodcastConfig &cfg, const PodcastState &st, uint32_t onCard, uint64_t sdFree,
+                  bool station) {
+  if (!station) {
+    res->print("<div class=\"notice\"><i class=\"ic ic-warn\"></i><span><b>Home network needed.</b> The box is running its own hotspot, "
+               "so there is no internet here: searching and showing episodes work only on the home network. "
+               "A feed address can still be saved; the box loads the episodes in normal mode over the network saved on the "
+               "<a href=\"/wifi\">Wi&#8209;Fi</a> page.</span></div>");
+  }
+  const char *off = station ? "" : " disabled";
+  res->print("<div class=\"card\"><div class=\"card-head\"><h2>Podcast</h2>");
+  res->print(isPodcast ? "<span class=\"pill ok\"><span class=\"dot\"></span>On</span>" : "<span class=\"pill\">Off</span>");
+  res->print("</div>");
+  if (isPodcast) {
+    res->print("<dl class=\"kv\">");
+    if (st.feedTitle.length()) res->printf("<dt>Podcast</dt><dd>%s</dd>", htmlEscape(st.feedTitle).c_str());
+    if (st.title.length()) {
+      res->printf("<dt>Newest</dt><dd>%s%s%s</dd>", htmlEscape(st.title).c_str(), st.date.length() ? " &middot; " : "",
+                  htmlEscape(st.date).c_str());
+    }
+    res->printf("<dt>Status</dt><dd>%s</dd>", htmlEscape(podcastStatusText(st, onCard)).c_str());
+    if (st.checked.length()) res->printf("<dt>Feed last read</dt><dd>%s</dd>", htmlEscape(st.checked).c_str());  // server time of the last successful read
+    res->print("</dl>");
+    if (st.newFeedUrl.length() && st.newFeedUrl != cfg.url) {
+      res->printf("<div class=\"notice\"><i class=\"ic ic-warn\"></i><span>The podcast has moved to <code>%s</code>. "
+                  "Enter that address below.</span></div>", htmlEscape(st.newFeedUrl).c_str());
+    }
+  } else {
+    res->print("<p class=\"hint\">Make this token a podcast: whenever it is placed, the box loads the newest episode, "
+               "plays it right away and keeps it in this folder. The tracks already here stay.</p>");
+  }
+  res->print("</div>");
+
+  res->print("<div class=\"card\"><div class=\"card-head\"><h2>Feed</h2></div>"
+             "<div class=\"field\"><label for=\"ps\">Find a podcast</label><div class=\"row-inline\">");
+  res->printf("<input class=\"input\" id=\"ps\" type=\"search\" placeholder=\"Name of the podcast\" spellcheck=\"false\"%s>"
+              "<button class=\"btn secondary\" type=\"button\" id=\"psb\"%s>Search</button></div>"
+              "<p class=\"hint\" id=\"psh\">%s</p><ul class=\"list\" id=\"psr\" hidden></ul></div>",
+              off, off,
+              station ? "Searches the Apple Podcasts directory. Needs internet on this device."
+                      : "Not available in the box's hotspot: it has no internet.");
+  res->print("<form method=\"POST\" action=\"/setPodcast\" accept-charset=\"UTF-8\" class=\"field\">"
+             "<label for=\"pu\">Feed address (RSS)</label>");
+  res->printf("<input class=\"input\" id=\"pu\" name=\"url\" type=\"url\" value=\"%s\" placeholder=\"https://&hellip;\" "
+              "required spellcheck=\"false\">", htmlEscape(cfg.url).c_str());
+  res->printf("<label for=\"pk\">Keep the newest</label><div class=\"row-inline\">"
+              "<input class=\"input narrow\" id=\"pk\" name=\"keep\" type=\"number\" min=\"1\" max=\"%d\" value=\"%d\" required>"
+              "<span class=\"hint grow\">episodes</span><button class=\"btn\" type=\"submit\">Save</button></div>",
+              PODCAST_KEEP_MAX, cfg.keep);
+  res->print("<p class=\"hint\">Older episodes are deleted when a new one arrives. MP3 podcasts only. "
+             "The box uses the Wi-Fi network saved on the Wi-Fi page.</p></form>");
+  if (isPodcast) {
+    res->print("<form method=\"POST\" action=\"/setPodcast\" onsubmit=\"return confirm('Stop using this token as a podcast? "
+               "The episodes on the card stay.')\" class=\"actions end\"><input type=\"hidden\" name=\"remove\" value=\"1\">"
+               "<button class=\"btn destructive\" type=\"submit\">Remove podcast</button></form>");
+  }
+  res->print("</div>");
+
+  // Single episodes of the feed above, older ones too, loaded by the box (podcast-episodes.h).
+  res->printf("<div class=\"card flush\" id=\"ec\" data-sdfree=\"%llu\">", (unsigned long long)sdFree);
+  res->printf("<div class=\"card-head\"><h2>Episodes</h2><span class=\"pill neutral mono\" id=\"er\" hidden></span></div>"
+             "<p class=\"hint lead\" id=\"es\">Put single episodes of the podcast above on this token, older ones too. "
+             "They are named like the box's own downloads, play in date order and stay until you delete them.</p>"
+             "<ul class=\"list\" id=\"el\" hidden></ul>"
+             "<div class=\"pager\" id=\"ep\" hidden><button class=\"btn secondary small\" type=\"button\" id=\"em\">Show more</button>"
+             "<span class=\"mono\" id=\"en\"></span></div>"
+             "<div class=\"pager\"><span class=\"hint\" id=\"eh\"></span><span class=\"actions\">"
+             "<button class=\"btn secondary\" type=\"button\" id=\"eb\"%s>Show episodes</button>"
+             "<button class=\"btn\" type=\"button\" id=\"eg\" hidden disabled>Download</button></span></div></div>",
+              off);
+
+  // Download dialog, same shape as the upload and copy ones
+  res->print("<dialog class=\"modal\" id=\"ed\"><div class=\"card\">"
+             "<div class=\"card-head\"><h2 id=\"edt\">Loading episodes</h2><span class=\"hint mono\" id=\"edr\"></span></div>"
+             "<div class=\"progress\"><i id=\"edb\"></i></div>"
+             "<p class=\"hint mono\" id=\"eds\"></p>"
+             "<ul class=\"ulist\" id=\"eu\"></ul>"
+             "<p class=\"hint\">The box loads the episodes itself. You can close this page, it keeps going.</p>"
+             "<div class=\"actions end\">"
+             "<button class=\"btn destructive\" type=\"button\" id=\"edc\">Cancel</button>"
+             "<button class=\"btn secondary\" type=\"button\" id=\"edx\" hidden>Close</button>"
+             "<button class=\"btn\" type=\"button\" id=\"edg\" hidden>Retry failed</button>"
+             "</div></div></dialog>");
+}
+
+// ---------------------------------------------------------------------------
+// Pages
+// ---------------------------------------------------------------------------
+
+void home(AsyncWebServerRequest *request) {
+  if (!filesLock()) return sendBusy(request);
+  String folder = webServerFolderPath;
+  String tag = webServerAlbumTag;
+  int trackCount = filesInDir.size();
+  uint64_t sdTotal = SD.totalBytes();
+  uint64_t sdUsed = SD.usedBytes();
+  filesUnlock();
+  if (folder.isEmpty()) return request->redirect("/wifi");
+  uint64_t sdFree = sdTotal > sdUsed ? sdTotal - sdUsed : 0;
+
+  auto page = std::make_shared<PageBuffer>();
+  Print *res = page.get();
+  pageHead(res, request, "upload");
+
+  // Status card
+  int percent = batteryPercent();
+  const char *pillClass = percent > 50 ? "ok" : percent > 20 ? "warn" : "danger";
+  res->print("<div class=\"card\"><div class=\"card-head\"><h2>Status</h2>");
+  res->printf("<span class=\"pill %s\"><span class=\"dot\"></span>Battery %d&thinsp;%%</span></div>", pillClass, percent);
+  res->print("<dl class=\"kv\">");
+  res->printf("<dt>Battery</dt><dd>%d mV &middot; ADC %d</dd>", batteryMilliVolts(), (int)*batteryAdcValueManagementServer);
+  res->printf("<dt>Album folder</dt><dd>%s</dd>", htmlEscape(folder).c_str());
+  res->printf("<dt>Tracks</dt><dd>%d</dd>", trackCount);
+  res->printf("<dt>SD card</dt><dd>%s free of %s</dd>", formatBytes(sdFree).c_str(), formatBytes(sdTotal).c_str());
+  res->print("</dl></div>");
+
+  // Upload card: dropzone + selection summary. The upload itself runs in a modal
+  // <dialog> with a backdrop so it is obvious that leaving the page cancels it.
+  res->printf("<div class=\"card\" id=\"uc\" data-sdfree=\"%llu\" data-par=\"2\">", (unsigned long long)sdFree);
+  res->print("<div class=\"card-head\"><h2>Upload</h2><span class=\"muted small\">MP3 only</span></div>"
+             "<label class=\"dropzone\" id=\"dz\"><input type=\"file\" id=\"f\" accept=\"audio/mpeg,.mp3\" multiple>"
+             "<strong>Choose MP3 files</strong><span>or drag &amp; drop them here &middot; uploaded one after another to the album folder</span></label>"
+             "<div id=\"slot\"><ul class=\"ulist\" id=\"ul\" hidden></ul></div>"
+             "<div class=\"actions between\"><span class=\"hint\" id=\"ph\">No files selected</span>"
+             "<button class=\"btn\" type=\"button\" id=\"ub\" disabled>Upload</button></div></div>");
+
+  // Rename card
+  res->print("<div class=\"card\"><div class=\"card-head\"><h2>Rename Folder</h2></div>"
+             "<form method=\"POST\" action=\"/setFolderPath\" accept-charset=\"UTF-8\" class=\"field\">"
+             "<label for=\"path\">Folder name</label><div class=\"row-inline\">");
+  res->printf("<input class=\"input\" id=\"path\" name=\"path\" type=\"text\" value=\"%s\" placeholder=\"Album name\" required spellcheck=\"false\">", htmlEscape(folderDisplayName(folder, tag)).c_str());
+  res->print("<button class=\"btn secondary\" type=\"submit\">Rename</button></div>"
+             "<p class=\"hint\">The token id is kept out of sight and attached automatically. Spaces and umlauts are converted.</p></form></div>");
+
+  // Delete card
+  res->print("<div class=\"card\"><div class=\"card-head\"><h2>Delete Album</h2></div>"
+             "<p class=\"hint\">Removes every track and the folder itself. The token stays usable as an empty, unnamed album.</p>");
+  res->printf("<form method=\"POST\" action=\"/deleteAlbum\" onsubmit=\"return confirm('Delete all %d track%s and the folder %s?')\" class=\"actions end\">"
+              "<button class=\"btn destructive\" type=\"submit\">Delete album</button></form></div>",
+              trackCount, trackCount == 1 ? "" : "s", htmlEscape(folder).c_str());
+
+  // Upload modal (the file list <ul> moves in here while uploading and back afterwards)
+  res->print("<dialog class=\"modal\" id=\"dlg\"><div class=\"card\">"
+             "<div class=\"card-head\"><h2 id=\"mt\">Uploading</h2><span class=\"hint mono\" id=\"pr\"></span></div>"
+             "<div class=\"progress\"><i id=\"bar\"></i></div>"
+             "<p class=\"hint mono\" id=\"pt\"></p>"
+             "<div id=\"mslot\"></div>"
+             "<div class=\"notice\" id=\"mh\"><i class=\"ic ic-warn\"></i><span>Keep this page open. Navigating away or closing the browser cancels the upload.</span></div>"
+             "<div class=\"actions end\">"
+             "<button class=\"btn destructive\" type=\"button\" id=\"mc\">Cancel upload</button>"
+             "<button class=\"btn secondary\" type=\"button\" id=\"mx\" hidden>Close</button>"
+             "<button class=\"btn\" type=\"button\" id=\"rb\" hidden>Retry failed</button>"
+             "<button class=\"btn\" type=\"button\" id=\"ms\" hidden>Show files</button>"
+             "</div></div></dialog>");
+
+  pageFoot(res);
+  sendBuffered(request, page, "text/html");
+}
+
+void podcastPage(AsyncWebServerRequest *request) {
+  if (!filesLock()) return sendBusy(request);
+  String folder = webServerFolderPath;
+  PodcastConfig podcast;
+  PodcastState state;
+  bool isPodcast = false;
+  uint32_t episodeOnCard = 0;
+  uint64_t sdTotal = SD.totalBytes(), sdUsed = SD.usedBytes();
+  if (!folder.isEmpty()) {
+    isPodcast = readPodcastConfig(folder, podcast);
+    readPodcastState(folder, state);
+    if (state.file.length()) episodeOnCard = fileSizeOnCard(folder + "/" + state.file);
+  }
+  filesUnlock();
+  if (folder.isEmpty()) return request->redirect("/wifi");
+
+  auto page = std::make_shared<PageBuffer>();
+  Print *res = page.get();
+  pageHead(res, request, "podcast");
+  bool station = netMode == NET_STATION && WiFi.status() == WL_CONNECTED;
+  podcastCards(res, isPodcast, podcast, state, episodeOnCard, sdTotal > sdUsed ? sdTotal - sdUsed : 0, station);
+  pageFoot(res);
+  sendBuffered(request, page, "text/html");
+}
+
+void listFiles(AsyncWebServerRequest *request) {
+  int page = 0;
+  if (request->hasParam("page")) {
+    page = request->getParam("page")->value().toInt();
+  }
+  if (page < 0) page = 0;
+
+  // Snapshot the page of files under the lock, render afterwards.
+  if (!filesLock()) return sendBusy(request);
+  String folder = webServerFolderPath;
+  if (!folder.isEmpty() && SD.exists(folder + PODCAST_CONFIG_FILE)) {
+    // A podcast album lists in the order it plays: episodes newest first, then the other files
+    // by name (podcastOrderNext in podcast-feed.h).
+    std::sort(filesInDir.begin(), filesInDir.end(), [](const String &a, const String &b) {
+      bool ea = isEpisodeFileName(a.c_str()), eb = isEpisodeFileName(b.c_str());
+      if (ea != eb) return ea;
+      return ea ? b < a : a < b;
+    });
+  } else {
+    std::sort(filesInDir.begin(), filesInDir.end());
+  }
+  int total = filesInDir.size();
+  int first = std::min(page * PAGE_SIZE, total);
+  int last = std::min(first + PAGE_SIZE, total);
+  std::vector<String> pageFiles(filesInDir.begin() + first, filesInDir.begin() + last);
+  std::vector<uint32_t> sizes, durations;  // ten files a page: a header read each is cheap
+  for (const String &name : pageFiles) {
+    uint32_t size = 0;
+    durations.push_back(trackDurationMs(folder + "/" + name, &size));
+    sizes.push_back(size);
+  }
+  String lastPlayedFileName = folder.isEmpty() ? "" : getLastPlayedFileName(folder);
+  filesUnlock();
+  if (folder.isEmpty()) return request->redirect("/wifi");
+
+  auto body = std::make_shared<PageBuffer>();
+  Print *res = body.get();
+  pageHead(res, request, "files");
+
+  res->print("<div class=\"card flush\"><div class=\"card-head\"><h2>Files</h2>");
+  res->printf("<span class=\"pill neutral mono\">%d track%s</span></div>", total, total == 1 ? "" : "s");
+  res->print("<p class=\"muted small lead\">Tap &#9654; to make a track the one that plays next when the token is placed.</p>");
+
+  if (total == 0) {
+    res->print("<p class=\"empty\">No tracks yet. Upload some MP3 files.</p>");
+  } else {
+    res->print("<ul class=\"list\">");
+    for (size_t k = 0; k < pageFiles.size(); k++) {
+      const String &fileName = pageFiles[k];
+      String escaped = htmlEscape(fileName);
+      bool isNext = lastPlayedFileName.endsWith(fileName);
+      String meta = megabytes(sizes[k]);
+      if (durations[k]) meta += " &middot; " + formatDuration(durations[k]);
+      if (isNext) meta = "Plays next &middot; " + meta;
+
+      String display = trackDisplayName(fileName);
+      int dot = fileName.lastIndexOf('.');
+      String ext = dot > 0 ? fileName.substring(dot) : "";
+
+      res->printf("<li><form method=\"POST\" action=\"/select\"><input type=\"hidden\" name=\"filename\" value=\"%s\">"
+                  "<button class=\"icon-btn%s\" type=\"submit\" aria-label=\"Play next\"><i class=\"ic ic-play\"></i></button></form>",
+                  escaped.c_str(), isNext ? " playing" : "");
+      res->printf("<span class=\"name\">%s<span class=\"ext\">%s</span><span class=\"meta\">%s</span></span>",
+                  htmlEscape(display).c_str(), htmlEscape(ext).c_str(), meta.c_str());
+      res->printf("<form method=\"POST\" action=\"/delete\" onsubmit=\"return confirm('Delete %s?')\"><input type=\"hidden\" name=\"filename\" value=\"%s\">"
+                  "<button class=\"icon-btn destructive\" type=\"submit\" aria-label=\"Delete\"><i class=\"ic ic-trash\"></i></button></form></li>",
+                  escaped.c_str(), escaped.c_str());
+    }
+    res->print("</ul>");
+  }
+
+  if (total > PAGE_SIZE) {
+    res->print("<div class=\"pager\">");
+    if (page > 0) {
+      res->printf("<a class=\"btn secondary small\" href=\"/?page=%d\">Previous</a>", page - 1);
+    } else {
+      res->print("<span class=\"btn secondary small\" aria-disabled=\"true\">Previous</span>");
+    }
+    res->printf("<span class=\"mono\">%d&ndash;%d of %d</span>", total ? first + 1 : 0, last, total);
+    if (last < total) {
+      res->printf("<a class=\"btn secondary small\" href=\"/?page=%d\">Next</a>", page + 1);
+    } else {
+      res->print("<span class=\"btn secondary small\" aria-disabled=\"true\">Next</span>");
+    }
+    res->print("</div>");
+  }
+  res->print("</div>");
+
+  pageFoot(res);
+  sendBuffered(request, body, "text/html");
+}
+
+// ---------------------------------------------------------------------------
+// Actions
+// ---------------------------------------------------------------------------
+
+// ---------------------------------------------------------------------------
+// Upload
+//
+// The file arrives as raw request body (no byte-wise multipart parsing). The
+// network task only copies it into 8 kB buffers from a small pool and hands
+// full buffers to a dedicated SD writer task; it never touches the SD card
+// itself. That keeps AsyncTCP responsive while several uploads are in flight
+// (blocked in SD writes it let its receive timeout reset the other
+// connections) and lets SD writes overlap with receiving.
+// ---------------------------------------------------------------------------
+
+#define UPLOAD_BUF_SIZE 4096   // 4 kB blocks still write to the card efficiently (it is busy ~12 % of the time)
+                               // and leave the contiguous heap the pages and the TCP send path need
+#define UPLOAD_BUF_COUNT 4          // pool shared by all uploads in flight: two per connection at PAR=2.
+                                    // Every buffer is heap the pages need to render, so do not raise this lightly.
+#define UPLOAD_CLOSE_TIMEOUT_MS 15000
+#define UPLOAD_RX_TIMEOUT_S 60      // ESPAsyncWebServer's default of 3 s is too short for a stalled TCP stream
+
+// One upload. Owned by the writer task from OPEN until it hands it back with
+// the CLOSE result (then the request deletes it) or cleans it up after ABORT.
+struct UploadCtx {
+  File file;
+  String tmpPath;
+  String filename;
+  size_t written = 0;
+  unsigned long startedAt = 0;
+  unsigned long sdMs = 0;  // time the writer spent on the SD card for this file
+  volatile bool failed = false;
+  int result = 500;
+  const char *message = "Upload failed";
+  SemaphoreHandle_t done = nullptr;
+};
+
+enum UploadOp { UP_OPEN,
+                UP_DATA,
+                UP_CLOSE,
+                UP_ABORT };
+
+struct UploadJob {
+  UploadOp op;
+  UploadCtx *ctx;
+  uint8_t *buf;
+  size_t len;
+};
+
+// Per request, kept in request->_tempObject (a plain malloc block the server free()s).
+struct UploadReq {
+  UploadCtx *ctx;
+  uint8_t *buf;  // buffer currently being filled, nullptr if none
+  size_t fill;
+  bool finished;  // CLOSE or ABORT already posted
+};
+
+QueueHandle_t uploadJobs = nullptr;
+QueueHandle_t uploadFreeBufs = nullptr;
+static int uploadBufTotal = 0;  // buffers in the pool
+
+// The pool stays allocated: later it would have to come out of a fragmented heap. Reading a podcast
+// feed over TLS needs the memory more, for its 15 s or so (podcast-episodes.h). While
+// uploadPoolReleased is set the buffers are freed and uploads are turned away.
+std::atomic<bool> uploadPoolReleased{false};
+
+// Frees the pool, if no upload holds a buffer. Returns whether it did.
+bool uploadPoolRelease() {
+  uploadPoolReleased = true;  // first: an upload starting now is turned away
+  if (uploadsActive > 0 || (int)uxQueueMessagesWaiting(uploadFreeBufs) != uploadBufTotal) {
+    uploadPoolReleased = false;
+    return false;
+  }
+  uint8_t *buf;
+  while (xQueueReceive(uploadFreeBufs, &buf, 0) == pdTRUE) free(buf);
+  return true;
+}
+
+void uploadPoolRefill() {
+  int n = 0;
+  for (; n < uploadBufTotal; n++) {
+    uint8_t *buf = (uint8_t *)malloc(UPLOAD_BUF_SIZE);
+    if (!buf) break;
+    xQueueSend(uploadFreeBufs, &buf, 0);
+  }
+  if (n < uploadBufTotal) Serial.printf("upload: only %d of %d buffers back\n", n, uploadBufTotal);
+  uploadBufTotal = n;
+  uploadPoolReleased = false;
+}
+static uint32_t uploadSeq = 0;  // AsyncTCP task only
+
+static void uploadPost(UploadOp op, UploadCtx *ctx, uint8_t *buf, size_t len) {
+  UploadJob job = {op, ctx, buf, len};
+  xQueueSend(uploadJobs, &job, portMAX_DELAY);
+}
+
+static void uploadReleaseBuf(uint8_t *buf) {
+  if (buf) xQueueSend(uploadFreeBufs, &buf, 0);
+}
+
+// Runs on its own task: the only place that writes upload data to the SD card.
+static void uploadWriterTask(void *) {
+  UploadJob job;
+  for (;;) {
+    if (xQueueReceive(uploadJobs, &job, portMAX_DELAY) != pdTRUE) continue;
+    UploadCtx *c = job.ctx;
+    unsigned long t0 = millis();
+    switch (job.op) {
+      case UP_OPEN:
+        if (filesLock(10000)) {
+          errno = 0;
+          c->file = SD.open(c->tmpPath, FILE_WRITE);
+          filesUnlock();
+          if (!c->file) {
+            Serial.printf("Upload %s: could not create %s (errno %d), free heap %u, largest block %u\n",
+                          c->filename.c_str(), c->tmpPath.c_str(), errno, ESP.getFreeHeap(), ESP.getMaxAllocHeap());
+            c->message = "Could not create the temp file on the SD card";
+          }
+        } else {
+          Serial.printf("Upload %s: card busy, could not open the temp file\n", c->filename.c_str());
+          c->message = "The SD card was busy for too long";
+        }
+        if (!c->file) c->failed = true;
+        break;
+
+      case UP_DATA:
+        if (!c->failed) {
+          bool ok = false;
+          if (filesLock(10000)) {
+            errno = 0;
+            ok = c->file.write(job.buf, job.len) == job.len;
+            filesUnlock();
+            if (!ok) {
+              Serial.printf("Upload %s: write failed after %u bytes (errno %d)\n", c->filename.c_str(), (unsigned)c->written, errno);
+              c->message = "Writing to the SD card failed";
+            }
+          } else {
+            Serial.printf("Upload %s: card busy, write skipped after %u bytes\n", c->filename.c_str(), (unsigned)c->written);
+            c->message = "The SD card was busy for too long";
+          }
+          if (ok) c->written += job.len;
+          else c->failed = true;
+        }
+        uploadReleaseBuf(job.buf);
+        break;
+
+      case UP_CLOSE:
+        if (filesLock(10000)) {
+          c->file.close();
+          String target = webServerFolderPath + "/" + c->filename;
+          if (c->failed) {
+            SD.remove(c->tmpPath);
+            c->result = 500;  // message set where it failed
+          } else if (webServerFolderPath.isEmpty()) {
+            SD.remove(c->tmpPath);  // token was removed meanwhile
+            c->result = 409;
+            c->message = "No album selected";
+          } else if ((SD.exists(target) && !SD.remove(target)) || !SD.rename(c->tmpPath, target)) {  // overwrite an existing track
+            Serial.printf("Upload %s: could not move %s to %s (errno %d)\n", c->filename.c_str(), c->tmpPath.c_str(), target.c_str(), errno);
+            SD.remove(c->tmpPath);
+            c->result = 500;
+            c->message = "Could not move the file into the album folder";
+          } else {
+            filesInDir.erase(std::remove(filesInDir.begin(), filesInDir.end(), c->filename), filesInDir.end());
+            filesInDir.push_back(c->filename);
+            deleteIndexFiles(webServerFolderPath);
+            c->result = 200;
+            c->message = "File uploaded successfully";
+          }
+          filesUnlock();
+        } else {
+          c->result = 503;
+          c->message = "The box is busy, please retry.";
+        }
+        c->sdMs += millis() - t0;
+        uploadsActive--;
+        xSemaphoreGive(c->done);  // the request owns c from here on
+        continue;
+
+      case UP_ABORT:  // client vanished: nobody waits for this one
+        if (filesLock(10000)) {
+          c->file.close();
+          SD.remove(c->tmpPath);
+          filesUnlock();
+        }
+        Serial.printf("Upload aborted: %s after %u bytes\n", c->filename.c_str(), (unsigned)c->written);
+        uploadsActive--;
+        vSemaphoreDelete(c->done);
+        delete c;
+        continue;
+    }
+    c->sdMs += millis() - t0;
+  }
+}
+
+// Call once from setupWebServer(): buffer pool + writer task.
+void uploadBegin() {
+  uploadJobs = xQueueCreate(UPLOAD_BUF_COUNT + 16, sizeof(UploadJob));
+  uploadFreeBufs = xQueueCreate(UPLOAD_BUF_COUNT, sizeof(uint8_t *));
+  int buffers = 0;
+  for (; buffers < UPLOAD_BUF_COUNT; buffers++) {
+    uint8_t *buf = (uint8_t *)malloc(UPLOAD_BUF_SIZE);
+    if (!buf) break;
+    xQueueSend(uploadFreeBufs, &buf, 0);
+  }
+  uploadBufTotal = buffers;
+  xTaskCreatePinnedToCore(uploadWriterTask, "sdwriter", 6144, nullptr, 3, nullptr, 1);
+  Serial.printf("upload: %d buffers of %u bytes, free heap %u, largest block %u\n", buffers, (unsigned)UPLOAD_BUF_SIZE, ESP.getFreeHeap(), ESP.getMaxAllocHeap());
+}
+
+// Body handler (AsyncTCP task): copy into the current buffer, hand full buffers to the writer.
+void handleUploadBody(AsyncWebServerRequest *request, uint8_t *data, size_t len, size_t index, size_t total) {
+  if (index == 0) {
+    request->client()->setRxTimeout(UPLOAD_RX_TIMEOUT_S);
+    UploadReq *r = (UploadReq *)calloc(1, sizeof(UploadReq));
+    if (!r || !uploadJobs) {
+      free(r);
+      return;  // reported by handleUploadDone
+    }
+    UploadCtx *c = new UploadCtx();
+    uploadsActive++;
+    c->tmpPath = "/temp_" + String(++uploadSeq);
+    c->filename = request->hasParam("name") ? sanitizeFilename(request->getParam("name")->value()) : "";
+    c->startedAt = millis();
+    c->done = xSemaphoreCreateBinary();
+    if (uploadPoolReleased) {  // the box reads a podcast feed and lent the buffers to TLS
+      c->failed = true;
+      c->message = "The box is reading a podcast feed. Upload again in a few seconds.";
+    }
+    r->ctx = c;
+    request->_tempObject = r;
+    request->onDisconnect([r]() {  // fires on every disconnect, also after a normal response
+      if (r->finished) return;
+      r->finished = true;
+      uploadReleaseBuf(r->buf);
+      r->buf = nullptr;
+      uploadPost(UP_ABORT, r->ctx, nullptr, 0);
+    });
+    if (!c->failed) uploadPost(UP_OPEN, c, nullptr, 0);
+    Serial.printf("Upload start: %s (%u bytes), free heap %u, largest block %u, %u of %d buffers free\n",
+                  c->filename.c_str(), (unsigned)total, ESP.getFreeHeap(), ESP.getMaxAllocHeap(),
+                  (unsigned)uxQueueMessagesWaiting(uploadFreeBufs), UPLOAD_BUF_COUNT);
+  }
+
+  UploadReq *r = (UploadReq *)request->_tempObject;
+  if (!r || r->finished || r->ctx->failed) return;
+
+  while (len) {
+    if (!r->buf) {
+      if (xQueueReceive(uploadFreeBufs, &r->buf, pdMS_TO_TICKS(5000)) != pdTRUE) {  // writer cannot keep up
+        r->buf = nullptr;
+        Serial.printf("Upload %s: no free buffer for 5 s after %u bytes, %u jobs queued for the writer\n",
+                      r->ctx->filename.c_str(), (unsigned)index, (unsigned)uxQueueMessagesWaiting(uploadJobs));
+        r->ctx->message = "The SD writer did not keep up";
+        r->ctx->failed = true;
+        return;
+      }
+      r->fill = 0;
+    }
+    size_t n = std::min(len, (size_t)UPLOAD_BUF_SIZE - r->fill);
+    memcpy(r->buf + r->fill, data, n);
+    r->fill += n;
+    data += n;
+    len -= n;
+    if (r->fill == UPLOAD_BUF_SIZE) {
+      uploadPost(UP_DATA, r->ctx, r->buf, r->fill);
+      r->buf = nullptr;
+      r->fill = 0;
+    }
+  }
+}
+
+// Request handler: runs once the whole body arrived. Flush the rest, let the writer close and move the file.
+void handleUploadDone(AsyncWebServerRequest *request) {
+  UploadReq *r = (UploadReq *)request->_tempObject;
+  if (!r) {
+    request->send(507, "text/plain", "Empty upload or not enough memory");
+    return;
+  }
+  r->finished = true;
+  UploadCtx *c = r->ctx;
+
+  if (c->filename.isEmpty()) {
+    uploadReleaseBuf(r->buf);
+    r->buf = nullptr;
+    uploadPost(UP_ABORT, c, nullptr, 0);
+    request->send(400, "text/plain", "Missing file name");
+    return;
+  }
+
+  if (r->buf) {
+    if (r->fill && !c->failed) uploadPost(UP_DATA, c, r->buf, r->fill);
+    else uploadReleaseBuf(r->buf);
+    r->buf = nullptr;
+  }
+  uploadPost(UP_CLOSE, c, nullptr, 0);
+
+  if (xSemaphoreTake(c->done, pdMS_TO_TICKS(UPLOAD_CLOSE_TIMEOUT_MS)) != pdTRUE) {
+    // Writer is stuck; the context stays allocated rather than risking a use after free.
+    Serial.printf("Upload %s: writer did not finish in time\n", c->filename.c_str());
+    request->send(503, "text/plain", "SD card is busy, please retry");
+    return;
+  }
+
+  unsigned long ms = millis() - c->startedAt;
+  Serial.printf("Upload %s: %s, %u bytes in %lu ms (%.2f MB/s), SD busy %lu ms, free heap %u\n",
+                c->result == 200 ? "complete" : "failed", c->filename.c_str(), (unsigned)c->written, ms,
+                ms ? c->written / 1048.576 / ms : 0.0, c->sdMs, ESP.getFreeHeap());
+  request->send(c->result, "text/plain", c->message);
+  vSemaphoreDelete(c->done);
+  delete c;
+}
+
+void handleFileDelete(AsyncWebServerRequest *request) {
+  if (request->hasParam("filename", true)) {
+    String fileName = request->getParam("filename", true)->value();
+    if (!filesLock()) return sendBusy(request);
+    if (!webServerFolderPath.isEmpty()) {
+      String filePath = webServerFolderPath + "/" + fileName;
+      if (SD.exists(filePath)) {
+        SD.remove(filePath);
+        filesInDir.erase(std::remove(filesInDir.begin(), filesInDir.end(), fileName), filesInDir.end());
+        if (getLastPlayedFileName(webServerFolderPath) == filePath) {
+          deleteLastPlayedFile(webServerFolderPath);
+        }
+      }
+      deleteIndexFiles(webServerFolderPath);
+    }
+    filesUnlock();
+  }
+  request->redirect(request->header("referer"));
+}
+
+void handleFileSelect(AsyncWebServerRequest *request) {
+  if (request->hasParam("filename", true)) {
+    String fileName = request->getParam("filename", true)->value();
+    if (!filesLock()) return sendBusy(request);
+    if (!webServerFolderPath.isEmpty()) {
+      String filePath = webServerFolderPath + "/" + fileName;
+      if (SD.exists(filePath)) {
+        File file = SD.open(webServerFolderPath + LAST_PLAYED_FILE_NAME, FILE_WRITE);
+        if (file) {
+          file.print(filePath);
+          file.close();
+          Serial.println(filePath);
+        } else {
+          Serial.println("Failed to open file for writing");
+        }
+      }
+    }
+    filesUnlock();
+  }
+  request->redirect(request->header("referer"));
+}
+
+void handleFolderPathChange(AsyncWebServerRequest *request) {
+  if (episodesBusy()) return request->send(409, "text/plain", "Episodes are being loaded into this album. Rename it when that is done.");
+  if (request->hasParam("path", true)) {
+    String newFolderPath = request->getParam("path", true)->value();
+    newFolderPath.trim();
+    if (!filesLock()) return sendBusy(request);
+    if (!webServerFolderPath.isEmpty() && !newFolderPath.isEmpty()) {
+      if (renameFolder(webServerFolderPath, newFolderPath)) webServerFolderPath = newFolderPath;
+      deleteLastPlayedFile(webServerFolderPath);
+      deleteIndexFiles(webServerFolderPath);
+    }
+    filesUnlock();
+  }
+  request->redirect("/");
+}
+
+// Peer endpoints, the copy worker and the Copy page. Included here because it
+// uses the helpers above (filesLock, renameFolder, the upload buffer pool, ...).
+#include "box-sync.h"
+// Episodes picked on the Podcast page, loaded by the box. Uses the helpers above and box-sync's busy state.
+#include "podcast-episodes.h"
+
+// Sets the feed of the album (podcast.txt), or with "remove" makes it a plain album again. The
+// episodes on the card stay either way.
+void handlePodcastSet(AsyncWebServerRequest *request) {
+  if (!filesLock()) return sendBusy(request);
+  String folder = webServerFolderPath;
+  filesUnlock();
+  if (folder.isEmpty()) return request->redirect("/podcast");
+
+  if (request->hasParam("remove", true)) {
+    if (!filesLock()) return sendBusy(request);
+    SD.remove(folder + PODCAST_CONFIG_FILE);
+    filesUnlock();
+    Serial.printf("podcast removed from %s\n", folder.c_str());
+    return request->redirect("/podcast");
+  }
+
+  PodcastConfig cfg;
+  cfg.url = request->hasParam("url", true) ? request->getParam("url", true)->value() : "";
+  cfg.url.trim();
+  if (request->hasParam("keep", true)) cfg.keep = constrain(request->getParam("keep", true)->value().toInt(), 1, PODCAST_KEEP_MAX);
+  bool valid = (cfg.url.startsWith("http://") || cfg.url.startsWith("https://")) && cfg.url.length() <= 500 &&
+               cfg.url.indexOf(' ') < 0 && cfg.url.indexOf('\n') < 0 && cfg.url.indexOf('\r') < 0;
+  if (!valid) {
+    request->send(400, "text/plain", "The feed address has to start with http:// or https:// (at most 500 characters).");
+    return;
+  }
+  if (!filesLock()) return sendBusy(request);
+  bool ok = writePodcastConfig(folder, cfg);
+  filesUnlock();
+  Serial.printf("podcast for %s: %s, keep %d%s\n", folder.c_str(), cfg.url.c_str(), cfg.keep, ok ? "" : " (write failed)");
+  if (!ok) return request->send(500, "text/plain", "Could not write podcast.txt to the SD card.");
+  request->redirect("/podcast");
+}
+
+// Removes every file in the album folder and the folder itself, then gives the
+// token a fresh, unnamed folder (as a new token gets), so uploads can start right
+// away. Deleting while iterating confuses FATFS's directory cursor, so this takes
+// the first entry, closes the directory and removes it, until nothing is left.
+void handleAlbumDelete(AsyncWebServerRequest *request) {
+  if (syncBusy() || peerTransferActive() || episodesBusy()) return request->send(409, "text/plain", "A transfer is running, try again later.");
+  if (!filesLock(10000)) return sendBusy(request);
+  String folder = webServerFolderPath, tag = webServerAlbumTag;
+  if (folder.isEmpty()) {
+    filesUnlock();
+    return request->redirect("/home");
+  }
+
+  int removed = 0, failed = 0;
+  for (int guard = 0; guard < 2000; guard++) {
+    esp_task_wdt_reset();
+    File dir = SD.open(folder);
+    File entry = dir ? dir.openNextFile() : File();
+    if (!entry) break;
+    String path = folder + "/" + entry.name();
+    bool isDir = entry.isDirectory();
+    entry.close();
+    dir.close();
+    if (isDir ? SD.rmdir(path) : SD.remove(path)) {
+      removed++;
+    } else if (++failed > 3) {
+      break;  // something in here will not go away; do not spin on it
+    }
+  }
+  bool folderGone = failed == 0 && SD.rmdir(folder);
+
+  String fresh = "/" + tag;
+  if (folderGone) {
+    SD.mkdir(fresh);
+    webServerFolderPath = fresh;
+  }
+  prepareFilesInDir();
+  filesUnlock();
+
+  Serial.printf("Album %s deleted: %d entries removed, %d failed, folder %s\n", folder.c_str(), removed, failed,
+                folderGone ? "removed" : "kept");
+  if (!folderGone) return request->send(500, "text/plain", "Some files could not be deleted; the folder was kept.");
+  request->redirect("/home");
+}
+
+// ---------------------------------------------------------------------------
+// Server lifecycle
+// ---------------------------------------------------------------------------
+
+// Starts network + web server without an album. Files/Upload become available via selectAlbum().
+void setupWebServer() {
+  filesMutex = xSemaphoreCreateMutex();
+  pageSubtitle = albumSubtitle;
+  navItemVisible = navVisible;
+  pageNotice = albumNotice;
+
+  // Joins the saved home network or opens the hotspot; see wifi-setup.h.
+  netBegin();
+  uploadBegin();
+  syncBegin();
+  episodesBegin();
+
   Serial.println("starting management server");
-  dnsServer.setErrorReplyCode(DNSReplyCode::NoError);
-  dnsServer.start(53, "*", IP);
+  server.addMiddleware([](AsyncWebServerRequest *request, ArMiddlewareNext next) {  // request log
+    Serial.printf("[http] %s %s from %s, heap %u\n", request->methodToString(), request->url().c_str(), request->client()->remoteIP().toString().c_str(), ESP.getFreeHeap());
+    next();
+  });
+  // A page opened as http://<hostname>.local repeats a failed request at the box's IP address (see
+  // boxFetch in web-ui.h). That is another origin, so those requests need CORS. Only the box's own
+  // name gets in, and headers a handler set itself stay (/wifi-status has its own for the hotspot).
+  server.addMiddleware([](AsyncWebServerRequest *request, ArMiddlewareNext next) {
+    const AsyncWebHeader *origin = request->getHeader("Origin");
+    String own = String("http://") + boxHostname() + ".local";
+    if (!origin || !origin->value().equalsIgnoreCase(own)) {
+      next();
+      return;
+    }
+    if (request->method() == HTTP_OPTIONS) {  // preflight, e.g. of an upload (Content-Type: application/octet-stream)
+      AsyncWebServerResponse *response = request->beginResponse(204);
+      response->addHeader("Access-Control-Allow-Origin", own.c_str());
+      response->addHeader("Access-Control-Allow-Methods", "GET, POST");
+      response->addHeader("Access-Control-Allow-Headers", "Content-Type");
+      response->addHeader("Access-Control-Max-Age", "600");
+      request->send(response);
+      return;
+    }
+    next();
+    AsyncWebServerResponse *response = request->getResponse();
+    if (response && !response->getHeader("Access-Control-Allow-Origin")) response->addHeader("Access-Control-Allow-Origin", own.c_str());
+  });
   server.on("/home", HTTP_GET, home);
+  server.on("/podcast", HTTP_GET, podcastPage);
   server.on("/", HTTP_GET, listFiles);
-  server.on("/css", HTTP_GET, css);
+  server.on("/css", HTTP_GET, cssHandler);
+  server.on("/favicon.svg", HTTP_GET, faviconHandler);
+  server.on("/favicon.ico", HTTP_GET, faviconHandler);
+  server.on("/app.js", HTTP_GET, jsHandler);
+  server.on("/album", HTTP_GET, albumJson);
 
-  server.on("/upload", HTTP_POST, [](AsyncWebServerRequest *request) { request->send(200); }, handleUpload);
+  server.on("/upload", HTTP_POST, handleUploadDone, nullptr, handleUploadBody);  // raw body, see handleUploadBody
   server.on("/select", HTTP_POST, handleFileSelect);
   server.on("/delete", HTTP_POST, handleFileDelete);
   server.on("/setFolderPath", HTTP_POST, handleFolderPathChange);
+  server.on("/deleteAlbum", HTTP_POST, handleAlbumDelete);
+  server.on("/setPodcast", HTTP_POST, handlePodcastSet);
+  registerWifiRoutes(server);
+  registerSyncRoutes(server);
+  registerEpisodeRoutes(server);
   server.onNotFound([](AsyncWebServerRequest *request) {
     request->redirect("/home");
   });
 
   server.begin();
+}
+
+// Call every loop() iteration while the management server runs; returns the current network mode.
+NetMode managementServerLoop() {
+  syncLoop();
+  return netLoop();
 }
 
 #endif

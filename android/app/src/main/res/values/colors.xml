@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Gleicher Grund wie die Seite ihn benutzt, damit es beim Start nicht blitzt. -->
+    <color name="window_bg">#f5f5f7</color>
+    <color name="ic_launcher_background">#0071e3</color>
+</resources>

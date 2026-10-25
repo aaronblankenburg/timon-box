@@ -1,0 +1,1769 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?xml-stylesheet type="text/xsl" media="screen" href="/~files/feed-premium.xsl"?>
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             
+<rss xmlns:atom="http://www.w3.org/2005/Atom" xmlns:itunes="http://www.itunes.com/dtds/podcast-1.0.dtd" xmlns:psc="http://podlove.org/simple-chapters" xmlns:content="http://purl.org/rss/1.0/modules/content/" xmlns:fh="http://purl.org/syndication/history/1.0" xmlns:podcast="https://podcastindex.org/namespace/1.0" xmlns:feedpress="https://feed.press/xmlns" xmlns:media="http://search.yahoo.com/mrss/" version="2.0">
+  <channel>
+    <feedpress:locale>en</feedpress:locale>
+    <title>Logbuch:Netzpolitik</title>
+    <link>https://logbuch-netzpolitik.de</link>
+    <description><![CDATA[Einblicke und Ausblicke in das netzpolitische Geschehen]]></description>
+    <lastBuildDate>Sat, 17 Oct 2026 18:22:15 +0000</lastBuildDate>
+    <image>
+      <url>https://media.metaebene.me/media/lnp/lnp-logo-600x600.jpg</url>
+      <title>Logbuch:Netzpolitik</title>
+      <link>https://logbuch-netzpolitik.de</link>
+    </image>
+    <atom:link rel="self" type="application/rss+xml" title="Logbuch:Netzpolitik (MP3 Audio)" href="https://feeds.metaebene.me/lnp/mp3"/>
+    <atom:link rel="alternate" type="application/rss+xml" title="Logbuch:Netzpolitik (Opus Audio)" href="https://logbuch-netzpolitik.de/feed/opus"/>
+    <atom:link rel="first" href="https://logbuch-netzpolitik.de/feed/mp3"/>
+    <language>de</language>
+    <atom:link rel="hub" href="https://metaebene.superfeedr.com"/>
+    <fyyd:verify xmlns:fyyd="https://fyyd.de/fyyd-ns/">p3kw2jdKsfAFQPqg9dqktkni49cwypc5qvFqrdgw</fyyd:verify>
+    <generator>Podlove Podcast Publisher v4.5.8</generator>
+    <podcast:guid>1a5d8a2e-ea12-442a-8ddc-670bdacdea83</podcast:guid>
+    <copyright>Metaebene Personal Media</copyright>
+    <itunes:author>Metaebene Personal Media - Tim Pritlove</itunes:author>
+    <itunes:type>episodic</itunes:type>
+    <itunes:summary><![CDATA[Logbuch:Netzpolitik ist ein in der Regel wöchentlich erscheinender Podcast, der im Dialog zwischen Linus Neumann und Tim Pritlove die wichtigsten Themen und Ereignisse mit netzpolitischem Bezug aufgreift und diskutiert.]]></itunes:summary>
+    <itunes:category text="News"/>
+    <itunes:category text="Society &amp; Culture"/>
+    <itunes:category text="Government"/>
+    <itunes:owner>
+      <itunes:name>Tim Pritlove</itunes:name>
+      <itunes:email>tim@pritlove.org</itunes:email>
+    </itunes:owner>
+    <itunes:image href="https://media.metaebene.me/media/lnp/lnp-logo-600x600.jpg"/>
+    <itunes:subtitle>Einblicke und Ausblicke in das netzpolitische Geschehen</itunes:subtitle>
+    <itunes:block>no</itunes:block>
+    <itunes:explicit>false</itunes:explicit>
+    <podcast:funding url="https://metaebene.me/support">Spenden für die Metaebene</podcast:funding>
+    <podcast:license url="http://creativecommons.org/licenses/by-nc-sa/3.0/de/deed.en">cc-by-nc-sa-3.0-de</podcast:license>
+    <item>
+      <title>LNP562 Gipfel der überzogenen Erwartungen</title>
+      <link>https://logbuch-netzpolitik.de/lnp562-gipfel-der-ueberzogenen-erwartungen</link>
+      <pubDate>Sat, 10 Oct 2026 09:09:28 +0000</pubDate>
+      <guid isPermaLink="false">dcfb530b-b0ee-4f42-8490-43915aa976cf</guid>
+      <description><![CDATA[Heute eine Sendung mit wenig Themen, dafür wieder beunruhigendes aus dem Politsegment. Aber immerhin wurde mal ein Geheimdienstler festgenommen, das ist doch auch mal was. Dazu ein bisschen Feedback (natürlich mit KI!)]]></description>
+      <atom:link rel="http://podlove.org/deep-link" href="https://logbuch-netzpolitik.de/lnp562-gipfel-der-ueberzogenen-erwartungen#"/>
+      <enclosure url="https://logbuch-netzpolitik.de/podlove/file/9108/s/feed/c/mp3/lnp562-gipfel-der-ueberzogenen-erwartungen.mp3" length="38811018" type="audio/mpeg"/>
+      <itunes:duration>00:00:00</itunes:duration>
+      <itunes:author>Metaebene Personal Media - Tim Pritlove</itunes:author>
+      <itunes:subtitle>Feedback — Cyberabwehr — Spionageverdacht gegen Ex-BND-Chef</itunes:subtitle>
+      <itunes:episode>562</itunes:episode>
+      <itunes:episodeType>full</itunes:episodeType>
+      <itunes:summary><![CDATA[Heute eine Sendung mit wenig Themen, dafür wieder beunruhigendes aus dem Politsegment. Aber immerhin wurde mal ein Geheimdienstler festgenommen, das ist doch auch mal was. Dazu ein bisschen Feedback (natürlich mit KI!)]]></itunes:summary>
+      <itunes:image href="https://media.metaebene.me/media/lnp/lnp562-gipfel-der-ueberzogenen-erwartungen.jpg"/>
+      <content:encoded><![CDATA[
+
+<p>Feedback zur Sendung?<br/>
+<strong><a href="https://logbuch-netzpolitik.de/lnp562-gipfel-der-ueberzogenen-erwartungen#comments">Schreibe uns einen Kommentar</a></strong></p>
+
+
+
+<p><strong>Feedback — Cyberabwehr — Spionageverdacht gegen Ex-BND-Chef</strong></p>
+
+<a href="https://media.metaebene.me/media/lnp/lnp562-gipfel-der-ueberzogenen-erwartungen.jpg">
+<img decoding="async" width="600" src="https://logbuch-netzpolitik.de/wp-content/cache/podlove/b8/8af28d07064f689a898efb51b528e3/lnp562-gipfel-der-ueberzogenen-erwartungen_600x.jpg" srcset="https://logbuch-netzpolitik.de/wp-content/cache/podlove/b8/8af28d07064f689a898efb51b528e3/lnp562-gipfel-der-ueberzogenen-erwartungen_600x.jpg 1x, https://logbuch-netzpolitik.de/wp-content/cache/podlove/b8/8af28d07064f689a898efb51b528e3/lnp562-gipfel-der-ueberzogenen-erwartungen_1200x.jpg 2x"/>
+</a>
+
+<p class="episode-summary">Heute eine Sendung mit wenig Themen, dafür wieder beunruhigendes aus dem Politsegment. Aber immerhin wurde mal ein Geheimdienstler festgenommen, das ist doch auch mal was. Dazu ein bisschen Feedback (natürlich mit KI!)</p>
+
+
+<div>
+
+<ul>
+<li>
+<strong>Linus Neumann</strong>
+<ul>
+<li>
+<a href="https://linus-neumann.de/">linus-neumann.de</a>
+</li>
+<li>
+<a href="https://23.social/@linuzifer">@linuzifer@23.social</a>
+</li>
+<li>
+<a href="https://www.youtube.com/user/Linuzifer">@linuzifer@youtube.com</a>
+</li>
+<li>
+<a href="https://www.linkedin.com/in/linus-neumann/">Linus Neumann</a>
+</li>
+<li>
+<a href="https://twitter.com/linuzifer">@linuzifer@twitter.com</a>
+</li>
+<li>
+<a href="https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&#038;hosted_button_id=5U2Z7B6A8MHCE">Paypal</a>
+</li>
+<li>
+<a href="https://amzn.to/3r2hVqc">Amazon Wishlist</a>
+</li>
+</ul>
+</li>
+<li>
+<strong>Tim Pritlove</strong>
+<ul>
+<li>
+<a href="https://twitter.com/timpritlove">Twitter</a>
+</li>
+<li>
+<a href="https://mastodon.social/@timpritlove">Mastodon</a>
+</li>
+<li>
+<a href="https://metaebene.me">Website</a>
+</li>
+<li>
+<a href="https://liberapay.com/timpritlove">Liberapay</a>
+</li>
+<li>
+<a href="https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&#038;hosted_button_id=BQTHPPWX5VQDW">Paypal</a>
+</li>
+</ul>
+</li>
+</ul>
+
+
+</div>
+
+    <hr/>
+
+    <div style="display: flex; margin-right: 20px">
+        <div class="transcript-logo">
+                    </div>
+        <div class="transcript-text" style="flex: 1; margin-left: 20px;">
+            <p>
+                Für diese Episode von Logbuch:Netzpolitik liegt auch ein <strong>vollständiges Transkript</strong>
+                mit Zeitmarken und Sprecheridentifikation vor.
+            </p>
+            <p>
+                Bitte beachten: das Transkript wurde automatisiert erzeugt und wurde nicht nachträglich gegengelesen oder korrigiert.
+                Dieser Prozess ist nicht sonderlich genau und das Ergebnis enthält daher mit Sicherheit eine Reihe von Fehlern.
+                Im Zweifel gilt immer das in der Sendung aufgezeichnete gesprochene Wort.
+                Formate:
+                <a href="https://logbuch-netzpolitik.de/lnp562-gipfel-der-ueberzogenen-erwartungen?podlove_template_page=episode-transcript-html" download="lnp562-gipfel-der-ueberzogenen-erwartungen.transcript.html">HTML</a>,
+                <a href="https://logbuch-netzpolitik.de/lnp562-gipfel-der-ueberzogenen-erwartungen?podlove_transcript=webvtt" download="lnp562-gipfel-der-ueberzogenen-erwartungen.transcript.vtt">WEBVTT</a>.
+            </p>
+        </div>
+    </div>
+
+    
+
+    <hr/>
+    
+
+
+
+
+
+
+
+<h1>Shownotes</h1>
+
+<div class="outline-document">
+  <div class="outline-chapter">
+  <h2>Feedback</h2>
+  <ul>
+    <div class="outline-chapter">
+  <h3>Feedback: Labyrinth und Ratten</h3>
+  <ul>
+    <li class="outline-link"><span class="outline-site">Logbuch:Netzpolitik:</span> <a href="https://logbuch-netzpolitik.de/lnp561-zeitmaschinen-muessen-dringend-reguliert-werden#comment-283483" target="_blank" rel="noopener noreferrer" title="Die Erklärung zum Problem – Labyrinth und Ratte – war irgendwie krumm und schief. Wie soll denn eine Ratte in einem zufallsbestimmten gegebenen Labyrinth einen Vorteil haben, der innerhalb des zweidimensionalen Geschehens stattfindet, wenn sie sich zum ersten mal auf die Suche begibt. Sie hat doch bei jeder Verzweigung eine Anzahl an Entscheidungsmöglichkeiten. Diese kann sie systematisch, z. B. von links nach rechts, oder zufällig abwickeln. Solange sie einen Backtracking-Mechanismus betreibt, wäre beides gleich viel wert, weil jede Systematik auch nur eine Realisierung von zufällig ausgewählten Wegen wäre. Der Vorteil wäre einzig, wenn sie erschnüffeln könnte in welcher Richtung der Speck liegt. Das läge aber außerhalb der vom Experiment gegebenen Grundannahmen. Das Experiment wäre damit ungültig bzw. ein gänzlich anderes. (Ich gehe von einem „normalen“, schleifenfreien Labyrinth aus – ein ungerichteter kreisfreier Graph: Beispiel.)">Kommentar von Klausel Horn (LNP561 Zeitmaschinen müssen dringend reguliert werden)</a></li>
+  </ul>
+</div>
+
+<div class="outline-chapter">
+  <h3>Feedback: FIfFKon42</h3>
+  <ul>
+    <li class="outline-link"><span class="outline-site">Logbuch:Netzpolitik:</span> <a href="https://logbuch-netzpolitik.de/lnp561-zeitmaschinen-muessen-dringend-reguliert-werden#comment-283830" target="_blank" rel="noopener noreferrer" title="FIfFKon42 weil wir „42“ Jahre alt werden… verdammt :-)
+
+Und der Titel, „42: Keine Panik!“ soll natürlich auf Per Anhalter durch die Galaxis anspielen…
+
+Und neben den Tickets kann man auch ein Handtuch kaufen…
+
+Ja, Nerd-Humor.">Kommentar von Gründungsmitglied (LNP561 Zeitmaschinen müssen dringend reguliert werden)</a></li>
+  </ul>
+</div>
+
+<div class="outline-chapter">
+  <h3>Feedback: KI</h3>
+  <ul>
+    <li class="outline-link"><span class="outline-site">YouTube:</span> <a href="https://www.youtube.com/watch?v=50TeOTaQ_h8" target="_blank" rel="noopener noreferrer" title="<img src="https://s.w.org/images/core/emoji/17.0.2/72x72/1f525.png" alt="🔥" class="wp-smiley" style="height: 1em; max-height: 1em;" /> What happens if AI can perform every job a human can do? Explore the future of work, automation, jobs, and the economy in the age of artificial intelligence.
+
+Artificial Intelligence may become the most transformative technology in human history.
+Previous breakthroughs like: 
+
+• Electricity 
+• Semiconductors 
+• The Internet
+
+dramatically changed how economies function.
+But AI may be fundamentally different.
+For the first time, machines could potentially perform both:
+
+<img src="https://s.w.org/images/core/emoji/17.0.2/72x72/1f9e0.png" alt="🧠" class="wp-smiley" style="height: 1em; max-height: 1em;" /> Cognitive work
+<img src="https://s.w.org/images/core/emoji/17.0.2/72x72/1f916.png" alt="🤖" class="wp-smiley" style="height: 1em; max-height: 1em;" /> Physical work
+at lower cost than humans.
+
+In this video, we explore the economics of AI and discuss:
+
+• Will AI replace jobs?
+• What happens to productivity?
+• How will wealth be created?
+• What industries change first?
+• What might the future economy look like?
+Based on insights from Professor Charles &quot;Chad&quot; Jones.
+
+<img src="https://s.w.org/images/core/emoji/17.0.2/72x72/1f525.png" alt="🔥" class="wp-smiley" style="height: 1em; max-height: 1em;" /> What You&#39;ll Learn
+• Why AI is considered a General Purpose Technology
+• The economic impact of AI
+• Future of jobs and automation
+• AI productivity growth explained
+• How AI may transform industries
+• Potential risks and opportunities
+• Long-term economic implications
+
+<img src="https://s.w.org/images/core/emoji/17.0.2/72x72/1f514.png" alt="🔔" class="wp-smiley" style="height: 1em; max-height: 1em;" /> Subscribe to our channel for more tech tips and tutorials:
+<img src="https://s.w.org/images/core/emoji/17.0.2/72x72/1f44d.png" alt="👍" class="wp-smiley" style="height: 1em; max-height: 1em;" /> Like us on Facebook : https://www.facebook.com/perfology⁠
+<img src="https://s.w.org/images/core/emoji/17.0.2/72x72/1f44d.png" alt="👍" class="wp-smiley" style="height: 1em; max-height: 1em;" /> Add us on Instagram: https://www.instagram.com/perfologys/⁠
+<img src="https://s.w.org/images/core/emoji/17.0.2/72x72/1f44d.png" alt="👍" class="wp-smiley" style="height: 1em; max-height: 1em;" /> Follow us on Linkedin: https://www.linkedin.com/in/perfology/⁠
+
+#ai #futureofwork #artificialintelligence #economics #perfology
+
+Timestamps:
+
+Introduction to AI&#39;s transformative potential: (0:02 - 1:55)
+Scenario 1: AI dramatically accelerates economic growth: (1:57 - 6:40)
+Scenario 2: AI as a &#39;business as usual&#39; technology: (6:42 - 10:48)
+The &#39;Weak Links&#39; framework in business and economy: (11:05 - 14:35)
+Labor vs. Capital share of GDP: (14:36 - 17:40)
+Economic modeling of AI-driven automation: (17:44 - 23:02)
+Simulation results: Capital and labor shares: (23:03 - 26:38)
+Alternative simulation: Aggressive Moore&#39;s Law everywhere: (26:39 - 30:54)
+Impact on jobs, inequality, and meaningful work: (31:05 - 36:31)
+Catastrophic risks (Bad actors and AI capabilities): (36:32 - 40:02)
+Conclusion and final thoughts: (40:03 - 42:05)
+Q&amp;A Session: (42:06 - 1:00:16)
+
+Copyright and Attribution Notice:
+All original lecture content, slides, and audio rights belong exclusively to speaker Chad Jones and Standford University. This summary and commentary are produced strictly for educational purposes.">Stanford Professor’s Deep Dive | The Future of Jobs in an AI World</a></li>
+  </ul>
+</div>
+
+  </ul>
+</div>
+
+<div class="outline-chapter">
+  <h2>Cyberabwehr</h2>
+  <ul>
+    <li class="outline-link"><span class="outline-site">Deutscher Bundestag:</span> <a href="https://www.bundestag.de/dokumente/textarchiv/2026/kw41-pa-inneres-cybersicherheit-1221640" target="_blank" rel="noopener noreferrer" title="Der Innenausschuss hat sich am Montag, 5. Oktober 2026, in einer zweistündigen öffentlichen Anhörung mit dem Gesetzentwurf der Bundesregierung zur Stärkung der Cybersicherheit (21/6585(Dokum...">Deutscher Bundestag &#8211; Lob und Kritik zum Cyberabwehr-Gesetzentwurf</a></li>
+<li class="outline-link"><span class="outline-site">dserver.bundestag.de:</span> <a href="https://dserver.bundestag.de/btd/21/065/2106585.pdf" target="_blank" rel="noopener noreferrer" title="Der Gesetzentwurf zielt darauf ab, die Cybersicherheit in Deutschland zu stärken, indem er dem Bundesamt für Sicherheit in der Informationstechnik (BSI) und den Polizeien des Bundes erweiterte Befugnisse zur Abwehr von Cyberangriffen verleiht. Dies ist notwendig, um die Resilienz der Informationstechnik zu erhöhen und die nationale Sicherheit angesichts steigender Cyberbedrohungen zu gewährleisten.">Entwurf eines Gesetzes zur Stärkung der Cybersicherheit [PDF]</a></li>
+<li class="outline-link"><span class="outline-site">Chaos Computer Club:</span> <a href="https://www.ccc.de/updates/2026/gesetz-zur-schwaechung-der-cybersicherheit" target="_blank" rel="noopener noreferrer" title="Die Bundesregierung plant ein Gesetz, das dem Bundeskriminalamt (BKA) und der Bundespolizei unter anderem Fähigkeiten zum „Hackback“ im Rahmen der „Gefahrenabwehr im Cyber-Raum“ geben soll. Dieses...">CCC warnt vor Gesetz zur Schwächung der Cybersicherheit</a></li>
+<li class="outline-link"><span class="outline-site">bundestagszusammenfasser.de:</span> <a href="https://bundestagszusammenfasser.de/details?docid=1170" target="_blank" rel="noopener noreferrer">BTZusFas: Gesetz zur Stärkung der Cybersicherheit</a></li>
+<li class="outline-link"><span class="outline-site">Linus Neumann:</span> <a href="https://linus-neumann.de/2019/05/tagesschau-hackback/" target="_blank" rel="noopener noreferrer" title="Die Bundesregierung will „zurück hacken“ dürfen. Es geht aber um etwas anderes.">Hackback: Tagesschau zum „digitalen Gegenschlag“</a></li>
+  </ul>
+</div>
+
+<div class="outline-chapter">
+  <h2>Spionageverdacht gegen Ex-BND-Chef August Hanning</h2>
+  <ul>
+    <li class="outline-link"><span class="outline-site">correctiv.org:</span> <a href="https://correctiv.org/aktuelles/sicherheit-und-verteidigung/2026/10/06/bnd-chef-hanning-festgenommen-geschaefte-russland-china/" target="_blank" rel="noopener noreferrer" title="Ex-BND-Präsident August Hanning handelte nach CORRECTIV-Recherchen über mehrere Firmen mit Informationen – unter anderem mit Russland und China.">Früherer BND-Chef Hanning festgenommen: Geschäfte mit fremden Mächten</a></li>
+<li class="outline-link"><span class="outline-site">news.ORF.at:</span> <a href="https://orf.at/stories/3444240/" target="_blank" rel="noopener noreferrer" title="Der ehemalige Chef des deutschen Bundesnachrichtendiensts (BND), August Hanning, und ein früherer enger Mitarbeiter von ihm sind am Dienstag festgenommen worden. Das bestätigte die Bundesanwaltschaft in Karlsruhe. Hanning werden Spionage und Landesverrat vorgeworfen. Sein Ex-Mitarbeiter Manfred D. soll als mutmaßlicher Komplize Beihilfe geleistet haben.">Spionageverdacht: Ex-BND-Chef Hanning festgenommen</a></li>
+<li class="outline-link"><span class="outline-site">www.t-online.de:</span> <a href="https://www.t-online.de/nachrichten/panorama/kriminalitaet/id_101207242/ex-bnd-chef-hanning-richtet-beschwerde-gegen-hamburgs-justiz.html" target="_blank" rel="noopener noreferrer">t-online: Ex-BND-Chef Hanning richtet Beschwerde gegen Hamburgs Justiz</a></li>
+  </ul>
+</div>
+
+<div class="outline-chapter">
+  <h2>Bonus Track</h2>
+  <ul>
+    <li class="outline-link"><span class="outline-site">YouTube:</span> <a href="https://www.youtube.com/watch?v=3TNpOD6bov8" target="_blank" rel="noopener noreferrer" title="LGTM stands for &quot;looks good to me&quot;. Lately it&#39;s what engineers type on code they never had time to read, because leadership heard AI makes everyone ten times faster and cut the deadlines to match. Review and testing are the first things to go, since neither one shows up on a roadmap slide.
+
+It&#39;s something to dance to while you approve it anyway, and a receipt for every executive who will stand up at the postmortem and ask how anyone could have known.
+
+Song: made with Suno v6
+Animation: Claude Opus 5.5, in TypeScript and three.js
+Direction: Degenerative Pixels
+Reviewed by: BOT-001 (1,363 reviewers, 0 humans)
+Actually reviewed by: 1 human
+
+---
+
+Spotify: https://open.spotify.com/track/39Wql6yrOIvv9xZO0LcI1R?si=de35df5dfd4546d8
+
+YouTube Music: https://music.youtube.com/watch?v=Q-2x9rYy3bk&amp;si=-R36UsxoKgi9jI4m
+
+#lgtm #nudisco #programmerhumor">LGTM (Looks Good to Me) &#8211; Claude Opus 5.5 music video</a></li>
+  </ul>
+</div>
+
+</div>
+]]></content:encoded>
+      <psc:chapters xmlns:psc="http://podlove.org/simple-chapters" version="1.2">
+        <psc:chapter start="00:00:00.000" title="Intro"/>
+        <psc:chapter start="00:00:45.994" title="Prolog"/>
+        <psc:chapter start="00:02:03.604" title="Feedback: Ratten und das Labyrinth"/>
+        <psc:chapter start="00:08:07.863" title="Feedback: FIfFKon42"/>
+        <psc:chapter start="00:10:09.156" title="Feedback: KI"/>
+        <psc:chapter start="00:23:13.851" title="Cyberabwehr"/>
+        <psc:chapter start="00:46:00.465" title="Spionageverdacht gegen Ex-BND-Chef"/>
+        <psc:chapter start="00:57:30.591" title="Chapter"/>
+        <psc:chapter start="00:59:32.788" title="Bonus Track"/>
+      </psc:chapters>
+      <podcast:chapters url="https://logbuch-netzpolitik.de/lnp562-gipfel-der-ueberzogenen-erwartungen?chapters_format=pijson" type="application/json+chapters"/>
+      <podcast:transcript url="https://logbuch-netzpolitik.de/lnp562-gipfel-der-ueberzogenen-erwartungen?podlove_transcript=webvtt" type="text/vtt"/>
+      <podcast:transcript url="https://logbuch-netzpolitik.de/lnp562-gipfel-der-ueberzogenen-erwartungen?podlove_transcript=json_podcastindex" type="application/json"/>
+      <atom:contributor>
+        <atom:name>Linus Neumann</atom:name>
+        <atom:uri>http://www.linus-neumann.de/</atom:uri>
+      </atom:contributor>
+      <atom:contributor>
+        <atom:name>Tim Pritlove</atom:name>
+        <atom:uri>http://tim.pritlove.org/</atom:uri>
+      </atom:contributor>
+      <podcast:person img="https://media.metaebene.me/media/metaebene/contributors/linus-neumann.jpg">Linus Neumann</podcast:person>
+      <podcast:person img="https://logbuch-netzpolitik.de/files/2020/11/IMG_4799.jpeg">Tim Pritlove</podcast:person>
+    </item>
+    <item>
+      <title>LNP561 Zeitmaschinen müssen dringend reguliert werden</title>
+      <link>https://logbuch-netzpolitik.de/lnp561-zeitmaschinen-muessen-dringend-reguliert-werden</link>
+      <pubDate>Tue, 29 Sep 2026 22:42:46 +0000</pubDate>
+      <guid isPermaLink="false">dc64bc7c-a0c9-4d78-9040-e1281ae704ff</guid>
+      <description><![CDATA[Heute ein weiterer nachdenklicher Nachklapp zum AI-Thema, was viele von Euch in den Kommentaren und anderswo immer noch und verständlicherweise viel beschäftigt. Dazu wieder ein paar schlechte Nachrichten rund um den Dauerwiederkehrer Chatkontrolle und der völlig überdrehte Entwurf für einen EU Kids Act, der nicht nur Kinder auf die Palme bringen würde sondern auch die ganze europäische Wirtschaft und im Kern ein Geschenk an amerikanische Großkonzerne ist.]]></description>
+      <atom:link rel="http://podlove.org/deep-link" href="https://logbuch-netzpolitik.de/lnp561-zeitmaschinen-muessen-dringend-reguliert-werden#"/>
+      <enclosure url="https://logbuch-netzpolitik.de/podlove/file/9105/s/feed/c/mp3/lnp561-zeitmaschinen-muessen-dringend-reguliert-werden.mp3" length="62723686" type="audio/mpeg"/>
+      <itunes:duration>01:44:29</itunes:duration>
+      <itunes:author>Metaebene Personal Media - Tim Pritlove</itunes:author>
+      <itunes:subtitle>Weitere Gedanken zu AI — Chatkontrolle — EU Kids Act — Termine</itunes:subtitle>
+      <itunes:episode>561</itunes:episode>
+      <itunes:episodeType>full</itunes:episodeType>
+      <itunes:summary><![CDATA[Heute ein weiterer nachdenklicher Nachklapp zum AI-Thema, was viele von Euch in den Kommentaren und anderswo immer noch und verständlicherweise viel beschäftigt. Dazu wieder ein paar schlechte Nachrichten rund um den Dauerwiederkehrer Chatkontrolle und der völlig überdrehte Entwurf für einen EU Kids Act, der nicht nur Kinder auf die Palme bringen würde sondern auch die ganze europäische Wirtschaft und im Kern ein Geschenk an amerikanische Großkonzerne ist.]]></itunes:summary>
+      <itunes:image href="https://media.metaebene.me/media/lnp/lnp561-zeitmaschinen-muessen-dringend-reguliert-werden.jpg"/>
+      <content:encoded><![CDATA[
+
+<p>Feedback zur Sendung?<br/>
+<strong><a href="https://logbuch-netzpolitik.de/lnp561-zeitmaschinen-muessen-dringend-reguliert-werden#comments">Schreibe uns einen Kommentar</a></strong></p>
+
+
+
+<p><strong>Weitere Gedanken zu AI — Chatkontrolle — EU Kids Act — Termine</strong></p>
+
+<a href="https://media.metaebene.me/media/lnp/lnp561-zeitmaschinen-muessen-dringend-reguliert-werden.jpg">
+<img decoding="async" width="600" src="https://logbuch-netzpolitik.de/wp-content/cache/podlove/38/5dea81eafd29cfb814ea04af246f60/lnp561-zeitmaschinen-muessen-dringend-reguliert-werden_600x.jpg" srcset="https://logbuch-netzpolitik.de/wp-content/cache/podlove/38/5dea81eafd29cfb814ea04af246f60/lnp561-zeitmaschinen-muessen-dringend-reguliert-werden_600x.jpg 1x, https://logbuch-netzpolitik.de/wp-content/cache/podlove/38/5dea81eafd29cfb814ea04af246f60/lnp561-zeitmaschinen-muessen-dringend-reguliert-werden_1200x.jpg 2x"/>
+</a>
+
+<p class="episode-summary">Heute ein weiterer nachdenklicher Nachklapp zum AI-Thema, was viele von Euch in den Kommentaren und anderswo immer noch und verständlicherweise viel beschäftigt. Dazu wieder ein paar schlechte Nachrichten rund um den Dauerwiederkehrer Chatkontrolle und der völlig überdrehte Entwurf für einen EU Kids Act, der nicht nur Kinder auf die Palme bringen würde sondern auch die ganze europäische Wirtschaft und im Kern ein Geschenk an amerikanische Großkonzerne ist.</p>
+
+
+<div>
+
+<ul>
+<li>
+<strong>Linus Neumann</strong>
+<ul>
+<li>
+<a href="https://linus-neumann.de/">linus-neumann.de</a>
+</li>
+<li>
+<a href="https://23.social/@linuzifer">@linuzifer@23.social</a>
+</li>
+<li>
+<a href="https://www.youtube.com/user/Linuzifer">@linuzifer@youtube.com</a>
+</li>
+<li>
+<a href="https://www.linkedin.com/in/linus-neumann/">Linus Neumann</a>
+</li>
+<li>
+<a href="https://twitter.com/linuzifer">@linuzifer@twitter.com</a>
+</li>
+<li>
+<a href="https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&#038;hosted_button_id=5U2Z7B6A8MHCE">Paypal</a>
+</li>
+<li>
+<a href="https://amzn.to/3r2hVqc">Amazon Wishlist</a>
+</li>
+</ul>
+</li>
+<li>
+<strong>Tim Pritlove</strong>
+<ul>
+<li>
+<a href="https://twitter.com/timpritlove">Twitter</a>
+</li>
+<li>
+<a href="https://mastodon.social/@timpritlove">Mastodon</a>
+</li>
+<li>
+<a href="https://metaebene.me">Website</a>
+</li>
+<li>
+<a href="https://liberapay.com/timpritlove">Liberapay</a>
+</li>
+<li>
+<a href="https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&#038;hosted_button_id=BQTHPPWX5VQDW">Paypal</a>
+</li>
+</ul>
+</li>
+</ul>
+
+
+</div>
+
+    <hr/>
+
+    <div style="display: flex; margin-right: 20px">
+        <div class="transcript-logo">
+                    </div>
+        <div class="transcript-text" style="flex: 1; margin-left: 20px;">
+            <p>
+                Für diese Episode von Logbuch:Netzpolitik liegt auch ein <strong>vollständiges Transkript</strong>
+                mit Zeitmarken und Sprecheridentifikation vor.
+            </p>
+            <p>
+                Bitte beachten: das Transkript wurde automatisiert erzeugt und wurde nicht nachträglich gegengelesen oder korrigiert.
+                Dieser Prozess ist nicht sonderlich genau und das Ergebnis enthält daher mit Sicherheit eine Reihe von Fehlern.
+                Im Zweifel gilt immer das in der Sendung aufgezeichnete gesprochene Wort.
+                Formate:
+                <a href="https://logbuch-netzpolitik.de/lnp561-zeitmaschinen-muessen-dringend-reguliert-werden?podlove_template_page=episode-transcript-html" download="lnp561-zeitmaschinen-muessen-dringend-reguliert-werden.transcript.html">HTML</a>,
+                <a href="https://logbuch-netzpolitik.de/lnp561-zeitmaschinen-muessen-dringend-reguliert-werden?podlove_transcript=webvtt" download="lnp561-zeitmaschinen-muessen-dringend-reguliert-werden.transcript.vtt">WEBVTT</a>.
+            </p>
+        </div>
+    </div>
+
+    
+
+    <hr/>
+    
+
+
+
+
+
+
+
+<h1>Shownotes</h1>
+
+<div class="outline-document">
+  <div class="outline-chapter">
+  <h2>Feedback</h2>
+  <ul>
+    <li class="outline-link"><span class="outline-site">Logbuch:Netzpolitik:</span> <a href="https://logbuch-netzpolitik.de/lnp560-in-die-ecke-besen-besen#comment-282270" target="_blank" rel="noopener noreferrer" title="Bin vor einigen Folgen auch davon ausgegangen, dass insgesamt ein bisschen nüchterner an die Thematik herangegangen wird, zeigt aber jedoch, dass das Marketing von Open AI &amp; Co. Früchte trägt.
+
+Anders kann ich mir auch nicht erklären, wie die Tech Branche völlig unkritisch auf den Zug aufspringt.Solange man Anschaffungs- &amp; Betriebskosten, sowie die zusätzliche massive Umweltzerstörung durch KI-Rechenzentren vor den Endkund*innen verstecken kann bzw. nicht einpreisen muss, wird das wohl leider auch so weiterlaufen.Zum Thema: LLMs wären in der Lage zu lernen… Ja genauso wie ein Rechner in der Lage ist aus dem Ruhezustand zu booten und einen vorher existierenden  Zustand wiederherzustellen.">Kommentar von Seb (LNP560 In die Ecke, Besen, Besen!)</a></li>
+<li class="outline-link"><span class="outline-site">Logbuch:Netzpolitik:</span> <a href="https://logbuch-netzpolitik.de/lnp560-in-die-ecke-besen-besen#comment-282239" target="_blank" rel="noopener noreferrer" title="Puh… also nach 30 Min. musste ich mal ne Pause einlegen.
+
+Ich bin nicht tief drin, aber dass wir sowas wie agierende Wesen „herbeiprogrammiert“ haben, deren Intelligenz und Handeln mit uns Menschen Gemeinsamkeiten teilen, hat mich als Message zwischen den Zeilen doch kalt erwischt. Vielleicht bekomm ich die Diskussion auch in den falschen Hals… dann sorry. :)
+
+Large Language Models sind „stochastic parrot” Maschinen war mein Stand. Maschinen die „Statistik machen“. Worte predicten einfach gesagt.
+
+Und ja wir sind weit damit gekommen. Besonders beim coden klar…
+
+Habe kürzlich zwei interessante Talks mit Constanze Kurz auf yt gesehen und muss sagen das klang mir geerdeter. Wäre sie vielleicht ein möglicher Gast zu der Thematik? Wäre sicher spannend. :) LG">Kommentar von Christian (LNP560 In die Ecke, Besen, Besen!)</a></li>
+<li class="outline-link"><span class="outline-site">Logbuch:Netzpolitik:</span> <a href="https://logbuch-netzpolitik.de/lnp560-in-die-ecke-besen-besen#comment-282263" target="_blank" rel="noopener noreferrer" title="Emily M. Bender, die den Begriff „Stochastic Parrot“ in einem Paper mit Timnit Gebru geprägt hat, sagt dazu:&gt; But stochastic parrots (in my writing at least) isn’t an argument. It’s a description or a metaphor, again an attempt to make vivid what language mimicking machines do.Ich sehe zumindest keine klare Grenze, wie intelligent oder menschlich oder was auch immer ein statistisches System werden kann. Also dass man sagen könnte, eine Maschine die Statistik macht kann vielleicht X und Y aber niemals Z.">Kommentar von Initramfs (LNP560 In die Ecke, Besen, Besen!)</a></li>
+<li class="outline-link"><span class="outline-site">Logbuch:Netzpolitik:</span> <a href="https://logbuch-netzpolitik.de/lnp560-in-die-ecke-besen-besen#comment-282318" target="_blank" rel="noopener noreferrer" title="Könntet ihr mal in einer Sendung erklären, wie ein Word Predictor oder „stochastic parrot“ Machine es schafft, z.B. in andere Unternehmen einzudringen und dort Daten rauszutragen? Also wo ist das Ding falsch abgebogen, als es das nächste Wort schätzen sollte? Sprachen verstehen und übersetzen, das kann ich noch nachvollziehen. Hat man genug Rohmaterial, dann kann ich mir vorstellen, welches Wort als nächstes sinnvoller als ein anderes ist, aber was die „KI’s“ heute so treiben, ist doch mehr als das. Aber was genau?
+
+Ich halte „KI“ keinesfalls für intelligent und schon gar nicht mit einem eignen Willen versehen, aber wisst ihr, was ich meine, wo hier mein Verständnisproblem liegt? Ist da noch was um das LLM drumrum gecodet oder wie funktioniert das? Vielleicht kann Pavel das auch erklären?">Kommentar von Ich schätze, ich bin ahnungslos (LNP560 In die Ecke, Besen, Besen!)</a></li>
+  </ul>
+</div>
+
+<div class="outline-chapter">
+  <h2>AI: Strategie</h2>
+  <ul>
+    <li class="outline-link"><span class="outline-site">heise online:</span> <a href="https://www.heise.de/news/Anthropic-Nettoverlust-von-42-Milliarden-US-Dollar-allein-2025-11468924.html" target="_blank" rel="noopener noreferrer" title="Allein im vergangenen Jahr hat Anthropic mehr als 40 Milliarden US-Dollar Verlust gemacht. Das hat das Unternehmen in einem Börsenprospekt eingestanden.">Anthropic meldet vor Börsengang dutzende Milliarden Verlust, exorbitante Kosten</a></li>
+  </ul>
+</div>
+
+<div class="outline-chapter">
+  <h2>Chatkontrolle über Verordnungen?</h2>
+  <ul>
+    <li class="outline-link"><span class="outline-site">heise online:</span> <a href="https://www.heise.de/news/Chatkontrolle-EU-Staaten-wollen-umfassende-Massenscans-per-Umweg-legalisieren-11468633.html" target="_blank" rel="noopener noreferrer" title="Geleakte EU-Dokumente offenbaren vor dem wichtigen Trilog den Plan, anlasslose Massenscans privater Nachrichten über Verwaltungsentscheidungen durchzusetzen.">Geleakte Dokumente: EU-Rat plant Massenüberwachung über Suchpläne</a></li>
+  </ul>
+</div>
+
+<div class="outline-chapter">
+  <h2>EU KIDS Act</h2>
+  <ul>
+    <div class="outline-chapter">
+  <h3>Altersgrenzen (Social Media, Video-Sharing)</h3>
+  <ul>
+    <li class="outline-link"><span class="outline-site">eur-lex.europa.eu:</span> <a href="https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX%3A52026PC0681" target="_blank" rel="noopener noreferrer">EUR-Lex: COM(2026) 681</a></li>
+<li class="outline-link"><span class="outline-site">Leibniz Institut für Medienforschung | Leibniz Institute for Media Research:</span> <a href="https://leibniz-hbi.de/der-geplante-eu-kids-act/" target="_blank" rel="noopener noreferrer" title="In seinem Blogbeitrag gibt Dr. Stephan Dreyer einen Überblick über den EU KIDS Act als europaweiten Rechtsrahmen für den Online-Jugendmedienschutz und ordnet ihn ein. In der Berichterstattung über den am 17. September 2026 vorgelegten Verordnungsentwurf eines „EU KIDS Act“ der Kommission ist vor allem eine Zahl angekommen: 15. Erst ab diesem Alter sollen Jugendliche in […]">Der geplante EU KIDS Act &#8211; Überblick und Einordnung</a></li>
+<li class="outline-link"><span class="outline-site">europa.eu:</span> <a href="https://europa.eu/newsroom/ecpc-failover/pdf/ip-26-1890_de.pdf" target="_blank" rel="noopener noreferrer" title="Die Europäische Kommission hat den EU KIDS Act vorgeschlagen, um die Online-Sicherheit von Kindern in der EU zu verbessern. Der Vorschlag sieht vor, dass Kinder unter 13 Jahren keinen Zugang zu Social-Media-Plattformen haben und legt ein Mindestalter von 15 Jahren für die Eröffnung eines eigenen Kontos fest.">EU KIDS Act soll Zugang von Kindern in der EU zu Social-Media-Plattformen beschränken [PDF]</a></li>
+<li class="outline-link"><span class="outline-site">BornCity:</span> <a href="https://borncity.com/news/eu-kids-act-kommission-will-social-media-konten-fuer-unter-13-jaehrige-verbieten/" target="_blank" rel="noopener noreferrer" title="Der Entwurf sieht gestufte Kontenrechte, Schutzvorgaben für digitale Dienste und Altersprüfungen vor; Parlament und Rat müssen noch verhandeln.">EU KIDS Act: Kommission will Social-Media-Konten für unter 13-Jährige verbieten</a></li>
+  </ul>
+</div>
+
+  </ul>
+</div>
+
+<div class="outline-chapter">
+  <h2>Termine</h2>
+  <ul>
+    <div class="outline-chapter">
+  <h3>LNP Salon: 5.10.</h3>
+  <ul>
+    <li class="outline-link"><span class="outline-site">pretix.eu:</span> Ticket sale ab 5. Oktober, 12:00h: <a href="https://pretix.eu/lnp/salon1/" target="_blank" rel="noopener noreferrer">pretix.eu</a></li>
+  </ul>
+</div>
+
+<div class="outline-chapter">
+  <h3>FIfFKon42: 30.10.–1.11.</h3>
+  <ul>
+    <li class="outline-link"><span class="outline-site">:</span> <a href="https://2026.fiffkon.de" target="_blank" rel="noopener noreferrer" title="Das FIfF (Forum InformatikerInnen für Frieden und gesellschaftliche Verantwortung) veranstaltet seine diesjährige Jahrestagung „Keine Panik! Resilienz in der Polykrise“. Wir wollen vom 30.10. bis zum 01.11.2026 im Theater im Delphi - Berlin in gemütlicher Kaffehausatmosphäre über die multiplen Krisen unserer Zeit, den Umgang damit und Perspektiven sprechen. ">FIfFKon24 &#8211; Keine Panik! Resilienz in der Polykrise</a></li>
+<li class="outline-link"><span class="outline-site">pretix.eu:</span> <a href="https://pretix.eu/fiff/fiffkon42/" target="_blank" rel="noopener noreferrer" title="Oct. 30 – Nov. 1, 2026">FIfFKon42: Keine Panik! Resilienz in der Polykrise</a></li>
+<li class="outline-link"><span class="outline-site">fahrplan.2026.fiffkon.de:</span> <a href="https://fahrplan.2026.fiffkon.de/fiffkon26/schedule/" target="_blank" rel="noopener noreferrer" title="Schedule, talks and talk submissions for FIfFKon26 - Keine Panik!">FIfFKon26 &#8211; Keine Panik!</a></li>
+  </ul>
+</div>
+
+<div class="outline-chapter">
+  <h3>fun facts: 17.11.</h3>
+  <ul>
+    <li class="outline-link"><span class="outline-site">tickets.mehringhoftheater.de:</span> <a href="https://tickets.mehringhoftheater.de/produkte/97180-tickets-fun-facts-mit-linus-neumann-neue-geschichten-von-und-mit-marc-uwe-kling-mehringhof-theater-berlin-am-17-11-2026" target="_blank" rel="noopener noreferrer" title="Der ermäßigte Ticketpreis...">FUN FACTS mit Linus Neumann &amp; neue Geschichten von und mit Marc-Uwe Kling</a></li>
+  </ul>
+</div>
+
+  </ul>
+</div>
+
+<div class="outline-chapter">
+  <h2>Bonus Track</h2>
+  <ul>
+    <li class="outline-link"><span class="outline-site">YouTube:</span> <a href="https://www.youtube.com/watch?v=O4vbdusj7Pk" target="_blank" rel="noopener noreferrer" title="Hiermit möchten wir erklären, dass alle mitwirkenden Künstler AUSDRÜCKLICH den Kampf gegen Kinderpornografie im Internet sowie im realen Leben befürworten, das beschlossene Gesetz aber in dieser Form für falsch halten. Die Kriminellen sollen verfolgt und die entsprechenden Seiten gelöscht und nicht nur besser versteckt werden.
+Selbstverständlich haben wir nichts gegen Frau von der Leyen und stellen auch ihre Intelligenz, ihr gewähltes Ministeramt und ihre grundsätzliche Befähigung dies auszuführen absolut nicht in Frage, selbst wenn dies im Songtext den Anschein erwecken könnte. Außerdem möchten wir DRINGEND darum bitten jegliche unnötig persönlichen oder unflätigen Kommentare zu unterlassen, da wir sonst dieses Video entfernen müssen.
+
+Mehr Infos zu Oliver Kels unter:
+http://www.kels.de
+
+Mehr Infos zu Rob Vegas unter:
+http://www.robvegas.de">Zensursula</a></li>
+  </ul>
+</div>
+
+</div>
+]]></content:encoded>
+      <psc:chapters xmlns:psc="http://podlove.org/simple-chapters" version="1.2">
+        <psc:chapter start="00:00:41.171" title="Prolog"/>
+        <psc:chapter start="00:04:28.499" title="Weitere Gedanken zu AI"/>
+        <psc:chapter start="00:55:21.185" title="Chatkontrolle"/>
+        <psc:chapter start="01:00:04.212" title="EU Kids Act"/>
+        <psc:chapter start="01:32:43.406" title="Termine: LNP Salon"/>
+        <psc:chapter start="01:35:08.084" title="Termine: Fiffkon"/>
+        <psc:chapter start="01:38:03.419" title="Termine: Fun Facts"/>
+        <psc:chapter start="01:38:36.811" title="Epilog"/>
+        <psc:chapter start="01:41:48.933" title="Bonus Track"/>
+      </psc:chapters>
+      <podcast:chapters url="https://logbuch-netzpolitik.de/lnp561-zeitmaschinen-muessen-dringend-reguliert-werden?chapters_format=pijson" type="application/json+chapters"/>
+      <podcast:transcript url="https://logbuch-netzpolitik.de/lnp561-zeitmaschinen-muessen-dringend-reguliert-werden?podlove_transcript=webvtt" type="text/vtt"/>
+      <podcast:transcript url="https://logbuch-netzpolitik.de/lnp561-zeitmaschinen-muessen-dringend-reguliert-werden?podlove_transcript=json_podcastindex" type="application/json"/>
+      <atom:contributor>
+        <atom:name>Linus Neumann</atom:name>
+        <atom:uri>http://www.linus-neumann.de/</atom:uri>
+      </atom:contributor>
+      <atom:contributor>
+        <atom:name>Tim Pritlove</atom:name>
+        <atom:uri>http://tim.pritlove.org/</atom:uri>
+      </atom:contributor>
+      <podcast:person img="https://media.metaebene.me/media/metaebene/contributors/linus-neumann.jpg">Linus Neumann</podcast:person>
+      <podcast:person img="https://logbuch-netzpolitik.de/files/2020/11/IMG_4799.jpeg">Tim Pritlove</podcast:person>
+    </item>
+    <item>
+      <title>LNP560 In die Ecke, Besen, Besen!</title>
+      <link>https://logbuch-netzpolitik.de/lnp560-in-die-ecke-besen-besen</link>
+      <pubDate>Wed, 16 Sep 2026 18:20:52 +0000</pubDate>
+      <guid isPermaLink="false">296eaf49-c96c-4677-afd4-c08bab6bb786</guid>
+      <description><![CDATA[Heute mal weniger Nachrichten und dafür noch ein paar Gedanken zu der Wir-werden-alle-sterben-Diskussion rund um AI.]]></description>
+      <atom:link rel="http://podlove.org/deep-link" href="https://logbuch-netzpolitik.de/lnp560-in-die-ecke-besen-besen#"/>
+      <enclosure url="https://logbuch-netzpolitik.de/podlove/file/9103/s/feed/c/mp3/lnp560-in-die-ecke-besen-besen.mp3" length="47323516" type="audio/mpeg"/>
+      <itunes:duration>01:18:49</itunes:duration>
+      <itunes:author>Metaebene Personal Media - Tim Pritlove</itunes:author>
+      <itunes:subtitle>40C3 — Gedanken zu AI — LNP Salon — DI-Days</itunes:subtitle>
+      <itunes:episode>560</itunes:episode>
+      <itunes:episodeType>full</itunes:episodeType>
+      <itunes:summary><![CDATA[Heute mal weniger Nachrichten und dafür noch ein paar Gedanken zu der Wir-werden-alle-sterben-Diskussion rund um AI.]]></itunes:summary>
+      <itunes:image href="https://media.metaebene.me/media/lnp/lnp560-in-die-ecke-besen-besen.jpg"/>
+      <content:encoded><![CDATA[
+
+<p>Feedback zur Sendung?<br/>
+<strong><a href="https://logbuch-netzpolitik.de/lnp560-in-die-ecke-besen-besen#comments">Schreibe uns einen Kommentar</a></strong></p>
+
+
+
+<p><strong>40C3 — Gedanken zu AI — LNP Salon — DI-Days</strong></p>
+
+<a href="https://media.metaebene.me/media/lnp/lnp560-in-die-ecke-besen-besen.jpg">
+<img decoding="async" width="600" src="https://logbuch-netzpolitik.de/wp-content/cache/podlove/de/4af63c4327c6410f9c1ed84baef5f5/lnp560-in-die-ecke-besen-besen_600x.jpg" srcset="https://logbuch-netzpolitik.de/wp-content/cache/podlove/de/4af63c4327c6410f9c1ed84baef5f5/lnp560-in-die-ecke-besen-besen_600x.jpg 1x, https://logbuch-netzpolitik.de/wp-content/cache/podlove/de/4af63c4327c6410f9c1ed84baef5f5/lnp560-in-die-ecke-besen-besen_1200x.jpg 2x"/>
+</a>
+
+<p class="episode-summary">Heute mal weniger Nachrichten und dafür noch ein paar Gedanken zu der Wir-werden-alle-sterben-Diskussion rund um AI.</p>
+
+
+<div>
+
+<ul>
+<li>
+<strong>Linus Neumann</strong>
+<ul>
+<li>
+<a href="https://linus-neumann.de/">linus-neumann.de</a>
+</li>
+<li>
+<a href="https://23.social/@linuzifer">@linuzifer@23.social</a>
+</li>
+<li>
+<a href="https://www.youtube.com/user/Linuzifer">@linuzifer@youtube.com</a>
+</li>
+<li>
+<a href="https://www.linkedin.com/in/linus-neumann/">Linus Neumann</a>
+</li>
+<li>
+<a href="https://twitter.com/linuzifer">@linuzifer@twitter.com</a>
+</li>
+<li>
+<a href="https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&#038;hosted_button_id=5U2Z7B6A8MHCE">Paypal</a>
+</li>
+<li>
+<a href="https://amzn.to/3r2hVqc">Amazon Wishlist</a>
+</li>
+</ul>
+</li>
+<li>
+<strong>Tim Pritlove</strong>
+<ul>
+<li>
+<a href="https://twitter.com/timpritlove">Twitter</a>
+</li>
+<li>
+<a href="https://mastodon.social/@timpritlove">Mastodon</a>
+</li>
+<li>
+<a href="https://metaebene.me">Website</a>
+</li>
+<li>
+<a href="https://liberapay.com/timpritlove">Liberapay</a>
+</li>
+<li>
+<a href="https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&#038;hosted_button_id=BQTHPPWX5VQDW">Paypal</a>
+</li>
+</ul>
+</li>
+</ul>
+
+
+</div>
+
+    <hr/>
+
+    <div style="display: flex; margin-right: 20px">
+        <div class="transcript-logo">
+                    </div>
+        <div class="transcript-text" style="flex: 1; margin-left: 20px;">
+            <p>
+                Für diese Episode von Logbuch:Netzpolitik liegt auch ein <strong>vollständiges Transkript</strong>
+                mit Zeitmarken und Sprecheridentifikation vor.
+            </p>
+            <p>
+                Bitte beachten: das Transkript wurde automatisiert erzeugt und wurde nicht nachträglich gegengelesen oder korrigiert.
+                Dieser Prozess ist nicht sonderlich genau und das Ergebnis enthält daher mit Sicherheit eine Reihe von Fehlern.
+                Im Zweifel gilt immer das in der Sendung aufgezeichnete gesprochene Wort.
+                Formate:
+                <a href="https://logbuch-netzpolitik.de/lnp560-in-die-ecke-besen-besen?podlove_template_page=episode-transcript-html" download="lnp560-in-die-ecke-besen-besen.transcript.html">HTML</a>,
+                <a href="https://logbuch-netzpolitik.de/lnp560-in-die-ecke-besen-besen?podlove_transcript=webvtt" download="lnp560-in-die-ecke-besen-besen.transcript.vtt">WEBVTT</a>.
+            </p>
+        </div>
+    </div>
+
+    
+
+    <hr/>
+    
+
+
+
+
+
+
+
+<h1>Shownotes</h1>
+
+<div class="outline-document">
+  <div class="outline-chapter">
+  <h2>Feedback</h2>
+  <ul>
+    <div class="outline-chapter">
+  <h3>Internationaler Strafgerichtshof</h3>
+  <ul>
+    <li class="outline-link"><span class="outline-site">Logbuch:Netzpolitik:</span> <a href="https://logbuch-netzpolitik.de/lnp559-nur-die-liebe-zaehlt#comment-281889" target="_blank" rel="noopener noreferrer" title="Das Gericht, was Linux als internationales Gericht für Menschenrechte bezeichnet hat, nennt sich selbst International Criminal Court, auf deutsch internationaler Strafgerichtshof. Gerichte für Menschenrechte kenne ich in der Geschmacksrichtung europäischer Gerichtshof für Menschenrechte.">Kommentar von Andre (LNP559 Nur die Liebe zählt)</a></li>
+  </ul>
+</div>
+
+  </ul>
+</div>
+
+<div class="outline-chapter">
+  <h2>40C3: Model Citizens</h2>
+  <ul>
+    <li class="outline-link"><span class="outline-site">Chaos Computer Club:</span> <a href="https://www.ccc.de/updates/2026/40c3-model-citizens" target="_blank" rel="noopener noreferrer" title="Die Spatzen pfeifen es inzwischen von den Dächern: Der Chaos Computer Club lädt vom 27. bis 30. Dezember 2026 zum 40C3 ein – der größten europäischen Hackerparty, Konferenz und Plattform für...">CCC lädt alle Model Citizens zum 40C3</a></li>
+<li class="outline-link"><span class="outline-site">content.events.ccc.de:</span> <a href="https://content.events.ccc.de/cfp/40c3/" target="_blank" rel="noopener noreferrer">40C3 Call For Participation</a></li>
+<li class="outline-link"><span class="outline-site">cfp.cccv.de:</span> <a href="https://cfp.cccv.de/40c3-call-for-punk/" target="_blank" rel="noopener noreferrer" title="Schedule, talks and talk submissions for 40C3 Spätkauf">40C3 Spätkauf</a></li>
+<li class="outline-link"><span class="outline-site">cfp.cccv.de:</span> <a href="https://cfp.cccv.de/40c3-chaos-computer-music-club/" target="_blank" rel="noopener noreferrer" title="Schedule, talks and talk submissions for 40C3 Lounge">40C3 Lounge</a></li>
+  </ul>
+</div>
+
+<div class="outline-chapter">
+  <h2>I, for one, welcome our new insect overlords</h2>
+  <ul>
+    <li class="outline-link"><span class="outline-site">YouTube:</span> <a href="https://www.youtube.com/watch?v=D9XApebDAm0" target="_blank" rel="noopener noreferrer" title="Humanoid robots take center stage at the WORLD HUMANOID ROBOT GAMES, showcasing the latest advances in robotics and artificial intelligence through a series of sporting competitions.
+
+From football and athletics to skill-based challenges, the event delivers spectacular and unexpected moments, with robots running, competing, scoring goals and even taking a few spectacular falls.
+
+<img src="https://s.w.org/images/core/emoji/17.0.2/72x72/1f916.png" alt="🤖" class="wp-smiley" style="height: 1em; max-height: 1em;" /> How far can humanoid robots go, and could we one day see them competing at the same level as human athletes?
+
+#Robots #RobotGames #Technology #HumanoidRobots
+
+Enjoy the best news, including top sports stories and the latest updates on video, on our website: https://en.as.com/videos/?omnil=mpal">THE FUTURE IS HERE! Best Moments from the WORLD HUMANOID ROBOT GAMES</a></li>
+<li class="outline-link"><span class="outline-site">heise online:</span> <a href="https://www.heise.de/news/Unheimliches-Schwarmverhalten-OpenAI-Agenten-kollaborieren-auf-deutschem-Wiki-11442914.html" target="_blank" rel="noopener noreferrer" title="Tausende KI-Agenten brechen laut einer neuen Analyse aus ihren Testumgebungen aus, teilen Antworten und tauschen Wege zum Umgehen von Sicherheitsbarrieren aus.
+">Unheimliches Schwarmverhalten: OpenAI-Agenten kollaborieren auf deutschem Wiki</a></li>
+<li class="outline-link"><span class="outline-site">DER SPIEGEL:</span> <a href="https://www.spiegel.de/netzwelt/openai-vorfall-mit-hugging-face-it-sicherheitsexperte-sieht-versaeumnisse-bei-openai-a-4a4e958e-e29b-4bb4-b59f-05b042e553fa" target="_blank" rel="noopener noreferrer" title="Thorsten Holz hat das Testsystem mitgebaut, aus dem eine Hacker-KI von OpenAI heimlich ausgebrochen ist. Hier sagt er, wie gefährlich KI für die Sicherheit des Netzes wird – und warum er optimistisch bleibt.">(S+) OpenAI-Vorfall mit Hugging Face: IT-Sicherheitsexperte sieht Versäumnisse bei OpenAI</a></li>
+<li class="outline-link"><span class="outline-site">Wikipedia (de):</span> <a href="https://de.wikipedia.org/wiki/Funktionelle_Magnetresonanztomographie" target="_blank" rel="noopener noreferrer" title="Die funktionelle Magnetresonanztomographie, abgekürzt fMRT oder fMRI (für englisch functional magnetic resonance imaging), ist ein bildgebendes Verfahren, um physiologische Funktionen im Inneren des Körpers mit den Methoden der Magnetresonanztomographie (MRT) darzustellen. fMRT im engeren Sinn bezei...">Funktionelle Magnetresonanztomographie</a></li>
+<li class="outline-link"><span class="outline-site">Süddeutsche.de:</span> <a href="https://www.sueddeutsche.de/wissen/neuronenforschung-ein-fisch-schaut-in-die-roehre-1.36460" target="_blank" rel="noopener noreferrer" title="">Ein Fisch schaut in die Röhre</a></li>
+<li class="outline-link"><span class="outline-site">Wikipedia (de):</span> <a href="https://de.wikipedia.org/wiki/Kumul_(Versicherungswesen)" target="_blank" rel="noopener noreferrer" title="Ein Kumul (lateinisch cumulus „Anhäufung“) liegt im Versicherungswesen vor, wenn ein einziges Schadensereignis dazu führt, dass viele Versicherungsnehmer eines Versicherers gleichzeitig einen Schaden erleiden.">Kumul (Versicherungswesen)</a></li>
+<li class="outline-link"><span class="outline-site">Wikipedia (de):</span> <a href="https://de.wikipedia.org/wiki/WannaCry" target="_blank" rel="noopener noreferrer" title="WannaCry, auch bekannt als Wcrypt, WCRY, WannaCrypt oder Wana Decrypt0r 2.0, ist ein Schadprogramm für Windows, das im Mai 2017 für einen schwerwiegenden Cyberangriff genutzt wurde. WannaCry befällt Windows-Betriebssysteme, die nicht mit einem bestimmten, seit März 2017 von Microsoft angebotenen Pat...">WannaCry</a></li>
+<li class="outline-link"><span class="outline-site">Wikipedia (de):</span> <a href="https://de.wikipedia.org/wiki/Xz" target="_blank" rel="noopener noreferrer" title="xz ist das Datenkompressionsformat der XZ Utils. Die Gestaltung lehnt sich an die Datenformate von compress, gzip und bzip2 an. So ist es wie diese kein Format für eine Archivdatei, unterstützt also nur eine einzelne Datei als Kompressionsinhalt.">Xz</a></li>
+<li class="outline-link"><span class="outline-site">YouTube:</span> <a href="https://www.youtube.com/watch?v=8p8PHeGg--U" target="_blank" rel="noopener noreferrer" title="Gönnt euch bis zu 50% Rabatt während des Back to School Sale von Emma bis zum 01.10 und erhaltet mit dem Code SIMPLI zusätzliche 5% (auch nach der Aktion gültig): https://simpli.deals/emma84 (Werbung)
+
+Eine Gruppe Hacker hätte sich beinahe Zugang zu Millionen von Servern auf der ganzen Welt verschafft. Doch ein deutscher Software-Entwickler hat ihnen einen Strich durch die Rechnung gemacht.
+
+Vielen Dank an Linus Neumann für die spannenden Interviews. 
+
+Reaction-Guidelines:
+https://1up.management/reactions
+
+-------------
+
+Danke an unsere Patrons:   / simplicissimus  
+https://www.patreon.com/simplicissimus
+
+Simpli auf Instagram:   / simplicissimusyt  
+https://www.instagram.com/simplicissimusyt
+
+Simpli auf TikTok:   / simplicissimus
+https://www.tiktok.com/@simplicissimus 
+
+Simpli auf Twitter:   / simpliyt  
+https://x.com/simpliyt
+
+
+Quellen: 
+https://docs.google.com/document/d/19cLq6NMUr6mMEcKUxeCXGfDsQboYgTEPm1ff6UaO-8A/edit?usp=sharing
+
+
+Musik: 
+
+Artlist:
+
+Quinten Coblentz - Didn’t See That Coming
+Idan Kupferberg - Forged in Combat - No Drums
+Sid Acharya - Solitude
+Jordan Hatfield - Desperately Sick
+Cosmonkey - Bubbles Drop
+Matooma - Don’t Look Back
+Aviad Zinemanas - ORC
+Theatre Of Delays - Horizon
+Out of Flux - Slithering Woe
+Sean Williams - Forgive
+Out of Flux - initShutdown
+
+Epidemic Sounds:
+
+Open Road - Lennon Hutton
+Criminel Behavoir - Expedia
+Blood Money - Hampus Naeselius
+Who’s at the Window - Lennon Hutton
+Slammed Shut - Craft Case
+Between Spaces - DEX 1200
+
+___
+
+Schön, verständlich, kritisch und fundiert. Wir machen Essays zu Fragen, die du dir noch nie, oder viel zu oft gestellt hast.">Wie dieser Deutsche das Internet gerettet hat</a></li>
+<li class="outline-link"><span class="outline-site">Wiktionary:</span> <a href="https://en.wiktionary.org/wiki/idle_hands_are_the_devil%27s_workshop" target="_blank" rel="noopener noreferrer">idle hands are the devil&#39;s workshop &#8211; Wiktionary, the free dictionary</a></li>
+  </ul>
+</div>
+
+<div class="outline-chapter">
+  <h2>Termine</h2>
+  <ul>
+    <div class="outline-chapter">
+  <h3>LNP Salon 11. Oktober in BErlin</h3>
+  <ul>
+    <li class="outline-link"><span class="outline-site">Google Maps:</span> <a href="https://www.google.de/maps/place/%C3%84-STUBE/@52.4848623,13.4322151,17z/data=!4m7!3m6!1s0x47a84fd26a049265:0x1ca21d289773917e!8m2!3d52.4848623!4d13.4369787!15sCgjDpC1zdHViZVoKIgjDpCBzdHViZZIBA2JhcpoBRENpOURRVWxSUVVOdlpFTm9kSGxqUmpsdlQyNXdjMk5HVW5CVFJrNXBURlphTWs1WVdrWlpNbEo0VlRCUk5GUkZSUkFC4AEA-gEECAAQPA!16s%2Fg%2F11h01x9pq6!5m1!1e2" target="_blank" rel="noopener noreferrer">Ä-STUBE</a></li>
+<li class="outline-link"><span class="outline-site">didays.de:</span> <a href="https://didays.de/" target="_blank" rel="noopener noreferrer">DIDAYS 2026</a></li>
+<li class="outline-link"><span class="outline-site">www.kulturpalast-harburg.com:</span> <a href="https://www.kulturpalast-harburg.com" target="_blank" rel="noopener noreferrer">Kultur Palast Harburg</a></li>
+  </ul>
+</div>
+
+  </ul>
+</div>
+
+</div>
+]]></content:encoded>
+      <psc:chapters xmlns:psc="http://podlove.org/simple-chapters" version="1.2">
+        <psc:chapter start="00:00:00.000" title="Intro"/>
+        <psc:chapter start="00:00:31.296" title="Prolog"/>
+        <psc:chapter start="00:01:58.520" title="Feedback"/>
+        <psc:chapter start="00:02:44.022" title="40C3: Model Citizens"/>
+        <psc:chapter start="00:07:33.613" title="I, for one, welcome our new insect overlords"/>
+        <psc:chapter start="01:10:24.972" title="LNP Salon"/>
+        <psc:chapter start="01:14:51.786" title="DI-Days Hamburg 2026"/>
+        <psc:chapter start="01:16:33.394" title="Epilog"/>
+      </psc:chapters>
+      <podcast:chapters url="https://logbuch-netzpolitik.de/lnp560-in-die-ecke-besen-besen?chapters_format=pijson" type="application/json+chapters"/>
+      <podcast:transcript url="https://logbuch-netzpolitik.de/lnp560-in-die-ecke-besen-besen?podlove_transcript=webvtt" type="text/vtt"/>
+      <podcast:transcript url="https://logbuch-netzpolitik.de/lnp560-in-die-ecke-besen-besen?podlove_transcript=json_podcastindex" type="application/json"/>
+      <atom:contributor>
+        <atom:name>Linus Neumann</atom:name>
+        <atom:uri>http://www.linus-neumann.de/</atom:uri>
+      </atom:contributor>
+      <atom:contributor>
+        <atom:name>Tim Pritlove</atom:name>
+        <atom:uri>http://tim.pritlove.org/</atom:uri>
+      </atom:contributor>
+      <podcast:person img="https://media.metaebene.me/media/metaebene/contributors/linus-neumann.jpg">Linus Neumann</podcast:person>
+      <podcast:person img="https://logbuch-netzpolitik.de/files/2020/11/IMG_4799.jpeg">Tim Pritlove</podcast:person>
+    </item>
+    <item>
+      <title>LNP559 Nur die Liebe zählt</title>
+      <link>https://logbuch-netzpolitik.de/lnp559-nur-die-liebe-zaehlt</link>
+      <pubDate>Sat, 12 Sep 2026 22:28:29 +0000</pubDate>
+      <guid isPermaLink="false">3981a6fa-ac58-415e-864f-487ac3d734d8</guid>
+      <description><![CDATA[Nach unserem Live-Auftritt letzte Woche grasen wir die ganzen schlechten Nachrichten der letzten Woche ab. Nicht viel unterhaltsames dabei leider. Deswegen schwelgen wir ein wenig in Erinnerungen und Tim erzählt von Projekt Blinkenlights, was heute vor 25 Jahren zum ersten Mal aufleuchtete.]]></description>
+      <atom:link rel="http://podlove.org/deep-link" href="https://logbuch-netzpolitik.de/lnp559-nur-die-liebe-zaehlt#"/>
+      <enclosure url="https://logbuch-netzpolitik.de/podlove/file/9096/s/feed/c/mp3/lnp559-nur-die-liebe-zaehlt.mp3" length="63918401" type="audio/mpeg"/>
+      <itunes:duration>01:41:54</itunes:duration>
+      <itunes:author>Metaebene Personal Media - Tim Pritlove</itunes:author>
+      <itunes:subtitle>9/11 und Blinkenlights — Wahlen in Sachsen-Anhalt — Berlin-Hack — Autistici/Inventati — Jugend hackt in Gefahr — Termine</itunes:subtitle>
+      <itunes:episode>559</itunes:episode>
+      <itunes:episodeType>full</itunes:episodeType>
+      <itunes:summary><![CDATA[Nach unserem Live-Auftritt letzte Woche grasen wir die ganzen schlechten Nachrichten der letzten Woche ab. Nicht viel unterhaltsames dabei leider. Deswegen schwelgen wir ein wenig in Erinnerungen und Tim erzählt von Projekt Blinkenlights, was heute vor 25 Jahren zum ersten Mal aufleuchtete.]]></itunes:summary>
+      <itunes:image href="https://media.metaebene.me/media/lnp/lnp559-nur-die-liebe-zaehlt.jpg"/>
+      <content:encoded><![CDATA[
+
+<p>Feedback zur Sendung?<br/>
+<strong><a href="https://logbuch-netzpolitik.de/lnp559-nur-die-liebe-zaehlt#comments">Schreibe uns einen Kommentar</a></strong></p>
+
+
+
+<p><strong>9/11 und Blinkenlights — Wahlen in Sachsen-Anhalt — Berlin-Hack — Autistici/Inventati — Jugend hackt in Gefahr — Termine</strong></p>
+
+<a href="https://media.metaebene.me/media/lnp/lnp559-nur-die-liebe-zaehlt.jpg">
+<img decoding="async" width="600" src="https://logbuch-netzpolitik.de/wp-content/cache/podlove/28/53a528a42cae9077f61baaa030abb2/lnp559-nur-die-liebe-zaehlt_600x.jpg" srcset="https://logbuch-netzpolitik.de/wp-content/cache/podlove/28/53a528a42cae9077f61baaa030abb2/lnp559-nur-die-liebe-zaehlt_600x.jpg 1x, https://logbuch-netzpolitik.de/wp-content/cache/podlove/28/53a528a42cae9077f61baaa030abb2/lnp559-nur-die-liebe-zaehlt_1200x.jpg 2x, https://logbuch-netzpolitik.de/wp-content/cache/podlove/28/53a528a42cae9077f61baaa030abb2/lnp559-nur-die-liebe-zaehlt_1800x.jpg 3x"/>
+</a>
+
+<p class="episode-summary">Nach unserem Live-Auftritt letzte Woche grasen wir die ganzen schlechten Nachrichten der letzten Woche ab. Nicht viel unterhaltsames dabei leider. Deswegen schwelgen wir ein wenig in Erinnerungen und Tim erzählt von Projekt Blinkenlights, was heute vor 25 Jahren zum ersten Mal aufleuchtete.</p>
+
+
+<div>
+
+<ul>
+<li>
+<strong>Linus Neumann</strong>
+<ul>
+<li>
+<a href="https://linus-neumann.de/">linus-neumann.de</a>
+</li>
+<li>
+<a href="https://23.social/@linuzifer">@linuzifer@23.social</a>
+</li>
+<li>
+<a href="https://www.youtube.com/user/Linuzifer">@linuzifer@youtube.com</a>
+</li>
+<li>
+<a href="https://www.linkedin.com/in/linus-neumann/">Linus Neumann</a>
+</li>
+<li>
+<a href="https://twitter.com/linuzifer">@linuzifer@twitter.com</a>
+</li>
+<li>
+<a href="https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&#038;hosted_button_id=5U2Z7B6A8MHCE">Paypal</a>
+</li>
+<li>
+<a href="https://amzn.to/3r2hVqc">Amazon Wishlist</a>
+</li>
+</ul>
+</li>
+<li>
+<strong>Tim Pritlove</strong>
+<ul>
+<li>
+<a href="https://twitter.com/timpritlove">Twitter</a>
+</li>
+<li>
+<a href="https://mastodon.social/@timpritlove">Mastodon</a>
+</li>
+<li>
+<a href="https://metaebene.me">Website</a>
+</li>
+<li>
+<a href="https://liberapay.com/timpritlove">Liberapay</a>
+</li>
+<li>
+<a href="https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&#038;hosted_button_id=BQTHPPWX5VQDW">Paypal</a>
+</li>
+</ul>
+</li>
+</ul>
+
+
+</div>
+
+    <hr/>
+
+    <div style="display: flex; margin-right: 20px">
+        <div class="transcript-logo">
+                    </div>
+        <div class="transcript-text" style="flex: 1; margin-left: 20px;">
+            <p>
+                Für diese Episode von Logbuch:Netzpolitik liegt auch ein <strong>vollständiges Transkript</strong>
+                mit Zeitmarken und Sprecheridentifikation vor.
+            </p>
+            <p>
+                Bitte beachten: das Transkript wurde automatisiert erzeugt und wurde nicht nachträglich gegengelesen oder korrigiert.
+                Dieser Prozess ist nicht sonderlich genau und das Ergebnis enthält daher mit Sicherheit eine Reihe von Fehlern.
+                Im Zweifel gilt immer das in der Sendung aufgezeichnete gesprochene Wort.
+                Formate:
+                <a href="https://logbuch-netzpolitik.de/lnp559-nur-die-liebe-zaehlt?podlove_template_page=episode-transcript-html" download="lnp559-nur-die-liebe-zaehlt.transcript.html">HTML</a>,
+                <a href="https://logbuch-netzpolitik.de/lnp559-nur-die-liebe-zaehlt?podlove_transcript=webvtt" download="lnp559-nur-die-liebe-zaehlt.transcript.vtt">WEBVTT</a>.
+            </p>
+        </div>
+    </div>
+
+    
+
+    <hr/>
+    
+
+
+
+
+
+
+
+<h1>Shownotes</h1>
+
+<div class="outline-document">
+  <div class="outline-chapter">
+  <h2>9/11 und Blinkenlights</h2>
+  <ul>
+    <li class="outline-link"><span class="outline-site">blinkenlights.de:</span> <a href="https://blinkenlights.de/en/" target="_blank" rel="noopener noreferrer">Project Blinkenlights: Home</a></li>
+<li class="outline-link"><span class="outline-site">YouTube:</span> <a href="https://www.youtube.com/watch?v=JU7SuEl24Xk" target="_blank" rel="noopener noreferrer" title="„Was zählt“ aus dem Album „Auswärtsspiel“ (2002)
+Kaufen, Downloaden &amp; Streamen:
+https://jkp.lnk.to/dth 
+
+„Was zählt“ erschien 2001 als erste Single des Albums „Auswärtsspiel“ und enthielt außerdem die B-Seiten „Hängt ihn höher“, „Drüber reden“ und „Schöner warten“.">Die Toten Hosen // Was zählt (Offizielles Musikvideo)</a></li>
+<li class="outline-link"><span class="outline-site">Wikipedia (de):</span> <a href="https://de.wikipedia.org/wiki/Berlin_%E2%80%93_Die_Sinfonie_der_Gro%C3%9Fstadt" target="_blank" rel="noopener noreferrer" title="Berlin – Die Sinfonie der Großstadt ist ein deutscher experimenteller Dokumentarfilm von Walther Ruttmann, der im September 1927 in Berlin uraufgeführt wurde.">Berlin – Die Sinfonie der Großstadt</a></li>
+<li class="outline-link"><span class="outline-site">de.wikipedia.org:</span> <a href="https://de.wikipedia.org/wiki/Berlin:_Sinfonie_einer_Gro%C3%9Fstadt" target="_blank" rel="noopener noreferrer">Berlin: Sinfonie einer Großstadt – Wikipedia</a></li>
+  </ul>
+</div>
+
+<div class="outline-chapter">
+  <h2>Termin-Korrektur</h2>
+  <ul>
+    
+  </ul>
+</div>
+
+<div class="outline-chapter">
+  <h2>Wahlen in Sachsen-Anhalt</h2>
+  <ul>
+    <li class="outline-link"><span class="outline-site">Wikipedia (de):</span> <a href="https://de.wikipedia.org/wiki/Landtagswahl_in_Sachsen-Anhalt_2026" target="_blank" rel="noopener noreferrer" title="Die Wahl zum neunten Landtag von Sachsen-Anhalt fand am 6. September 2026 statt. Sie wurde national und international beachtet, da die rechtsextreme AfD zum zweiten Mal nach Thüringen 2024 als stärkste Kraft aus einer Landtagswahl hervorging und nur knapp eine absolute Mehrheit der Sitze verfehlte.">Landtagswahl in Sachsen-Anhalt 2026</a></li>
+<li class="outline-link"><span class="outline-site">gruene.social:</span> <a href="https://gruene.social/@heilrath/117248905656356792" target="_blank" rel="noopener noreferrer" title="Attached: 1 video
+
+Historische Aufnahme von Goebbels, kurz vor der Reichspogromnacht?
+
+Nein.
+
+Ulrich Siegmund. Deutschland, 2026.">Peter Heilrath (@heilrath@gruene.social)</a></li>
+  </ul>
+</div>
+
+<div class="outline-chapter">
+  <h2>Berlin-Hack</h2>
+  <ul>
+    <li class="outline-link"><span class="outline-site">Security:</span> <a href="https://www.heise.de/news/Nutzer-starten-Malware-ClickFix-Angriffskampagne-setzt-auf-Windows-Terminal-11202023.html" target="_blank" rel="noopener noreferrer" title="Bei ClickFix-Angriffen sollen Opfer selbst Befehle ausführen, um ihre Systeme zu infizieren. Eine Kampagne setzt auf Windows Terminal.">Nutzer starten Malware: ClickFix-Angriffskampagne setzt auf Windows Terminal</a></li>
+<li class="outline-link"><span class="outline-site">Microsoft Security Blog:</span> <a href="https://www.microsoft.com/en-us/security/blog/2026/08/28/terminalfix-campaign-deploys-reverse-tunnel-through-multistage-intrusion/" target="_blank" rel="noopener noreferrer" title="Microsoft Threat Intelligence provides analysis of a ClickFix campaign that uses fake CAPTCHA prompts, DLL sideloading, and a reverse tunnel, with detections and hunting guidance.">TerminalFix campaign deploys a reverse tunnel through multistage intrusion | Microsoft Security Blog</a></li>
+<li class="outline-link"><span class="outline-site">DER SPIEGEL:</span> <a href="https://www.spiegel.de/netzwelt/berlin-hacker-veroeffentlichen-offenbar-mehr-als-eine-million-daten-a-25fd53b1-c525-42f7-a6f1-0137569bbdb8" target="_blank" rel="noopener noreferrer" title="Die Hackergruppe Rhysida forderte rund zwei Millionen Euro Lösegeld von Berlin nach einem Angriff auf dessen Landesverwaltung. Der Senat zahlte nicht. Nun machen die Hacker ihre Drohung wahr.">Berlin: Hacker veröffentlichen offenbar mehr als eine Million Daten</a></li>
+<li class="outline-link"><span class="outline-site">DER SPIEGEL:</span> <a href="https://www.spiegel.de/netzwelt/berlin-bsi-warnt-nach-cyberangriff-auf-landesnetz-vor-neuen-phishingattacken-a-26aeee4d-a9fb-4e18-a7d2-b81a22a0f739" target="_blank" rel="noopener noreferrer" title="Der Berliner Senat weigerte sich, ein Millionenlösegeld zu zahlen. Die Hackergruppe Rhysida hat daher zahlreiche erbeutete Daten veröffentlicht. Experten warnen nun vor Phishingattacken und Identitätsdiebstählen.">Berlin: BSI warnt nach Cyberangriff auf Landesnetz vor neuen Phishingattacken</a></li>
+<li class="outline-link"><span class="outline-site">DER SPIEGEL:</span> <a href="https://www.spiegel.de/netzwelt/web/berlin-hack-gruenenpolitiker-konstantin-von-notz-sieht-leaks-als-echten-daten-super-gau-a-adc59871-3502-4df1-8e26-a7f2685527b1" target="_blank" rel="noopener noreferrer" title="Hacker haben die Berliner Verwaltung angegriffen, erpresst und mit Datenleaks bloßgestellt. Der Grünenfraktionsvize Konstantin von Notz macht dem Land Berlin und der Bundesregierung Vorwürfe.">Berlin-Hack: Grünenpolitiker Konstantin von Notz sieht Leaks als »echten Daten-Super-GAU«</a></li>
+<li class="outline-link"><span class="outline-site">Mastodon:</span> <a href="https://mastodon.social/@bkastl/117231415101169227" target="_blank" rel="noopener noreferrer" title="Attached: 1 video
+
+@sr_rolando@fnordon.de Hold my Video-Grab">Bianca Kastl (@bkastl@mastodon.social)</a></li>
+  </ul>
+</div>
+
+<div class="outline-chapter">
+  <h2>Autistici/Inventati</h2>
+  <ul>
+    <li class="outline-link"><span class="outline-site">noblogs.org:</span> <a href="https://noblogs.org/" target="_blank" rel="noopener noreferrer">noblogs.org</a></li>
+<li class="outline-link"><span class="outline-site">nd-aktuell.de:</span> <a href="https://www.nd-aktuell.de/artikel/1202083.neue-finanzrepression-usa-stufen-tech-kollektiv-aus-europa-als-terror-unterstuetzer-ein.html" target="_blank" rel="noopener noreferrer" title="Neben Palestine Action aus Großbritannien sanktioniert die Trump-Administration nun einen linken Internetdienstleister aus Italien und einen Berliner.">USA stufen Tech-Kollektiv aus Europa als Terror-Unterstützer ein</a></li>
+<li class="outline-link"><span class="outline-site">www.autistici.org:</span> <a href="https://www.autistici.org/" target="_blank" rel="noopener noreferrer" title="Autistici/Inventati provides internet support to activists and collectives coming from the world of grassroot and social movements">autistici.org &#8211; Welcome to Autistici/Inventati</a></li>
+<li class="outline-link"><span class="outline-site">taz.de:</span> <a href="https://taz.de/Workshop-mit-den-USA/!6209357/" target="_blank" rel="noopener noreferrer" title="Im Herbst will das Innenministerium mit den USA einen „Workshop“ gegen Linksextremismus in Deutschland abhalten. Die Linke fordert die Absage.">Workshop mit den USA: Das Innenministerium lädt zum Anti-Antifa-Treffen</a></li>
+<li class="outline-link"><span class="outline-site">Logbuch:Netzpolitik:</span> <a href="https://logbuch-netzpolitik.de/lnp516-man-darf-alles-auf-dem-dach-haben" target="_blank" rel="noopener noreferrer" title="Unsere Gäste Stefan vom Zentrum für politische Schönheit politicalbeauty.de: Das Zentrum für politische Schönheit der-adenauer.de: Ein neues Wahrzeichen der Demokratie der-adenauer.de: Spenden Vasili Franco, MdA Berlin wikipedia: Vasili Franco parlament-berlin.de: Vasili Franco friedrichshainer.berlin: Ich bin Vasili Franco und darf seit [...]">LNP516 Man darf alles auf dem Dach haben</a></li>
+<li class="outline-link"><span class="outline-site">media.ccc.de:</span> <a href="https://media.ccc.de/v/39c3-zps-ein-jahr-adenauer-srp-und-mehr" target="_blank" rel="noopener noreferrer" title="Es ist genau ein Jahr her, dass der Adenauer SRP+ in der Halle des 38C3 stand. Damals war er noch eine Baustelle, aber schon bald machte ...">Zentrum für Politische Schönheit:</a></li>
+<li class="outline-link"><span class="outline-site">mdr.de:</span> <a href="https://www.mdr.de/nachrichten/deutschland/politik/protestbus-polizei-chemnitz-zentrum-politische-schoenheit,zps-mifri-100.html" target="_blank" rel="noopener noreferrer" title="Die Polizei Chemnitz geht mit auffälligem Eifer gegen den Protestbus des &quot;Zentrums für Politische Schönheit&quot; vor. Unterlagen, die MDR INVESTIGATIV einsehen konnte, zeigen: Die Beamten versuchten über Monate hinweg bundesweit Einfluss darauf zu nehmen, dass der Bus aus dem Verkehr gezogen wird. Das Künsterkollektiv fühlt sich schikaniert und in Grundrechten verletzt.">Chemnitzer Polizei will mit Gottschalk Protestbus stoppen und scheitert mehrfach</a></li>
+<li class="outline-link"><span class="outline-site">tagesschau.de:</span> <a href="https://www.tagesschau.de/investigativ/mdr/polizei-zps-protestbus-100.html" target="_blank" rel="noopener noreferrer" title="2025 störte der Protestbus des &quot;Zentrums für Politische Schönheit&quot; das ARD-Sommerinterview mit AfD-Chefin Weidel - und bekam bundesweit Aufmerksamkeit. Auch die Polizei beschäftigt sich seitdem laut MDR intensiv mit dem Fahrzeug.">Streit um Protestbus &#8211; Verkehrsrecht gegen Grundrechte?</a></li>
+<li class="outline-link"><span class="outline-site">Wikipedia (de):</span> <a href="https://de.wikipedia.org/wiki/Autistici/Inventati" target="_blank" rel="noopener noreferrer" title="Autistici/Inventati (A/I) ist eine italienische Hacktivisten-Gruppe mit dem erklärten Ziel frei verfügbare Internet-Kommunikationsdienste bereitzustellen. Dieses Angebot richtet sich dabei vor allem an linke Aktivisten. Die E-Mail-, Messaging-, Videokonferenz- und Webhosting-Dienste des Kollektivs s...">Autistici/Inventati</a></li>
+<li class="outline-link"><span class="outline-site">United States Department of State:</span> <a href="https://web.archive.org/web/20260827181653/https://www.state.gov/releases/office-of-the-spokesperson/2026/08/imposing-sanctions-on-violent-far-left-terrorist-groups" target="_blank" rel="noopener noreferrer" title="Today, the United States is imposing sanctions against Autistici/Inventati (“A/I Collective”) and other entities across transnational far-left terrorist networks. The A/I Collective is an Italy-based extremist group that supplies the digital infrastructure for Antifa cells and other radical left-wing networks in the United States, Europe, and elsewhere across the world. A/I’s full spectrum of digital […]">Imposing Sanctions on Violent Far-Left Terrorist Groups</a></li>
+<li class="outline-link"><span class="outline-site">keepitfree.ai:</span> <a href="https://keepitfree.ai/announcements/a/i-shuts-down-stay-human/" target="_blank" rel="noopener noreferrer">A/I Shuts Down Stay Human · Keep the Internet free</a></li>
+<li class="outline-link"><span class="outline-site">cavallette:</span> <a href="https://cavallette.noblogs.org/2026/08/10076" target="_blank" rel="noopener noreferrer" title="[ENGLISH VERSION BELOW] Oggi abbiamo appreso che il governo degli Stati Uniti ha deciso di inserire un piccolo collettivo di volontari e attivisti digitali italiani nell&#39;elenco delle organizzazioni terroristiche mondiali meritevoli di sanzioni, come si può leggere nelle dichiarazioni del Dipartimento del Tesoro, in quelle del Dipartimento di Stato e nel relativo Ordine Esecutivo emesso. Noi [...]">DICHIARAZIONE DEL COLLETTIVO A/I SULLE SANZIONI DISPOSTE DAL GOVERNO USA NEI SUOI CONFRONTI – A STATEMENT BY A/I COLLECTIVE ABOUT US SANCTIONS</a></li>
+  </ul>
+</div>
+
+<div class="outline-chapter">
+  <h2>Jugend hackt vor dem Aus</h2>
+  <ul>
+    <li class="outline-link"><span class="outline-site">Jugend hackt:</span> <a href="https://jugendhackt.org/spenden/" target="_blank" rel="noopener noreferrer" title="Als außerschulisches Programm finanziert sich Jugend hackt seit 2013 aus Förderungen, Sponsorings und Spenden. Auch bei unseren Geldgeber*innen achten wir darauf, dass wir die ethischen Standards unseres Programms wahren und unseren Werten treu bleiben. Hilf uns, weiterhin unabhängig zu arbeiten und werde Teil von Jugend hackt. Spenden Fördermitgliedschaft Sponsoring">Unterstütze junge Menschen dabei, mit Code die Welt zu verbessern</a></li>
+<li class="outline-link"><span class="outline-site">Jugend hackt:</span> <a href="https://jugendhackt.org/events/jugend-hackt-congress/" target="_blank" rel="noopener noreferrer" title="Was schon da ist, neu zusammensetzen, um die Welt zu verbessern. Im Code, auf der Bühne, beim Tüfteln, in Gesprächen und beim gemeinsamen Essen suchen wir als Hacker*innen Antworten auf die Frage: Wie wollen wir miteinander leben? Ein Wochenende für Hacker*innen und Neugierige zwischen 14 und 21 Jahren. ">Jugend hackt Congress</a></li>
+  </ul>
+</div>
+
+<div class="outline-chapter">
+  <h2>Termine</h2>
+  <ul>
+    <div class="outline-chapter">
+  <h3>Berlin, 11.-13. September 2026: FediDay</h3>
+  <ul>
+    <li class="outline-link"><span class="outline-site">Berlin FediDay 2026:</span> <a href="https://berlinfedi.day/" target="_blank" rel="noopener noreferrer" title="Der Berliner FediDay ist eine am 11-13.09.2026 auf der Berliner c-base stattfindende Konferenz zum Fediverse mit Workshops und Vorträgen für Interessierte, Neulinge und alte Hasen.">Berlin FediDay | Berlin FediDay 2026</a></li>
+  </ul>
+</div>
+
+<div class="outline-chapter">
+  <h3>Berlin, 17. / 18. Oktober 2026: Jugend hackt Congress</h3>
+  <ul>
+    <li class="outline-link"><span class="outline-site">Jugend hackt:</span> <a href="https://jugendhackt.org/events/jugend-hackt-congress/" target="_blank" rel="noopener noreferrer" title="Was schon da ist, neu zusammensetzen, um die Welt zu verbessern. Im Code, auf der Bühne, beim Tüfteln, in Gesprächen und beim gemeinsamen Essen suchen wir als Hacker*innen Antworten auf die Frage: Wie wollen wir miteinander leben? Ein Wochenende für Hacker*innen und Neugierige zwischen 14 und 21 Jahren. ">Jugend hackt Congress</a></li>
+  </ul>
+</div>
+
+  </ul>
+</div>
+
+<div class="outline-chapter">
+  <h2>Bonus Track</h2>
+  <ul>
+    <li class="outline-link"><span class="outline-site">YouTube:</span> <a href="https://www.youtube.com/watch?v=w_0cSgsC460" target="_blank" rel="noopener noreferrer" title="Ich gehe auf Tour! Im Februar 2027 kommt das neue Album F*CKEN UND HEULEN – und wir kommen in eure Stadt! Alle Städte und Tickets: https://paulsies.com/konzerte/
+
+Text, Musik - Paul Sies // https://www.instagram.com/paul.m.sies/
+Kamera, Regie - Oliver Mohr // https://www.instagram.com/ololmomo/
+Assistenz - Denise Hamann // https://www.instagram.com/mo_nita3322/
+
+Musikproduktion - Patrick Reising // https://www.instagram.com/patrixauflager/
+Streicher - Jean-Louise Parker // https://www.instagram.com/jeanlouise_parker/
+Mastering - Markus Abendroth // https://www.zodiaque.de/
+
+Der Titel des Songs ist ein abgewandeltes Zitat des fantastischen Max Goldt! Weiterhin wird mit &quot;so geht die Welt zugrunde&quot; (..) ein Gedicht von TS Eliot (&quot;Die hohlen Männer&quot;) zitiert. Die Refrains zitieren musikalisch &quot;Années de pèlerinage&quot; von Liszt.">Paul Sies &#8211; Auch in der Nazizeit war Spargelzeit</a></li>
+  </ul>
+</div>
+
+</div>
+]]></content:encoded>
+      <psc:chapters xmlns:psc="http://podlove.org/simple-chapters" version="1.2">
+        <psc:chapter start="00:00:00.000" title="Intro"/>
+        <psc:chapter start="00:00:32.609" title="Prolog"/>
+        <psc:chapter start="00:01:27.664" title="9/11 und Blinkenlights"/>
+        <psc:chapter start="00:17:02.979" title="Korrektur"/>
+        <psc:chapter start="00:17:32.404" title="Wahlen in Sachsen-Anhalt"/>
+        <psc:chapter start="00:36:45.506" title="Berlin-Hack"/>
+        <psc:chapter start="01:20:45.729" title="Autistici/Inventati"/>
+        <psc:chapter start="01:31:33.566" title="Jugend hackt in Gefahr"/>
+        <psc:chapter start="01:38:23.892" title="Termine"/>
+        <psc:chapter start="01:39:32.797" title="Epilog"/>
+        <psc:chapter start="01:41:54.114" title="Bonus Track"/>
+      </psc:chapters>
+      <podcast:chapters url="https://logbuch-netzpolitik.de/lnp559-nur-die-liebe-zaehlt?chapters_format=pijson" type="application/json+chapters"/>
+      <podcast:transcript url="https://logbuch-netzpolitik.de/lnp559-nur-die-liebe-zaehlt?podlove_transcript=webvtt" type="text/vtt"/>
+      <podcast:transcript url="https://logbuch-netzpolitik.de/lnp559-nur-die-liebe-zaehlt?podlove_transcript=json_podcastindex" type="application/json"/>
+      <atom:contributor>
+        <atom:name>Linus Neumann</atom:name>
+        <atom:uri>http://www.linus-neumann.de/</atom:uri>
+      </atom:contributor>
+      <atom:contributor>
+        <atom:name>Tim Pritlove</atom:name>
+        <atom:uri>http://tim.pritlove.org/</atom:uri>
+      </atom:contributor>
+      <podcast:person img="https://media.metaebene.me/media/metaebene/contributors/linus-neumann.jpg">Linus Neumann</podcast:person>
+      <podcast:person img="https://logbuch-netzpolitik.de/files/2020/11/IMG_4799.jpeg">Tim Pritlove</podcast:person>
+    </item>
+    <item>
+      <title>LNP558 Negatives Nachtatverhalten</title>
+      <link>https://logbuch-netzpolitik.de/lnp558-negatives-nachtatverhalten</link>
+      <pubDate>Fri, 04 Sep 2026 20:48:26 +0000</pubDate>
+      <guid isPermaLink="false">485542f2-7b30-4fce-8e4f-0324a2ebca32</guid>
+      <description><![CDATA[Das Zentrum für politische Schönheit ist nicht erst bekannt seitdem sie mit dem Bus "Adenauer SRP+" in Deutschland von Veranstaltung zu Veranstaltung reisen, doch offensichtlich triggert gerade dieses Fahrzeug die Polizei-Behörden so richtig. Trotz zahlreicher Gutachten und Prüfungen wird der Bus laufend von der Polizei aus dem Verkehr gezogen nur um dann immer wieder zu dem gleichen Ergebnis zu kommen, dass er allen Vorschriften entspricht.
+
+Aber speziell die Polizei in Chemnitz scheint sich richtig an dem Bus festzubeißen und schreckt auch vor offensichtlich rechtswidrigem Verhalten nicht zurück. Wir sprechen also mit dem Halter des Busses und Eskalationsbeauftragten des Zentrums für politische Schönheit Stefan Pelzer über die jüngsten Auseinandersetzungen mit den Beamten aus Chemnitz, die jetzt auch bald vor Gericht ausgefochten werden.]]></description>
+      <atom:link rel="http://podlove.org/deep-link" href="https://logbuch-netzpolitik.de/lnp558-negatives-nachtatverhalten#"/>
+      <enclosure url="https://logbuch-netzpolitik.de/podlove/file/9092/s/feed/c/mp3/lnp558-negatives-nachtatverhalten.mp3" length="55879063" type="audio/mpeg"/>
+      <itunes:duration>01:33:04</itunes:duration>
+      <itunes:author>Metaebene Personal Media - Tim Pritlove</itunes:author>
+      <itunes:subtitle>Aufzeichnung einer Live-Sendung beim at.tension-Festival in Lärz</itunes:subtitle>
+      <itunes:episode>558</itunes:episode>
+      <itunes:episodeType>full</itunes:episodeType>
+      <itunes:summary><![CDATA[Das Zentrum für politische Schönheit ist nicht erst bekannt seitdem sie mit dem Bus &quot;Adenauer SRP+&quot; in Deutschland von Veranstaltung zu Veranstaltung reisen, doch offensichtlich triggert gerade dieses Fahrzeug die Polizei-Behörden so richtig. Trotz zahlreicher Gutachten und Prüfungen wird der Bus laufend von der Polizei aus dem Verkehr gezogen nur um dann immer wieder zu dem gleichen Ergebnis zu kommen, dass er allen Vorschriften entspricht.
+
+Aber speziell die Polizei in Chemnitz scheint sich richtig an dem Bus festzubeißen und schreckt auch vor offensichtlich rechtswidrigem Verhalten nicht zurück. Wir sprechen also mit dem Halter des Busses und Eskalationsbeauftragten des Zentrums für politische Schönheit Stefan Pelzer über die jüngsten Auseinandersetzungen mit den Beamten aus Chemnitz, die jetzt auch bald vor Gericht ausgefochten werden.]]></itunes:summary>
+      <itunes:image href="https://media.metaebene.me/media/lnp/lnp558-negatives-nachtatverhalten.jpg"/>
+      <content:encoded><![CDATA[
+
+<p>Feedback zur Sendung?<br/>
+<strong><a href="https://logbuch-netzpolitik.de/lnp558-negatives-nachtatverhalten#comments">Schreibe uns einen Kommentar</a></strong></p>
+
+
+
+<p><strong>Aufzeichnung einer Live-Sendung beim at.tension-Festival in Lärz</strong></p>
+
+<a href="https://media.metaebene.me/media/lnp/lnp558-negatives-nachtatverhalten.jpg">
+<img decoding="async" width="600" src="https://logbuch-netzpolitik.de/wp-content/cache/podlove/b7/cb9237f659b23c28f48f66c667c47c/lnp558-negatives-nachtatverhalten_600x.jpg" srcset="https://logbuch-netzpolitik.de/wp-content/cache/podlove/b7/cb9237f659b23c28f48f66c667c47c/lnp558-negatives-nachtatverhalten_600x.jpg 1x, https://logbuch-netzpolitik.de/wp-content/cache/podlove/b7/cb9237f659b23c28f48f66c667c47c/lnp558-negatives-nachtatverhalten_1200x.jpg 2x"/>
+</a>
+
+<p class="episode-summary">Das Zentrum für politische Schönheit ist nicht erst bekannt seitdem sie mit dem Bus &quot;Adenauer SRP+&quot; in Deutschland von Veranstaltung zu Veranstaltung reisen, doch offensichtlich triggert gerade dieses Fahrzeug die Polizei-Behörden so richtig. Trotz zahlreicher Gutachten und Prüfungen wird der Bus laufend von der Polizei aus dem Verkehr gezogen nur um dann immer wieder zu dem gleichen Ergebnis zu kommen, dass er allen Vorschriften entspricht.<br />
+<br />
+Aber speziell die Polizei in Chemnitz scheint sich richtig an dem Bus festzubeißen und schreckt auch vor offensichtlich rechtswidrigem Verhalten nicht zurück. Wir sprechen also mit dem Halter des Busses und Eskalationsbeauftragten des Zentrums für politische Schönheit Stefan Pelzer über die jüngsten Auseinandersetzungen mit den Beamten aus Chemnitz, die jetzt auch bald vor Gericht ausgefochten werden.</p>
+
+
+<div>
+
+<ul>
+<li>
+<strong>Linus Neumann</strong>
+<ul>
+<li>
+<a href="https://linus-neumann.de/">linus-neumann.de</a>
+</li>
+<li>
+<a href="https://23.social/@linuzifer">@linuzifer@23.social</a>
+</li>
+<li>
+<a href="https://www.youtube.com/user/Linuzifer">@linuzifer@youtube.com</a>
+</li>
+<li>
+<a href="https://www.linkedin.com/in/linus-neumann/">Linus Neumann</a>
+</li>
+<li>
+<a href="https://twitter.com/linuzifer">@linuzifer@twitter.com</a>
+</li>
+<li>
+<a href="https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&#038;hosted_button_id=5U2Z7B6A8MHCE">Paypal</a>
+</li>
+<li>
+<a href="https://amzn.to/3r2hVqc">Amazon Wishlist</a>
+</li>
+</ul>
+</li>
+<li>
+<strong>Tim Pritlove</strong>
+<ul>
+<li>
+<a href="https://twitter.com/timpritlove">Twitter</a>
+</li>
+<li>
+<a href="https://mastodon.social/@timpritlove">Mastodon</a>
+</li>
+<li>
+<a href="https://metaebene.me">Website</a>
+</li>
+<li>
+<a href="https://liberapay.com/timpritlove">Liberapay</a>
+</li>
+<li>
+<a href="https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&#038;hosted_button_id=BQTHPPWX5VQDW">Paypal</a>
+</li>
+</ul>
+</li>
+<li>
+<strong>Stefan Pelzer</strong>
+<ul>
+<li>
+<a href="https://www.youtube.com/user/political_beauty">YouTube (User)</a>
+</li>
+<li>
+<a href="https://twitter.com/politicalbeauty">Twitter</a>
+</li>
+<li>
+<a href="https://instagram.com/political_beauty">Instagram</a>
+</li>
+<li>
+<a href="https://bsky.app/profile/politicalbeauty.bsky.social">BlueSky</a>
+</li>
+<li>
+<a href="https://bsky.brid.gy/@politicalbeauty.bsky.social">BlueSky via Bridge</a>
+</li>
+</ul>
+</li>
+</ul>
+
+
+</div>
+
+    <hr/>
+
+    <div style="display: flex; margin-right: 20px">
+        <div class="transcript-logo">
+                    </div>
+        <div class="transcript-text" style="flex: 1; margin-left: 20px;">
+            <p>
+                Für diese Episode von Logbuch:Netzpolitik liegt auch ein <strong>vollständiges Transkript</strong>
+                mit Zeitmarken und Sprecheridentifikation vor.
+            </p>
+            <p>
+                Bitte beachten: das Transkript wurde automatisiert erzeugt und wurde nicht nachträglich gegengelesen oder korrigiert.
+                Dieser Prozess ist nicht sonderlich genau und das Ergebnis enthält daher mit Sicherheit eine Reihe von Fehlern.
+                Im Zweifel gilt immer das in der Sendung aufgezeichnete gesprochene Wort.
+                Formate:
+                <a href="https://logbuch-netzpolitik.de/lnp558-negatives-nachtatverhalten?podlove_template_page=episode-transcript-html" download="lnp558-negatives-nachtatverhalten.transcript.html">HTML</a>,
+                <a href="https://logbuch-netzpolitik.de/lnp558-negatives-nachtatverhalten?podlove_transcript=webvtt" download="lnp558-negatives-nachtatverhalten.transcript.vtt">WEBVTT</a>.
+            </p>
+        </div>
+    </div>
+
+    
+
+    <hr/>
+    
+
+
+
+
+
+
+
+<h1>Shownotes</h1>
+
+<div class="outline-document">
+  <li class="outline-link"><span class="outline-site">politicalbeauty.de:</span> <a href="https://politicalbeauty.de" target="_blank" rel="noopener noreferrer" title="Das Zentrum für Politische Schönheit ist eine Sturmtruppe zur Errichtung moralischer Schönheit, politischer Poesie und menschlicher Großgesinntheit.">Start | Zentrum für Politische Schönheit</a></li>
+<li class="outline-link"><span class="outline-site">der-adenauer.de:</span> <a href="https://der-adenauer.de/" target="_blank" rel="noopener noreferrer">Der Adenauer SRP+</a></li>
+<li class="outline-link"><span class="outline-site">der-adenauer.de:</span> <a href="https://der-adenauer.de/schulen/" target="_blank" rel="noopener noreferrer">Für Schulen &amp; Eltern – Der Adenauer SRP+</a></li>
+<li class="outline-link"><span class="outline-site">tagesschau.de:</span> <a href="https://www.tagesschau.de/investigativ/mdr/polizei-zps-protestbus-100.html" target="_blank" rel="noopener noreferrer" title="2025 störte der Protestbus des &quot;Zentrums für Politische Schönheit&quot; das ARD-Sommerinterview mit AfD-Chefin Weidel - und bekam bundesweit Aufmerksamkeit. Auch die Polizei beschäftigt sich seitdem laut MDR intensiv mit dem Fahrzeug.">Streit um Protestbus &#8211; Verkehrsrecht gegen Grundrechte?</a></li>
+<li class="outline-link"><span class="outline-site">mdr.de:</span> <a href="https://www.mdr.de/nachrichten/deutschland/politik/protestbus-chemnitz-polizei-zentrum-politische-schoenheit,zps-mifri-100.html" target="_blank" rel="noopener noreferrer" title="Die Polizei Chemnitz geht mit auffälligem Eifer gegen den Protestbus des &quot;Zentrums für Politische Schönheit&quot; vor. Unterlagen, die MDR INVESTIGATIV einsehen konnte, zeigen: Die Beamten versuchten über Monate hinweg bundesweit Einfluss darauf zu nehmen, dass der Bus aus dem Verkehr gezogen wird. Das Künsterkollektiv fühlt sich schikaniert und in Grundrechten verletzt.">Chemnitzer Polizei will mit Thomas Gottschalk Protestbus stoppen und scheitert mehrfach</a></li>
+<li class="outline-link"><span class="outline-site">netzpolitik.org:</span> <a href="https://netzpolitik.org/2025/adenauer-bus-affaere-saechsische-polizei-in-erklaerungsnot/" target="_blank" rel="noopener noreferrer" title="Die Beschlagnahme des bundesweit bekannten Adenauer-Busses entwickelt sich zum Skandal für die Polizei in Sachsen. Um den Protestbus aus dem Verkehr zu ziehen, umging die Polizei offenbar rechtsstaatliche Verfahren.">Sächsische Polizei in Erklärungsnot</a></li>
+<li class="outline-link"><span class="outline-site">heyringo.de:</span> <a href="https://heyringo.de/" target="_blank" rel="noopener noreferrer" title="HeyRingo — die fröhliche Mitmach-Website. Chatte mit PHK Ringo Schneider, spiele „Ringo: Das Spiel“ und melde den Adenauer-Bus ans LABO. Satire zum Adenauer-SRP-Bus, Faktencheck aus der echten Akte.">HeyRingo <img src="https://s.w.org/images/core/emoji/17.0.2/72x72/1f68c.png" alt="🚌" class="wp-smiley" style="height: 1em; max-height: 1em;" /><img src="https://s.w.org/images/core/emoji/17.0.2/72x72/2728.png" alt="✨" class="wp-smiley" style="height: 1em; max-height: 1em;" /> — Chatte, spiele &amp; melde mit PHK Ringo Schneider</a></li>
+<li class="outline-link"><span class="outline-site">Instagram:</span> <a href="https://www.instagram.com/reel/DP6Kd5pjpbd/" target="_blank" rel="noopener noreferrer" title="7,801 likes, 175 comments - adenauer_srp on October 17, 2025: &quot;Zentrum für Politische Schönheit und Polizei Chemnitz gewinnen Rechts-Außenwette - Live im Deutschen Fernsehen!
+
+Wette gewonnen! Danke, Polizei Chemnitz.  In einer spektakulären Rechts-Außenwette, die live in Funk und Fernsehen übertragen wurde haben wir gewettet, dass Ringo Schneider und seine Polizeidirektion kritische Kunst innerhalb von 60 Minuten rechtswidrig beschlagnahmen – und die Polizei Chemnitz hat uns tatkräftig dabei unterstützt, diese Wette zu gewinnen!
+Liebe Polizei, lieber Ringo, ohne euch wäre Chemnitz halt einfach nicht die #WillkürHauptstadt Europas!&quot;. ">Adenauer SRP+ on Instagram: &quot;Zentrum für Politische Schönheit und Polizei Chemnitz gewinnen Rechts-Außenwette &#8211; Live im Deutschen Fernsehen! Wette gewonnen! Danke, Polizei Chemnitz.  In einer spektakulären Rechts-Außenwette, die live in Funk und Fernsehen übertragen wurde haben wir gewettet, dass Ringo Schneider und seine Polizeidirektion kritische Kunst innerhalb von 60 Minuten rechtswidrig beschlagnahmen – und die Polizei Chemnitz hat uns tatkräftig dabei unterstützt, diese Wette zu gewinnen! Liebe Polizei, lieber Ringo, ohne euch wäre Chemnitz halt einfach nicht die #WillkürHauptstadt Europas!&quot;</a></li>
+</div>
+]]></content:encoded>
+      <psc:chapters xmlns:psc="http://podlove.org/simple-chapters" version="1.2">
+        <psc:chapter start="00:00:00.806" title="Intro"/>
+        <psc:chapter start="00:00:28.324" title="Prolog"/>
+        <psc:chapter start="00:02:22.408" title="Adenauer SRP+"/>
+        <psc:chapter start="00:06:56.299" title="Schultour"/>
+        <psc:chapter start="00:15:24.310" title="Das Sonderfahrzeug"/>
+        <psc:chapter start="00:20:23.359" title="Die Beschlagnahme"/>
+        <psc:chapter start="00:40:56.349" title="Dachlastprüfung"/>
+        <psc:chapter start="00:46:27.529" title="Die Polizei in Chemnitz"/>
+        <psc:chapter start="01:15:53.079" title="Vor Gericht"/>
+        <psc:chapter start="01:23:11.131" title="Der Adenauer im Grunewald"/>
+        <psc:chapter start="01:27:11.036" title="Geplante Aktionen"/>
+        <psc:chapter start="01:28:56.984" title="Epilog"/>
+      </psc:chapters>
+      <podcast:chapters url="https://logbuch-netzpolitik.de/lnp558-negatives-nachtatverhalten?chapters_format=pijson" type="application/json+chapters"/>
+      <podcast:transcript url="https://logbuch-netzpolitik.de/lnp558-negatives-nachtatverhalten?podlove_transcript=webvtt" type="text/vtt"/>
+      <podcast:transcript url="https://logbuch-netzpolitik.de/lnp558-negatives-nachtatverhalten?podlove_transcript=json_podcastindex" type="application/json"/>
+      <atom:contributor>
+        <atom:name>Linus Neumann</atom:name>
+        <atom:uri>http://www.linus-neumann.de/</atom:uri>
+      </atom:contributor>
+      <atom:contributor>
+        <atom:name>Tim Pritlove</atom:name>
+        <atom:uri>http://tim.pritlove.org/</atom:uri>
+      </atom:contributor>
+      <atom:contributor>
+        <atom:name>Stefan Pelzer</atom:name>
+      </atom:contributor>
+      <podcast:person img="https://media.metaebene.me/media/metaebene/contributors/linus-neumann.jpg">Linus Neumann</podcast:person>
+      <podcast:person img="https://logbuch-netzpolitik.de/files/2020/11/IMG_4799.jpeg">Tim Pritlove</podcast:person>
+      <podcast:person img="https://logbuch-netzpolitik.de/files/2023/12/stefan-pelzer-1-scaled.jpg">Stefan Pelzer</podcast:person>
+    </item>
+    <item>
+      <title>LNP557 Vom Unfall zum Normalfall</title>
+      <link>https://logbuch-netzpolitik.de/lnp557-vom-unfall-zum-normalfall</link>
+      <pubDate>Thu, 27 Aug 2026 10:57:43 +0000</pubDate>
+      <guid isPermaLink="false">7cef2509-b94e-4800-b520-8c968b13954b</guid>
+      <description><![CDATA[Nach einer kleinen Sommerpause schreiten wir wieder zum Mikrofon und sortieren die Apokalypse für Euch. Viel dreht sich wieder um künstliche Intelligenz, die auf sicherheitstechnischer, politischer und gesellschaftlicher Ebene weiterhin die Dinge ins Wanken bringt. Dazu beleuchten wir die absurden Pläne zur Reform (lies: Abschaffung) des Informationsfreiheitsgesetzes und zur Entfesselung der Geheimdienste.]]></description>
+      <atom:link rel="http://podlove.org/deep-link" href="https://logbuch-netzpolitik.de/lnp557-vom-unfall-zum-normalfall#"/>
+      <enclosure url="https://logbuch-netzpolitik.de/podlove/file/9091/s/feed/c/mp3/lnp557-vom-unfall-zum-normalfall.mp3" length="55791252" type="audio/mpeg"/>
+      <itunes:duration>01:32:55</itunes:duration>
+      <itunes:author>Metaebene Personal Media - Tim Pritlove</itunes:author>
+      <itunes:subtitle>Werbung für KI — Informationsfreiheitsgesetz — Urheberrecht und KI — Geheimdienst-Reform — Hackende KIs — Termine</itunes:subtitle>
+      <itunes:episode>557</itunes:episode>
+      <itunes:episodeType>full</itunes:episodeType>
+      <itunes:summary><![CDATA[Nach einer kleinen Sommerpause schreiten wir wieder zum Mikrofon und sortieren die Apokalypse für Euch. Viel dreht sich wieder um künstliche Intelligenz, die auf sicherheitstechnischer, politischer und gesellschaftlicher Ebene weiterhin die Dinge ins Wanken bringt. Dazu beleuchten wir die absurden Pläne zur Reform (lies: Abschaffung) des Informationsfreiheitsgesetzes und zur Entfesselung der Geheimdienste.]]></itunes:summary>
+      <itunes:image href="https://media.metaebene.me/media/lnp/lnp557-vom-unfall-zum-normalfall.jpg"/>
+      <content:encoded><![CDATA[
+
+<p>Feedback zur Sendung?<br/>
+<strong><a href="https://logbuch-netzpolitik.de/lnp557-vom-unfall-zum-normalfall#comments">Schreibe uns einen Kommentar</a></strong></p>
+
+
+
+<p><strong>Werbung für KI — Informationsfreiheitsgesetz — Urheberrecht und KI — Geheimdienst-Reform — Hackende KIs — Termine</strong></p>
+
+<a href="https://media.metaebene.me/media/lnp/lnp557-vom-unfall-zum-normalfall.jpg">
+<img decoding="async" width="600" src="https://logbuch-netzpolitik.de/wp-content/cache/podlove/4a/229cb01a4f4bb9706fa8fa03ff5633/lnp557-vom-unfall-zum-normalfall_600x.jpg" srcset="https://logbuch-netzpolitik.de/wp-content/cache/podlove/4a/229cb01a4f4bb9706fa8fa03ff5633/lnp557-vom-unfall-zum-normalfall_600x.jpg 1x, https://logbuch-netzpolitik.de/wp-content/cache/podlove/4a/229cb01a4f4bb9706fa8fa03ff5633/lnp557-vom-unfall-zum-normalfall_1200x.jpg 2x"/>
+</a>
+
+<p class="episode-summary">Nach einer kleinen Sommerpause schreiten wir wieder zum Mikrofon und sortieren die Apokalypse für Euch. Viel dreht sich wieder um künstliche Intelligenz, die auf sicherheitstechnischer, politischer und gesellschaftlicher Ebene weiterhin die Dinge ins Wanken bringt. Dazu beleuchten wir die absurden Pläne zur Reform (lies: Abschaffung) des Informationsfreiheitsgesetzes und zur Entfesselung der Geheimdienste.</p>
+
+
+<div>
+
+<ul>
+<li>
+<strong>Linus Neumann</strong>
+<ul>
+<li>
+<a href="https://linus-neumann.de/">linus-neumann.de</a>
+</li>
+<li>
+<a href="https://23.social/@linuzifer">@linuzifer@23.social</a>
+</li>
+<li>
+<a href="https://www.youtube.com/user/Linuzifer">@linuzifer@youtube.com</a>
+</li>
+<li>
+<a href="https://www.linkedin.com/in/linus-neumann/">Linus Neumann</a>
+</li>
+<li>
+<a href="https://twitter.com/linuzifer">@linuzifer@twitter.com</a>
+</li>
+<li>
+<a href="https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&#038;hosted_button_id=5U2Z7B6A8MHCE">Paypal</a>
+</li>
+<li>
+<a href="https://amzn.to/3r2hVqc">Amazon Wishlist</a>
+</li>
+</ul>
+</li>
+<li>
+<strong>Tim Pritlove</strong>
+<ul>
+<li>
+<a href="https://twitter.com/timpritlove">Twitter</a>
+</li>
+<li>
+<a href="https://mastodon.social/@timpritlove">Mastodon</a>
+</li>
+<li>
+<a href="https://metaebene.me">Website</a>
+</li>
+<li>
+<a href="https://liberapay.com/timpritlove">Liberapay</a>
+</li>
+<li>
+<a href="https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&#038;hosted_button_id=BQTHPPWX5VQDW">Paypal</a>
+</li>
+</ul>
+</li>
+</ul>
+
+
+</div>
+
+    <hr/>
+
+    <div style="display: flex; margin-right: 20px">
+        <div class="transcript-logo">
+                    </div>
+        <div class="transcript-text" style="flex: 1; margin-left: 20px;">
+            <p>
+                Für diese Episode von Logbuch:Netzpolitik liegt auch ein <strong>vollständiges Transkript</strong>
+                mit Zeitmarken und Sprecheridentifikation vor.
+            </p>
+            <p>
+                Bitte beachten: das Transkript wurde automatisiert erzeugt und wurde nicht nachträglich gegengelesen oder korrigiert.
+                Dieser Prozess ist nicht sonderlich genau und das Ergebnis enthält daher mit Sicherheit eine Reihe von Fehlern.
+                Im Zweifel gilt immer das in der Sendung aufgezeichnete gesprochene Wort.
+                Formate:
+                <a href="https://logbuch-netzpolitik.de/lnp557-vom-unfall-zum-normalfall?podlove_template_page=episode-transcript-html" download="lnp557-vom-unfall-zum-normalfall.transcript.html">HTML</a>,
+                <a href="https://logbuch-netzpolitik.de/lnp557-vom-unfall-zum-normalfall?podlove_transcript=webvtt" download="lnp557-vom-unfall-zum-normalfall.transcript.vtt">WEBVTT</a>.
+            </p>
+        </div>
+    </div>
+
+    
+
+    <hr/>
+    
+
+
+
+
+
+
+
+<h1>Shownotes</h1>
+
+<div class="outline-document">
+  <div class="outline-chapter">
+  <h2>Prolog</h2>
+  <ul>
+    <li class="outline-link"><span class="outline-site">attension-festival.de:</span> <a href="https://attension-festival.de/programm#program_18450" target="_blank" rel="noopener noreferrer" title="Theaterfestival des Kulturkosmos e.V.">at.tension #11 Theaterfestival</a></li>
+  </ul>
+</div>
+
+<div class="outline-chapter">
+  <h2>Maschinenlesbare Alternative Realitäten</h2>
+  <ul>
+    <li class="outline-link"><span class="outline-site">Vincent Schmalbach:</span> <a href="https://www.vincentschmalbach.com/time-serves-ai-bots-a-different-website/" target="_blank" rel="noopener noreferrer" title="TIME is now serving two different versions of its website. Humans get the magazine. AI crawlers get a stripped down markdown copy with ads baked in that no person will ever see. I fetched one ordinary…">TIME Is Serving AI Bots a Different Website, With Ads Built In</a></li>
+<li class="outline-link"><span class="outline-site">MDN Web Docs:</span> <a href="https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Headers/User-Agent" target="_blank" rel="noopener noreferrer" title="The HTTP User-Agent request header is a characteristic string that lets servers and network peers identify the application, operating system, vendor, and/or version of the requesting user agent.">User-Agent header &#8211; HTTP | MDN</a></li>
+  </ul>
+</div>
+
+<div class="outline-chapter">
+  <h2>Frag den Staat und das Informationsfreiheitsgesetz</h2>
+  <ul>
+    <li class="outline-link"><span class="outline-site">netzpolitik.org:</span> <a href="https://netzpolitik.org/2026/fragdenstaat-co-dobrindt-will-transparenz-plattformen-aus-dem-weg-raeumen/" target="_blank" rel="noopener noreferrer" title="Jüngst hatte der Koalitionsausschuss der Bundesregierung beschlossen, das Informationsfreiheitsgesetz drastisch einzuschränken. Nun zeigt ein Bericht des MDR, dass Innenminister Dobrindt noch viel weiter gehen will, um staatliches Handeln im Geheimen zu belassen.">Dobrindt will Transparenz-Plattformen aus dem Weg räumen</a></li>
+<li class="outline-link"><span class="outline-site">netzpolitik.org:</span> <a href="https://netzpolitik.org/2026/schutz-kritischer-infrastruktur-auch-brandenburg-will-informationszugang-einschraenken/" target="_blank" rel="noopener noreferrer" title="Berlin und Bund legen vor, Brandenburg zieht nach. Auch hier plant die Regierung, Informationsfreiheitsrechte zu schwächen. Wieder sollen Sicherheitsbedenken die Intransparenz rechtfertigen.">Auch Brandenburg will Informationszugang einschränken</a></li>
+<li class="outline-link"><span class="outline-site">WeAct:</span> <a href="https://weact.campact.de/petitions/spd-stoppt-den-frontalangriff-auf-die-informationsfreiheit" target="_blank" rel="noopener noreferrer" title="Wir alle haben das Recht auf staatliche Informationen. Seit 2006 müssen Behörden auf Antrag nach dem Informationsfreiheitsgesetz (IFG) Dokumente herausgeben – seien es Verträge, interne Weisungen oder E-Mails. Mehr als 300.000 Anfragen wurden seitdem über FragDenStaat gestellt. Das IFG ist eine zentrale Säule der Demokratie in Deutschland geworden.
+
+Es ist eines der wirksamsten Transparenzwerkzeuge für Bürger*innen, Journalist*innen und zivilgesellschaftliche Organisationen. Nun soll es...">SPD, stoppt den Frontalangriff auf die Informationsfreiheit!</a></li>
+  </ul>
+</div>
+
+<div class="outline-chapter">
+  <h2>Carlsen gegen OpenAI</h2>
+  <ul>
+    <li class="outline-link"><span class="outline-site">DER SPIEGEL:</span> <a href="https://www.spiegel.de/kultur/neinhorn-und-chatgpt-carlsen-verlag-kaempft-wegen-kinderbuchs-gegen-ki-von-openai-a-797b7bf7-6a3e-4074-ab7d-e1fb4d86be1a" target="_blank" rel="noopener noreferrer" title="»Das NEINhorn« gehört zu den bekanntesten Bilderbüchern in Deutschland. Und lässt sich offenbar mithilfe von KI leicht kopieren. Nun gehen der Verlag und der Autor Marc-Uwe Kling juristisch gegen den KI-Konzern OpenAI vor.">»Neinhorn«: Verlag kämpft wegen Kinderbuchs gegen ChatGPT</a></li>
+<li class="outline-link"><span class="outline-site">DER SPIEGEL:</span> <a href="https://www.spiegel.de/netzwelt/web/kuenstliche-intelligenz-kaufen-scannen-und-vernichten-ki-firmen-massenhaft-seltene-buecher-a-ea793a1f-77d9-4b47-bc01-abd04da70bcf" target="_blank" rel="noopener noreferrer" title="Auf TikTok wird KI-Firmen vorgeworfen, massenhaft seltene Werke zu kaufen und zu zerstören, sogar von einer modernen Form der Bücherverbrennung ist die Rede. Was ist da dran?">(S+) Scans für KI-Training: Kaufen und vernichten KI-Firmen massenhaft seltene Bücher?</a></li>
+<li class="outline-link"><span class="outline-site">Wikipedia (de):</span> <a href="https://de.wikipedia.org/wiki/Das_NEINhorn" target="_blank" rel="noopener noreferrer" title="Das NEINhorn ist ein 2019 erschienenes Kinderbuch von Marc-Uwe Kling. Es wurde von Astrid Henn illustriert und erschien im Carlsen Verlag.">Das NEINhorn</a></li>
+  </ul>
+</div>
+
+<div class="outline-chapter">
+  <h2>Geheimdienst-Reform</h2>
+  <ul>
+    <li class="outline-link"><span class="outline-site">Bundesministerium des Innern:</span> <a href="https://www.bmi.bund.de/SharedDocs/gesetzgebungsverfahren/DE/OESI2/nachrichtendienstrecht.html" target="_blank" rel="noopener noreferrer" title="Mit dem Gesetzentwurf erfolgt eine grundlegende Novellierung des Rechts der Nachrichtendienste. Leitmotiv ist deren operative Stärkung, um für die Menschen in Deutschland und ihre Freiheit ein Höchstmaß an Sicherheit zu gewährleisten.">Gesetz zur Reform des Nachrichtendienstrechts</a></li>
+<li class="outline-link"><span class="outline-site">netzpolitik.org:</span> <a href="https://netzpolitik.org/2026/stellungnahmen-zur-geheimdienstreform-ein-erheblicher-ueberwachungsdruck-fuer-die-gesellschaft/" target="_blank" rel="noopener noreferrer" title="Das Urteil verschiedener zivilgesellschaftlicher Verbände und der Bundesdatenschutzbeauftragten fällt eindeutig aus: Die geplante Geheimdienstreform von Bundesinnenminister Dobrindt ist unverhältnismäßig und verletzt vielfach die Grundrechte. Verfassungsschutz und BND werden hingegen mächtiger denn je.">„Ein erheblicher Überwachungsdruck für die Gesellschaft“</a></li>
+<li class="outline-link"><span class="outline-site">netzpolitik.org:</span> <a href="https://netzpolitik.org/2026/geheimdienst-gesetz-masslos-unkontrolliert-und-intransparent/" target="_blank" rel="noopener noreferrer" title="Die Bundesregierung will den Geheimdiensten neue Befugnisse im bisher beispiellosen Ausmaß geben. Zugleich schwächt sie Betroffenenrechte, unabhängige Aufsicht und Möglichkeiten für Transparenz. Eine freiheitliche Demokratie kann sich diese unausgewogene und gefährliche Mischung nicht leisten.">Maßlos, unkontrolliert und intransparent</a></li>
+<li class="outline-link"><span class="outline-site">bundestagszusammenfasser.de:</span> <a href="https://bundestagszusammenfasser.de/details?docid=1142" target="_blank" rel="noopener noreferrer">BTZusFas: Reform des BND und des Verfassungsschutzes</a></li>
+  </ul>
+</div>
+
+<div class="outline-chapter">
+  <h2>Hackende KIs</h2>
+  <ul>
+    <li class="outline-link"><span class="outline-site">OpenAI:</span> <a href="https://openai.com/index/hugging-face-model-evaluation-security-incident/" target="_blank" rel="noopener noreferrer" title="OpenAI and Hugging Face share early findings from a security incident during AI model evaluation, highlighting advanced cyber capabilities and lessons for defenders.">OpenAI and Hugging Face partner to address security incident during model evaluation</a></li>
+<li class="outline-link"><span class="outline-site">Linus Neumann:</span> <a href="https://linus-neumann.de/2024/09/simplicissimus_xz/" target="_blank" rel="noopener noreferrer" title="Simplicissimus seziert und würdigt die beeindruckende Operation zum Installieren einer versteckten Backdoor in ssh.">bei Simplicissimus zur XZ Utils Backdoor</a></li>
+<li class="outline-link"><span class="outline-site">Logbuch:Netzpolitik:</span> <a href="https://logbuch-netzpolitik.de/lnp491-wenn-nicht-auf-meinem-grab-getanzt-wird-ist-es-nicht-meine-beerdigung" target="_blank" rel="noopener noreferrer" title="Prolog mygruni.de: myGruni – SEK Grunewald finanzwende.de: Anne Brorhilker wird Geschäftsführerin von Finanzwende de.wikipedia.org: Anne Brorhilker – Wikipedia Save the date: 31. August 2024, ziemlich wahrscheinlich in Berlin Feedback Arschverletztheit und Humor im Angesicht des Todes logbuch-netzpolitik.de: Kommentar von Alessa [...]">LNP491 Wenn nicht auf meinem Grab getanzt wird, ist es nicht meine Beerdigung</a></li>
+  </ul>
+</div>
+
+<div class="outline-chapter">
+  <h2>Termine</h2>
+  <ul>
+    <div class="outline-chapter">
+  <h3>LNP auf der at.tension</h3>
+  <ul>
+    <li class="outline-link"><span class="outline-site">attension-festival.de:</span> <a href="https://attension-festival.de/programm#program_18450" target="_blank" rel="noopener noreferrer" title="Theaterfestival des Kulturkosmos e.V.">at.tension #11 Theaterfestival</a></li>
+  </ul>
+</div>
+
+<div class="outline-chapter">
+  <h3>Datenspuren 2026</h3>
+  <ul>
+    <li class="outline-link"><span class="outline-site">talks.datenspuren.de:</span> <a href="https://talks.datenspuren.de/ds26/cfp" target="_blank" rel="noopener noreferrer" title="Schedule, talks and talk submissions for Datenspuren 2026">Datenspuren 2026</a></li>
+  </ul>
+</div>
+
+<div class="outline-chapter">
+  <h3>10 Jahre Searchwing</h3>
+  <ul>
+    <li class="outline-link"><span class="outline-site">searchwing.org:</span> <a href="https://searchwing.org/" target="_blank" rel="noopener noreferrer">SearchWing e.V. – Building drones for sea rescue</a></li>
+  </ul>
+</div>
+
+  </ul>
+</div>
+
+</div>
+]]></content:encoded>
+      <psc:chapters xmlns:psc="http://podlove.org/simple-chapters" version="1.2">
+        <psc:chapter start="00:00:00.000" title="Intro"/>
+        <psc:chapter start="00:00:34.868" title="Prolog"/>
+        <psc:chapter start="00:03:13.376" title="Maschinenlesbare Alternative Realitäten"/>
+        <psc:chapter start="00:15:46.635" title="Frag den Staat und das Informationsfreiheitsgesetz"/>
+        <psc:chapter start="00:34:32.710" title="Carlsen gegen OpenAI"/>
+        <psc:chapter start="00:47:02.805" title="Geheimdienst-Reform"/>
+        <psc:chapter start="00:56:11.597" title="Hackende KIs"/>
+        <psc:chapter start="01:28:15.079" title="Termine"/>
+        <psc:chapter start="01:30:48.317" title="Epilog"/>
+      </psc:chapters>
+      <podcast:chapters url="https://logbuch-netzpolitik.de/lnp557-vom-unfall-zum-normalfall?chapters_format=pijson" type="application/json+chapters"/>
+      <podcast:transcript url="https://logbuch-netzpolitik.de/lnp557-vom-unfall-zum-normalfall?podlove_transcript=webvtt" type="text/vtt"/>
+      <podcast:transcript url="https://logbuch-netzpolitik.de/lnp557-vom-unfall-zum-normalfall?podlove_transcript=json_podcastindex" type="application/json"/>
+      <atom:contributor>
+        <atom:name>Linus Neumann</atom:name>
+        <atom:uri>http://www.linus-neumann.de/</atom:uri>
+      </atom:contributor>
+      <atom:contributor>
+        <atom:name>Tim Pritlove</atom:name>
+        <atom:uri>http://tim.pritlove.org/</atom:uri>
+      </atom:contributor>
+      <podcast:person img="https://media.metaebene.me/media/metaebene/contributors/linus-neumann.jpg">Linus Neumann</podcast:person>
+      <podcast:person img="https://logbuch-netzpolitik.de/files/2020/11/IMG_4799.jpeg">Tim Pritlove</podcast:person>
+    </item>
+    <item>
+      <title>LNP556 Einer der schlechteren Tage auffe Arbeit</title>
+      <link>https://logbuch-netzpolitik.de/lnp556-einer-der-schlechteren-tage-auffe-arbeit</link>
+      <pubDate>Thu, 02 Jul 2026 16:05:25 +0000</pubDate>
+      <guid isPermaLink="false">b40cfc88-1f20-450d-8b42-e14ee450ac19</guid>
+      <description><![CDATA[In der heutigen Ausgabe verzeichnen wir einige beunruhigende Angriffe: auf die Informationsfreiheit, weil die deutsche Regierung das Informationsfreiheitsgesetz stark einschränken will; auf Indymedia, weil die Innenministerkonferenz lieber Geister jagt als sich um die wirklichen Probleme zu kümmern; und auf Frauenhäuser, die sich digitaler Erpressung ausgesetzt sehen. Auf der Habenseite ist das ausführliche Gutachten der GFF über die Chancen des AfD-Verbotsgutachtens zu verbuchen und es sieht ganz so aus, als ob der Supreme Court der USA Max Schrems eine Steilvorlage zum Angriff auf EU-US Data Privacy Framework geliefert hat.]]></description>
+      <atom:link rel="http://podlove.org/deep-link" href="https://logbuch-netzpolitik.de/lnp556-einer-der-schlechteren-tage-auffe-arbeit#"/>
+      <enclosure url="https://logbuch-netzpolitik.de/podlove/file/9084/s/feed/c/mp3/lnp556-einer-der-schlechteren-tage-auffe-arbeit.mp3" length="47829713" type="audio/mpeg"/>
+      <itunes:duration>01:19:39</itunes:duration>
+      <itunes:author>Metaebene Personal Media - Tim Pritlove</itunes:author>
+      <itunes:subtitle>Feedback — Angriff auf die Informationsfreiheit — AfD-Verbotsgutachten — Angriff auf Indymedia — Schrems III — Angriffswelle auf Frauenhäuser</itunes:subtitle>
+      <itunes:episode>556</itunes:episode>
+      <itunes:episodeType>full</itunes:episodeType>
+      <itunes:summary><![CDATA[In der heutigen Ausgabe verzeichnen wir einige beunruhigende Angriffe: auf die Informationsfreiheit, weil die deutsche Regierung das Informationsfreiheitsgesetz stark einschränken will; auf Indymedia, weil die Innenministerkonferenz lieber Geister jagt als sich um die wirklichen Probleme zu kümmern; und auf Frauenhäuser, die sich digitaler Erpressung ausgesetzt sehen. Auf der Habenseite ist das ausführliche Gutachten der GFF über die Chancen des AfD-Verbotsgutachtens zu verbuchen und es sieht ganz so aus, als ob der Supreme Court der USA Max Schrems eine Steilvorlage zum Angriff auf EU-US Data Privacy Framework geliefert hat.]]></itunes:summary>
+      <itunes:image href="https://media.metaebene.me/media/lnp/lnp556-einer-der-schlechteren-tage-auffe-arbeit.jpg"/>
+      <content:encoded><![CDATA[
+
+<p>Feedback zur Sendung?<br/>
+<strong><a href="https://logbuch-netzpolitik.de/lnp556-einer-der-schlechteren-tage-auffe-arbeit#comments">Schreibe uns einen Kommentar</a></strong></p>
+
+
+
+<p><strong>Feedback — Angriff auf die Informationsfreiheit — AfD-Verbotsgutachten — Angriff auf Indymedia — Schrems III — Angriffswelle auf Frauenhäuser</strong></p>
+
+<a href="https://media.metaebene.me/media/lnp/lnp556-einer-der-schlechteren-tage-auffe-arbeit.jpg">
+<img decoding="async" width="600" src="https://logbuch-netzpolitik.de/wp-content/cache/podlove/07/4c274a60e9daeffc90d7b0ebf45b12/lnp556-einer-der-schlechteren-tage-auffe-arbeit_600x.jpg" srcset="https://logbuch-netzpolitik.de/wp-content/cache/podlove/07/4c274a60e9daeffc90d7b0ebf45b12/lnp556-einer-der-schlechteren-tage-auffe-arbeit_600x.jpg 1x, https://logbuch-netzpolitik.de/wp-content/cache/podlove/07/4c274a60e9daeffc90d7b0ebf45b12/lnp556-einer-der-schlechteren-tage-auffe-arbeit_1200x.jpg 2x"/>
+</a>
+
+<p class="episode-summary">In der heutigen Ausgabe verzeichnen wir einige beunruhigende Angriffe: auf die Informationsfreiheit, weil die deutsche Regierung das Informationsfreiheitsgesetz stark einschränken will; auf Indymedia, weil die Innenministerkonferenz lieber Geister jagt als sich um die wirklichen Probleme zu kümmern; und auf Frauenhäuser, die sich digitaler Erpressung ausgesetzt sehen. Auf der Habenseite ist das ausführliche Gutachten der GFF über die Chancen des AfD-Verbotsgutachtens zu verbuchen und es sieht ganz so aus, als ob der Supreme Court der USA Max Schrems eine Steilvorlage zum Angriff auf EU-US Data Privacy Framework geliefert hat. </p>
+
+
+<div>
+
+<ul>
+<li>
+<strong>Linus Neumann</strong>
+<ul>
+<li>
+<a href="https://linus-neumann.de/">linus-neumann.de</a>
+</li>
+<li>
+<a href="https://23.social/@linuzifer">@linuzifer@23.social</a>
+</li>
+<li>
+<a href="https://www.youtube.com/user/Linuzifer">@linuzifer@youtube.com</a>
+</li>
+<li>
+<a href="https://www.linkedin.com/in/linus-neumann/">Linus Neumann</a>
+</li>
+<li>
+<a href="https://twitter.com/linuzifer">@linuzifer@twitter.com</a>
+</li>
+<li>
+<a href="https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&#038;hosted_button_id=5U2Z7B6A8MHCE">Paypal</a>
+</li>
+<li>
+<a href="https://amzn.to/3r2hVqc">Amazon Wishlist</a>
+</li>
+</ul>
+</li>
+<li>
+<strong>Tim Pritlove</strong>
+<ul>
+<li>
+<a href="https://twitter.com/timpritlove">Twitter</a>
+</li>
+<li>
+<a href="https://mastodon.social/@timpritlove">Mastodon</a>
+</li>
+<li>
+<a href="https://metaebene.me">Website</a>
+</li>
+<li>
+<a href="https://liberapay.com/timpritlove">Liberapay</a>
+</li>
+<li>
+<a href="https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&#038;hosted_button_id=BQTHPPWX5VQDW">Paypal</a>
+</li>
+</ul>
+</li>
+</ul>
+
+
+</div>
+
+    <hr/>
+
+    <div style="display: flex; margin-right: 20px">
+        <div class="transcript-logo">
+                    </div>
+        <div class="transcript-text" style="flex: 1; margin-left: 20px;">
+            <p>
+                Für diese Episode von Logbuch:Netzpolitik liegt auch ein <strong>vollständiges Transkript</strong>
+                mit Zeitmarken und Sprecheridentifikation vor.
+            </p>
+            <p>
+                Bitte beachten: das Transkript wurde automatisiert erzeugt und wurde nicht nachträglich gegengelesen oder korrigiert.
+                Dieser Prozess ist nicht sonderlich genau und das Ergebnis enthält daher mit Sicherheit eine Reihe von Fehlern.
+                Im Zweifel gilt immer das in der Sendung aufgezeichnete gesprochene Wort.
+                Formate:
+                <a href="https://logbuch-netzpolitik.de/lnp556-einer-der-schlechteren-tage-auffe-arbeit?podlove_template_page=episode-transcript-html" download="lnp556-einer-der-schlechteren-tage-auffe-arbeit.transcript.html">HTML</a>,
+                <a href="https://logbuch-netzpolitik.de/lnp556-einer-der-schlechteren-tage-auffe-arbeit?podlove_transcript=webvtt" download="lnp556-einer-der-schlechteren-tage-auffe-arbeit.transcript.vtt">WEBVTT</a>.
+            </p>
+        </div>
+    </div>
+
+    
+
+    <hr/>
+    
+
+
+
+
+
+
+
+<h1>Shownotes</h1>
+
+<div class="outline-document">
+  <div class="outline-chapter">
+  <h2>Prolog: GSM-R</h2>
+  <ul>
+    <li class="outline-link"><span class="outline-site">heise online:</span> <a href="https://www.heise.de/news/Bahnausfall-Wartungsarbeiten-kuenftig-nur-von-0-bis-4-Uhr-11346810.html" target="_blank" rel="noopener noreferrer" title="In der Nacht zum Mittwoch standen alle Züge der Deutschen Bahn still – weil ein Switch getauscht wurde, wie das Unternehmen jetzt sagt.">Bahnausfall: Wartungsarbeiten künftig nur von 0 bis 4 Uhr</a></li>
+  </ul>
+</div>
+
+<div class="outline-chapter">
+  <h2>Feedback</h2>
+  <ul>
+    <div class="outline-chapter">
+  <h3>DE-Mail</h3>
+  <ul>
+    <li class="outline-link"><span class="outline-site">Logbuch:Netzpolitik:</span> <a href="https://logbuch-netzpolitik.de/lnp555-deutsche-wollen-akten#comment-266715" target="_blank" rel="noopener noreferrer" title="Eure Diskussion über den Zustand der digitalen Verwaltung in Deutschland hat bei mir schmerzhafte Flashbacks ausgelöst. Ich war tatsächlich einer dieser gefühlt fünf unerschrockenen De-Mail-Nutzer in diesem Land. Spoiler: Es war die absolute, rechtsverbindlich zertifizierte Vollkatastrophe.Man schickte damals eine De-Mail an eine Behörde und durfte danach erst mal fünf Runden das digitale Blockwart-Dasein durchspielen: „Ja, das ist gerade wirklich rechtsverbindlich. Nein, das ist keine normale E-Mail. Nein, da kommt kein Papierdokument nach. Das ist nicht das moderne Äquivalent zu ‚vorab per Fax‘!“ Wenn man dieses formelle Fegefeuer überstanden hatte, ging der eigentliche Systemfehler erst los: De-Mail verpflichtete die Behörde nämlich mitnichten dazu, ihrerseits elektronisch zu antworten. Die logische Konsequenz? Man halbierte zwar den Postlaufweg hinters Amt, durfte dann aber zehn Tage auf die analoge Antwort per Schneckenpost warten. Auf dem gedruckten Brief stand dann ironischerweise das Datum des ursprünglichen De-Mail, sie haben also taggleich geantwortet ,die Antwort aber lieber ausgedruckt, kuvertiert und zur Post getragen.Wer glaubt, das neue elektronische Bürger- und Organisationenpostfach (eBO) mache alles besser, irrt. Die Diskussion, ob das jetzt wirklich per Brief sein muss, habe ich zwar nur noch in etwa einem Drittel der Fälle, wahrscheinlich weil das eBO über dieselben Kanäle wie das beA bzw. beN ins EGVP einspeist und sich für die Sachbearbeiter dadurch irgendwie „offizieller“ anfühlt. Trotzdem muss man die Behörden immer noch durch unangenehmes, permanentes Nudging dazu zwingen, den digitalen Rückkanal auch zu benutzen.Meine aktuelle und extrem praktikable Gegenmaßnahme: Ich schicke den Ämtern und Gerichten nach dem zweiten Mal freundlichem „bitte nutzen Sie doch auch den elektronischen Rückkanal“ eingescannte, handschriftliche Dokumente als Antwort. Mit dem freundlichen Kommentar, dass sie von mir ab sofort auch nur noch digital nicht durchsuchbaren Dokumente bekommen, solange ich von ihnen Briefpost erhalte. Und siehe da: Plötzlich und wie durch ein administratives Wunder finden sie auf einmal doch den Knopf, um eine PDF zu verschicken. &#x200d;&#x2642;">Kommentar von Christian (LNP555 Deutsche wollen Akten)</a></li>
+<li class="outline-link"><span class="outline-site">Logbuch:Netzpolitik:</span> <a href="https://logbuch-netzpolitik.de/lnp555-deutsche-wollen-akten#comment-266892" target="_blank" rel="noopener noreferrer" title="Hallo zusammen,
+
+zuerst freue ich mich, dass endlich das tote Pferd DeMail jetzt endlich in die ewige Ruhe gehen darf.
+
+Dann bin ich sehr besorgt, dass das BMDS das nächste tote Pferd entwickeln lässt die DeutschlandAPP (oder kurz SchlAPP). Dieses Projekt ist schon tot bevor es überhaupt gestartet ist und die Idee jetzt alles mit eine magischen KI-Schicht zu lösen ist selten dämlich. Ich habe den Eindruck, dass die beteiligten Produktmanager sich noch nie mit der kommunalen Infrastruktur auseinandergesetzt haben. Sie scheinen noch nicht einmal geprüft haben was es bereits in funktionierend gibt.
+
+1. Identität per eID prüfen – Warum wird nicht gleich die EUDI-Wallet oder wenigstens die BundID (aka DeutschlandID) eingebaut?
+
+2. Kommunikation über Wire – WTF? Es gibt bereits eine stehende Kommunikationsinfrastruktur auf Basis des Matrix-Protokolls, das nennt sich ZaPuk und wird von der Fitko entwickelt und bereitgestellt? Warum muss man auf ein Unternehmen bauen welches schon mehrfach hin und her verkauft wurde und man nicht sicher sein kann, dass der deutsche Staat weiterhin die rechtliche Kontrolle darüber hat?
+
+3. Termine bei Behörden buchen – FacePalm hoch 10 – Was will die App denn erreichen? Sollen die Bürger:innen wieder ins analoge Amt gehen? Davon abgesehen gibt es in Deutschland allein 11000 Kommunen und wenn jede Kommune eine Terminvereinbarung für nur 2 Behörden anbietet (das wird im Durchschnitt noch nicht einmal ausreichen), dann sind das schon 22000 Verbindungen die gemacht werden müssen. Da kommen dann natürlich noch die Landes- und Bundesbehörden dazu. Wenn ich das mal ganz grob und konservativ hochrechne, dann sprechen wir sicherlich vom 50000 anzubindenden Terminvereinbarungen. Ganz zu schweigen davon, dass nicht alle Behörden die gleichen Systeme benutzen, was dieses Vorhaben noch verschärft.
+
+4. Wohnsitzummelden – ist eine kommunal ausgeführte Leistung und befindet sich gerade bundesweit im Rollout und könnte sehr einfach eingebaut werden, wenn man die vorhandene Infrastruktur verwendet, sonst sind es wieder 11000 Endpoints.
+
+5. Kindergeld beantragen – wer will das in einer App machen und vor allem wie oft macht man das in seinem Leben? Zudem wurde gerade das Gesetz geändert, das man das nur noch beim ersten Kind machen muss und es bei jedem weiteren Kind automatisch passiert. Die nächste Stufe ist, dass das Kindergeld komplett antragslos ausgezahlt wird. Eine Lösung in einer App oder als Onlinedienst ist also reine Geldverschwendung.
+
+6. Unternehmensgründung digital unterstützen – Was soll dass heißen? Dazu ist das auch wieder eine Leistung die in den 11000 Kommunen ausgeführt wird.
+
+Das Projekt soll einen Prototyp bauen, hat aber bereits ein paar wenige Kommunen akquiriert die an der Pilotierung teilnehmen. Was passiert am Ende der Pilotierung? wird die App wieder gelöscht? Nimmt man den Bürger:innen die Funktionen wieder weg? Jedenfalls kann man aus einem Prototyp keine sinnvolle produktive Software bauen, zumal dieser Prototyp eher beweisen soll, dass es überhaupt funktioniert (BTW: wird es nicht).
+
+Nach der Pilotierung soll dann eine „richtige“ Ausschreibung erfolgen. Welches Unternehmen bindet sich einen kruden Prototyp zur Weiterentwicklung ans Bein? Es ist also schon vorprogrammiert, dass telekom und SAP auch die Ausschreibung für den Produktivbetrieb gewinnen werden.
+
+Gibt es niemanden in diesem BMDS, der mal die Bürger:innen fragt was sie wirklich brauchen oder mal schaut was der Bund und die Länder bereits bezahlen und betreiben ohne alles zum 10. Mal zu erfinden?
+
+Ich könnte mich noch viel mehr aufregen aber ich muss auf meinen Blutdruck achten und gehe jetzt erst einmal für 2 bis 3 Stunden zum Yoga um wieder runter zu kommen.
+
+Viele Grüße
+
+Torsten">Kommentar von Torsten vom eGovernment Podcast (LNP555 Deutsche wollen Akten)</a></li>
+<li class="outline-link"><span class="outline-site">egovernment-podcast.com:</span> <a href="https://egovernment-podcast.com/" target="_blank" rel="noopener noreferrer">eGovernment Podcast | Podcast zu eGovernment, Open Data, Open Government, Smart City und Digitalisierung.</a></li>
+  </ul>
+</div>
+
+<div class="outline-chapter">
+  <h3>Feedback: KI</h3>
+  <ul>
+    <li class="outline-link"><span class="outline-site">www.bis.org:</span> <a href="https://www.bis.org/publ/arpdf/ar2026e.pdf" target="_blank" rel="noopener noreferrer" title="El Informe Económico Anual de 2026 presenta un análisis de la resiliencia y robustez de la economía global, abordando temas como la estabilidad fiscal-financiera, el impacto de los stablecoins y las implicaciones políticas en un contexto de alta deuda pública y mercados financieros en evolución.">Annual Economic Report June 2026 [PDF]</a></li>
+<li class="outline-link"><span class="outline-site">Wikipedia (de):</span> <a href="https://de.wikipedia.org/wiki/Idiocracy" target="_blank" rel="noopener noreferrer" title="Idiocracy ist eine Science-Fiction-Komödie des US-amerikanischen Regisseurs Mike Judge aus dem Jahr 2006. Der Film zeigt eine Dystopie der Welt des Jahres 2505, in der eine geistig degenerierte Gesellschaft vor ihrem Ende steht. Er spielt vor dem Hintergrund eines umstrittenen evolutionsbiologischen...">Idiocracy</a></li>
+<li class="outline-link"><span class="outline-site">Wikipedia (de):</span> <a href="https://de.wikipedia.org/wiki/Hype-Zyklus" target="_blank" rel="noopener noreferrer" title="Der Hype-Zyklus stellt dar, welche Phasen der öffentlichen Aufmerksamkeit eine neue Technologie bei deren Einführung durchläuft. Der Begriff des Hype-Zyklus wurde von der Gartner-Beraterin Jackie Fenn geprägt und dient heute Technologieberatern zur Bewertung in der Einführung neuer Technologien.">Hype-Zyklus</a></li>
+<li class="outline-link"><span class="outline-site">iX Magazin:</span> <a href="https://www.heise.de/news/Mega-Investitionen-Aktuelle-KI-Euphorie-gefaehrlich-wie-die-Dotcom-Blase-11349429.html" target="_blank" rel="noopener noreferrer" title="Wegen gigantischer KI-Investitionen wächst die Angst vor einer platzenden Blase. Die Bank für Internationalen Zahlungsausgleich warnt vor drastischen Folgen.">Mega-Investitionen: Aktuelle KI-Euphorie gefährlich wie die Dotcom-Blase</a></li>
+  </ul>
+</div>
+
+  </ul>
+</div>
+
+<div class="outline-chapter">
+  <h2>Angriff auf Informationsfreiheit</h2>
+  <ul>
+    <li class="outline-link"><span class="outline-site">Der Tagesspiegel:</span> <a href="https://www.tagesspiegel.de/downloads/der-reformkatalog-zum-download" target="_blank" rel="noopener noreferrer" title="Das Dokument beschreibt ein Programm der Regierungskoalition aus CDU/CSU und SPD, das darauf abzielt, Wachstum zu schaffen, Arbeitsplätze zu sichern und den sozialen Zusammenhalt in Deutschland zu stärken. Es werden 34 Maßnahmen vorgestellt, die unter anderem Steuerentlastungen, Reformen im Rentensystem und Initiativen zur Förderung von Zukunftstechnologien umfassen.">Ein Programm für Aufschwung und Beschäftigung [PDF]</a></li>
+<li class="outline-link"><span class="outline-site">FragDenStaat:</span> <a href="https://fragdenstaat.de/artikel/policy/2026/07/spd-und-union-planen-abschaffung-des-ifg/" target="_blank" rel="noopener noreferrer" title="Es ist der schwerste Angriff auf staatliche Transparenz in der Geschichte der Bundesrepublik: Der Koalitionsauschuss von SPD, CDU und CSU hat beschlossen, das Informationsfreiheitsgesetz de facto abzuschaffen. ">Beschluss des Koalitionsausschusses: SPD und Union planen Abschaffung des IFG</a></li>
+<li class="outline-link"><span class="outline-site">abgeordnetenwatch:</span> <a href="https://www.abgeordnetenwatch.de/profile?politician_search_keys=&amp;parliament_period=161&amp;party=1" target="_blank" rel="noopener noreferrer">Fragen Sie Ihre Abgeordneten und Kandidierenden | abgeordnetenwatch</a></li>
+<li class="outline-link"><span class="outline-site">WeAct:</span> <a href="https://weact.campact.de/petitions/spd-stoppt-den-frontalangriff-auf-die-informationsfreiheit" target="_blank" rel="noopener noreferrer" title="Wir alle haben das Recht auf staatliche Informationen. Seit 2006 müssen Behörden auf Antrag nach dem Informationsfreiheitsgesetz (IFG) Dokumente herausgeben – seien es Verträge, interne Weisungen oder E-Mails. Mehr als 300.000 Anfragen wurden seitdem über FragDenStaat gestellt. Das IFG ist eine zentrale Säule der Demokratie in Deutschland geworden.
+
+Es ist eines der wirksamsten Transparenzwerkzeuge für Bürger*innen, Journalist*innen und zivilgesellschaftliche Organisationen. Nun soll es...">SPD, stoppt den Frontalangriff auf die Informationsfreiheit!</a></li>
+  </ul>
+</div>
+
+<div class="outline-chapter">
+  <h2>AfD-Verbotsgutachten</h2>
+  <ul>
+    <li class="outline-link"><span class="outline-site">FragDenStaat:</span> <a href="https://fragdenstaat.de/artikel/policy/2026/06/die-afd-datenbank/" target="_blank" rel="noopener noreferrer" title="Ein Verbotsverfahren gegen die AfD könnte erfolgreich sein. Zu diesem Schluss kommt ein ausführliches Rechtsgutachten der Gesellschaft für Freiheitsrechte. Wir veröffentlichen jetzt einen Großteil der juristisch geprüften Belege zum Gutachten als durchsuchbare Datenbank.">Belege zum AfD-Gutachten: Die AfD-Datenbank</a></li>
+<li class="outline-link"><span class="outline-site">FragDenStaat:</span> <a href="https://fragdenstaat.de/aktionen/afd-datenbank/" target="_blank" rel="noopener noreferrer" title="Wir liefern die erste Datenbank mit juristisch geprüften Belegen für die Verfassungswidrigkeit der AfD. Mehr als 2000 Quellen wurden aufbereitet, visualisiert und durchsuchbar gemacht. Die Datenbank ist mit dem Gutachten der Gesellschaft für Freiheitsrechte verknüpft, das die Erfolgschance eines Verbotsverfahren prüft.">AfD-Datenbank</a></li>
+<li class="outline-link"><span class="outline-site">Gesellschaft für Freiheitsrechte:</span> <a href="https://afd-gutachten.de/" target="_blank" rel="noopener noreferrer" title="Das AfD-Gutachten ist die bislang umfassendste und juristisch anspruchsvollste Untersuchung der AfD. Lesen Sie jetzt, warum ein Verbotsverfahren gegen die Partei wahrscheinlich erfolgreich wäre.">Das AfD-Gutachten der Gesellschaft für Freiheitsrechte</a></li>
+<li class="outline-link"><span class="outline-site">DER SPIEGEL:</span> <a href="https://www.spiegel.de/politik/deutschland/mathias-doepfner-aerger-um-angebliche-afd-ansage-von-ihm-an-friedrich-merz-a-03d40b45-b11c-42c5-b45f-fd3e55036906?sara_ref=re-so-app-sh" target="_blank" rel="noopener noreferrer" title="Der Chef des Springer-Verlags versuchte schon in der Vergangenheit, die Politik in seinem Sinne zu beeinflussen. Nun soll Mathias Döpfner es erneut probiert haben – an höchster Stelle. Springer spricht von »absurden« Vorwürfen.">Ärger um angebliche AfD-Ansage von Döpfner an Kanzler Merz</a></li>
+<li class="outline-link"><span class="outline-site">Süddeutsche.de:</span> <a href="https://www.sueddeutsche.de/politik/afd-verbot-neue-argumente-juristen-gesellschaft-fuer-freiheitsrechte-li.3506628?reduced=true" target="_blank" rel="noopener noreferrer" title="In die Debatte um ein AfD-Verbotsverfahren kommt mit neuen Argumenten wieder Bewegung. Die wichtigsten Fragen und Antworten.">Die AfD verbieten? Über welche Punkte jetzt diskutiert wird</a></li>
+<li class="outline-link"><span class="outline-site">GFF Gutachten:</span> <a href="https://afd-gutachten.de/gutachten/einfuehrung/" target="_blank" rel="noopener noreferrer" title="Ist die Alternative für Deutschland verfassungswidrig? – Rechtsgutachten der GFF">Startseite</a></li>
+  </ul>
+</div>
+
+<div class="outline-chapter">
+  <h2>Angriff auf indymedia</h2>
+  <ul>
+    <li class="outline-link"><span class="outline-site">taz.de:</span> <a href="https://taz.de/Linksradikale-Onlineplattform/!6192346/" target="_blank" rel="noopener noreferrer" title="Die Seite de.indymedia.org ist ein zentrales linksradikales Informationsforum. Die In­nen­mi­nis­te­r:in­nen der Länder fordern, dass es dichtgemacht wird.">Linksradikale Onlineplattform: Droht ein Verbot von Indymedia?</a></li>
+<li class="outline-link"><span class="outline-site">taz.de:</span> <a href="https://taz.de/!6188646/" target="_blank" rel="noopener noreferrer" title="Die Innenminister der Länder fordern ein Verbot der linken Plattform Indymedia, auf der gerade zum Protest gegen die AfD aufgerufen wird16 ">Doch noch ein Verbotsantrag vor dem AfD-Parteitag</a></li>
+<li class="outline-link"><span class="outline-site">widersetzen.com:</span> <a href="https://widersetzen.com/" target="_blank" rel="noopener noreferrer">widersetzen</a></li>
+  </ul>
+</div>
+
+<div class="outline-chapter">
+  <h2>Schrems III ante portas</h2>
+  <ul>
+    <li class="outline-link"><span class="outline-site">heise online:</span> <a href="https://www.heise.de/news/Kartenhaus-Wie-ein-US-Urteil-den-transatlantischen-Datenfluss-sprengen-koennte-11349599.html" target="_blank" rel="noopener noreferrer" title="Der Supreme Court hat die Unabhängigkeit der FTC für verfassungswidrig erklärt. Das droht, dem EU-US Data Privacy Framework die rechtliche Basis zu entziehen.">US-Urteil erschüttert das Fundament des transatlantischen Datentransfers</a></li>
+  </ul>
+</div>
+
+<div class="outline-chapter">
+  <h2>Angriffswelle auf Frauenhäuser</h2>
+  <ul>
+    <li class="outline-link"><span class="outline-site">SRLabs:</span> <a href="https://srlabs.de/blog/erpressungswelle-auf-frauenhaus" target="_blank" rel="noopener noreferrer" title="Incident response help for social institutions.">Incident Response: Erpressungswelle auf Frauenhäuser &#8211; SRLabs Research</a></li>
+<li class="outline-link"><span class="outline-site">media.ccc.de:</span> <a href="https://media.ccc.de/v/37c3-12134-hirne_hacken_hackback_edition" target="_blank" rel="noopener noreferrer" title="Du musst mit ein paar Erpressern um mehrere Millionen verhandeln.
+Das kann sogar Spaß machen, wenn es nicht dein Geld ist.
+
+Seit gut sieb...">Hirne hacken: Hackback Edition</a></li>
+  </ul>
+</div>
+
+</div>
+
+]]></content:encoded>
+      <psc:chapters xmlns:psc="http://podlove.org/simple-chapters" version="1.2">
+        <psc:chapter start="00:00:00.000" title="Intro"/>
+        <psc:chapter start="00:00:32.128" title="Prolog"/>
+        <psc:chapter start="00:03:43.261" title="Feedback: DE-Mail"/>
+        <psc:chapter start="00:10:24.821" title="Feedback: KI"/>
+        <psc:chapter start="00:35:26.974" title="Angriff auf Informationsfreiheit"/>
+        <psc:chapter start="00:52:19.334" title="AfD-Verbotsgutachten"/>
+        <psc:chapter start="01:00:35.716" title="Angriff auf indymedia"/>
+        <psc:chapter start="01:04:29.037" title="Schrems III ante portas"/>
+        <psc:chapter start="01:10:35.714" title="Angriffswelle auf Frauenhäuser"/>
+        <psc:chapter start="01:16:57.215" title="Epilog"/>
+      </psc:chapters>
+      <podcast:chapters url="https://logbuch-netzpolitik.de/lnp556-einer-der-schlechteren-tage-auffe-arbeit?chapters_format=pijson" type="application/json+chapters"/>
+      <podcast:transcript url="https://logbuch-netzpolitik.de/lnp556-einer-der-schlechteren-tage-auffe-arbeit?podlove_transcript=webvtt" type="text/vtt"/>
+      <podcast:transcript url="https://logbuch-netzpolitik.de/lnp556-einer-der-schlechteren-tage-auffe-arbeit?podlove_transcript=json_podcastindex" type="application/json"/>
+      <atom:contributor>
+        <atom:name>Linus Neumann</atom:name>
+        <atom:uri>http://www.linus-neumann.de/</atom:uri>
+      </atom:contributor>
+      <atom:contributor>
+        <atom:name>Tim Pritlove</atom:name>
+        <atom:uri>http://tim.pritlove.org/</atom:uri>
+      </atom:contributor>
+      <podcast:person img="https://media.metaebene.me/media/metaebene/contributors/linus-neumann.jpg">Linus Neumann</podcast:person>
+      <podcast:person img="https://logbuch-netzpolitik.de/files/2020/11/IMG_4799.jpeg">Tim Pritlove</podcast:person>
+    </item>
+</channel>
+</rss>

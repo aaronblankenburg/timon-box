@@ -1,0 +1,665 @@
+#ifndef WIFI_SETUP_H
+#define WIFI_SETUP_H
+
+// Network layer of the management server.
+//
+// With a home network saved in NVS the box joins it as a station and announces
+// itself via mDNS as <box-name>.local. Without saved credentials, or when the
+// network cannot be reached within WIFI_CONNECT_TIMEOUT_MS, it falls back to
+// the old behaviour: an open hotspot named BOX_NAME with a captive-portal DNS.
+//
+// The /wifi page lets the user pick a network, save the password, test the
+// connection (the hotspot stays up meanwhile) and forget the network again.
+//
+// Threading: web handlers run on the AsyncTCP task and only queue actions or
+// read state; every WiFi/mDNS/DNS/NVS mutation happens in netLoop() on the
+// Arduino loop task.
+
+#include <DNSServer.h>
+#include <ESPAsyncWebServer.h>
+#include <ESPmDNS.h>
+#include <Preferences.h>
+#include <WiFi.h>
+#include <esp_wifi.h>
+#include <freertos/FreeRTOS.h>
+#include <freertos/semphr.h>
+
+#include <algorithm>
+#include <vector>
+
+#include "web-ui.h"
+
+#ifndef WIFI_CONNECT_TIMEOUT_MS
+#define WIFI_CONNECT_TIMEOUT_MS 15000
+#endif
+#define STA_LOST_TIMEOUT_MS 30000  // station link gone for this long -> hotspot
+#define NET_ACTION_GRACE_MS 400    // let the HTTP response reach the browser before touching the radio
+// Some networks never deliver multicast queries to the box (Timon, Oct 2026: a direct query to
+// port 5353 was answered every time, a multicast one never). Computers then cannot look up
+// <hostname>.local once their cached answer (120 s) has expired, although the box's own
+// announcements do reach them. Repeating those keeps the name in their caches.
+#define MDNS_ANNOUNCE_EVERY_MS 60000
+#define AP_TEARDOWN_GRACE_MS 5000  // after a successful connect from the portal: let the page see the result, then drop the hotspot
+
+enum NetMode { NET_CONNECTING,
+               NET_STATION,
+               NET_ACCESS_POINT };
+enum ConnectResult { CR_NONE,
+                     CR_OK,
+                     CR_FAILED };
+enum PendingActionType { PA_NONE,
+                         PA_CONNECT,
+                         PA_FORGET };
+
+struct WifiNetwork {
+  String ssid;
+  int32_t rssi;
+  bool secure;
+};
+
+struct PendingAction {
+  PendingActionType type = PA_NONE;
+  String ssid;
+  String pass;
+  unsigned long at = 0;
+};
+
+DNSServer dnsServer;
+Preferences wifiPrefs;
+
+volatile NetMode netMode = NET_ACCESS_POINT;
+volatile ConnectResult connectResult = CR_NONE;
+volatile uint8_t lastDisconnectReason = 0;  // written by the WiFi event task
+volatile bool scanRequested = false;
+volatile bool scanInProgress = false;
+volatile bool scanDone = false;
+volatile bool scanFailed = false;
+uint8_t scanAttempt = 0;          // loop task: retries before a scan counts as failed
+unsigned long scanRetryAt = 0;    // loop task: earliest millis() for the next attempt
+#define SCAN_MAX_ATTEMPTS 3
+#define SCAN_RETRY_DELAY_MS 800
+bool apActive = false;  // loop task only
+volatile bool apTeardownPending = false;  // hotspot goes down once the grace period is over
+unsigned long apTeardownSince = 0;
+unsigned long connectStart = 0;
+unsigned long staLostSince = 0;
+
+SemaphoreHandle_t netMutex = nullptr;  // guards pendingAction, scanResults, savedSsidCache
+PendingAction pendingAction;
+std::vector<WifiNetwork> scanResults;
+String savedSsidCache;
+
+// ---------------------------------------------------------------------------
+// Small helpers
+// ---------------------------------------------------------------------------
+
+// "Timon-Box" -> "timon-box"; used for mDNS and the DHCP hostname.
+const char *boxHostname() {
+  static String hostname = [] {
+    String s = BOX_NAME;
+    s.toLowerCase();
+    return s;
+  }();
+  return hostname.c_str();
+}
+
+bool netLock(uint32_t waitMs = 100) {
+  return netMutex && xSemaphoreTake(netMutex, pdMS_TO_TICKS(waitMs)) == pdTRUE;
+}
+
+void netUnlock() { xSemaphoreGive(netMutex); }
+
+String getSavedSsid() {
+  String copy;
+  if (netLock()) {
+    copy = savedSsidCache;
+    netUnlock();
+  }
+  return copy;
+}
+
+void setSavedSsid(const String &ssid) {
+  if (netLock()) {
+    savedSsidCache = ssid;
+    netUnlock();
+  }
+}
+
+bool loadCredentials(String &ssid, String &pass) {
+  ssid = wifiPrefs.getString("ssid", "");
+  pass = wifiPrefs.getString("pass", "");
+  return ssid.length() > 0;
+}
+
+// Same as loadCredentials(), but works outside management mode (where wifiPrefs is not open).
+bool readSavedCredentials(String &ssid, String &pass) {
+  Preferences prefs;
+  if (!prefs.begin("wifi", true)) return false;  // namespace does not exist yet
+  ssid = prefs.getString("ssid", "");
+  pass = prefs.getString("pass", "");
+  prefs.end();
+  return ssid.length() > 0;
+}
+
+void saveCredentials(const String &ssid, const String &pass) {
+  wifiPrefs.putString("ssid", ssid);
+  wifiPrefs.putString("pass", pass);
+  setSavedSsid(ssid);
+}
+
+void clearCredentials() {
+  wifiPrefs.remove("ssid");
+  wifiPrefs.remove("pass");
+  setSavedSsid("");
+}
+
+String jsonEscape(const String &in) {
+  String out;
+  out.reserve(in.length() + 8);
+  for (unsigned int i = 0; i < in.length(); i++) {
+    char c = in[i];
+    if (c == '"' || c == '\\') {
+      out += '\\';
+      out += c;
+    } else if ((uint8_t)c < 0x20) {
+      char buf[7];
+      snprintf(buf, sizeof(buf), "\\u%04x", c);
+      out += buf;
+    } else {
+      out += c;
+    }
+  }
+  return out;
+}
+
+const char *disconnectHint(uint8_t reason) {
+  switch (reason) {
+    case WIFI_REASON_NO_AP_FOUND:
+      return "Network not found. Check the name and that the router is in range.";
+    case WIFI_REASON_AUTH_EXPIRE:
+    case WIFI_REASON_AUTH_FAIL:
+    case WIFI_REASON_4WAY_HANDSHAKE_TIMEOUT:
+    case WIFI_REASON_HANDSHAKE_TIMEOUT:
+    case WIFI_REASON_CONNECTION_FAIL:
+      return "Authentication failed. Wrong password?";
+    case 0:
+      return "No answer from the network within the time limit.";
+    default:
+      return "The connection could not be established.";
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Radio state changes (loop task only)
+// ---------------------------------------------------------------------------
+
+void startConnect(const String &ssid, const String &pass) {
+  Serial.printf("[net] connecting to \"%s\"%s\n", ssid.c_str(), apActive ? " (hotspot stays up)" : "");
+  WiFi.setAutoReconnect(false);  // we own the attempt; the core would otherwise retry forever and hop channels
+  lastDisconnectReason = 0;
+  connectResult = CR_NONE;
+  WiFi.mode(apActive ? WIFI_AP_STA : WIFI_STA);
+  WiFi.begin(ssid.c_str(), pass.length() ? pass.c_str() : nullptr);
+  connectStart = millis();
+  netMode = NET_CONNECTING;
+}
+
+void enterAccessPoint() {
+  WiFi.setAutoReconnect(false);
+  if (WiFi.getMode() & WIFI_MODE_STA) WiFi.disconnect(false);
+  WiFi.mode(WIFI_AP);
+  WiFi.softAP(BOX_NAME);
+  IPAddress ip = WiFi.softAPIP();
+  dnsServer.setErrorReplyCode(DNSReplyCode::NoError);
+  dnsServer.start(53, "*", ip);
+  apActive = true;
+  apTeardownPending = false;
+  netMode = NET_ACCESS_POINT;
+  Serial.printf("[net] hotspot \"%s\" at %s\n", BOX_NAME, ip.toString().c_str());
+  scanRequested = true;  // pre-warm the network list for the setup page
+  scanAttempt = 0;
+  scanRetryAt = millis() + 1500;  // give the interfaces a moment to settle
+}
+
+// Switches the hotspot off once the box is on the home network; clients rejoin
+// their own network and reach the box as <hostname>.local.
+void tearDownAccessPoint() {
+  dnsServer.stop();
+  WiFi.softAPdisconnect(false);
+  WiFi.mode(WIFI_STA);
+  apActive = false;
+  apTeardownPending = false;
+  Serial.printf("[net] hotspot closed, box reachable as %s.local (%s)\n", boxHostname(), WiFi.localIP().toString().c_str());
+}
+
+// For pages (see pageDirectAddress in web-ui.h): the address on the home network, if the box is on it.
+String directAddress() {
+  if (netMode != NET_STATION || apActive || WiFi.status() != WL_CONNECTED) return String("");
+  return WiFi.localIP().toString();
+}
+
+// Setting the port again makes the mDNS responder announce the service together with the box's
+// address. The first call waits a full period: right after connecting it is still probing.
+void announceMdnsPeriodically() {
+  static unsigned long last = 0;
+  if (!last) last = millis();
+  if (millis() - last < MDNS_ANNOUNCE_EVERY_MS) return;
+  last = millis();
+  esp_err_t err = mdns_service_port_set("_http", "_tcp", 80);
+  static bool logged = false;
+  if (!logged || err != ESP_OK) {
+    Serial.printf("[net] mDNS announced again (%s), from now on every %d s\n", esp_err_to_name(err), MDNS_ANNOUNCE_EVERY_MS / 1000);
+    logged = true;
+  }
+}
+
+void onStaDisconnected(arduino_event_id_t, arduino_event_info_t info) {
+  lastDisconnectReason = info.wifi_sta_disconnected.reason;
+  Serial.printf("[net] station disconnected, reason %u\n", info.wifi_sta_disconnected.reason);
+}
+
+// Call once from setupWebServer(), before server.begin().
+void netBegin() {
+  netMutex = xSemaphoreCreateMutex();
+  wifiPrefs.begin("wifi", false);
+
+  WiFi.persistent(false);  // credentials live in our own NVS namespace, not in the driver's
+  WiFi.setAutoReconnect(false);
+  WiFi.setSleep(false);  // modem sleep adds 100-300 ms latency per request and slows uploads
+  WiFi.setHostname(boxHostname());
+  WiFi.onEvent(onStaDisconnected, ARDUINO_EVENT_WIFI_STA_DISCONNECTED);
+  pageDirectAddress = directAddress;
+
+  String ssid, pass;
+  if (loadCredentials(ssid, pass)) {
+    setSavedSsid(ssid);
+    startConnect(ssid, pass);
+  } else {
+    Serial.println("[net] no saved network");
+    enterAccessPoint();
+  }
+
+  // Once per boot is enough: the IDF responder follows AP/STA interface changes itself.
+  if (MDNS.begin(boxHostname())) {
+    MDNS.addService("http", "tcp", 80);
+    MDNS.addServiceTxt("http", "tcp", "box", BOX_NAME);  // lets the other box tell us apart from other HTTP devices
+    Serial.printf("[net] mDNS %s.local\n", boxHostname());
+  } else {
+    Serial.println("[net] mDNS start failed");
+  }
+  Serial.printf("[net] free heap %u\n", ESP.getFreeHeap());
+}
+
+void handlePendingAction() {
+  PendingAction action;
+  if (!netLock()) return;
+  if (pendingAction.type != PA_NONE && millis() - pendingAction.at >= NET_ACTION_GRACE_MS) {
+    action = pendingAction;
+    pendingAction = PendingAction();
+  }
+  netUnlock();
+
+  if (action.type == PA_CONNECT) {
+    // Saved before the test on purpose: a network that is out of range right now
+    // can still be provisioned, and a wrong password only costs the 15 s fallback.
+    saveCredentials(action.ssid, action.pass);
+    startConnect(action.ssid, action.pass);
+  } else if (action.type == PA_FORGET) {
+    Serial.println("[net] saved network forgotten");
+    clearCredentials();
+    connectResult = CR_NONE;
+    if (apActive) {
+      if (WiFi.getMode() & WIFI_MODE_STA) WiFi.disconnect(false);
+      netMode = NET_ACCESS_POINT;
+    } else {
+      enterAccessPoint();
+    }
+  }
+}
+
+// A failed attempt (driver refused the scan, or the core's 6 s scan timeout hit)
+// is retried a few times before the page gets to see a failure. The first scan
+// after enabling the station interface fails regularly, so this hides that.
+void scanAttemptFailed(const char *why) {
+  scanInProgress = false;
+  WiFi.scanDelete();
+  if (scanAttempt < SCAN_MAX_ATTEMPTS) {
+    scanRequested = true;
+    scanRetryAt = millis() + SCAN_RETRY_DELAY_MS;
+    Serial.printf("[net] scan attempt %u %s, retrying\n", scanAttempt, why);
+  } else {
+    scanFailed = true;
+    scanDone = true;
+    Serial.printf("[net] scan %s after %u attempts\n", why, scanAttempt);
+  }
+}
+
+void handleScan() {
+  if (scanInProgress) {
+    int16_t n = WiFi.scanComplete();
+    if (n == WIFI_SCAN_RUNNING) return;
+    if (n < 0) {
+      scanAttemptFailed("failed");
+      return;
+    }
+
+    std::vector<WifiNetwork> found;
+    for (int i = 0; i < n; i++) {
+      String ssid = WiFi.SSID(i);
+      if (ssid.isEmpty()) continue;
+      int32_t rssi = WiFi.RSSI(i);
+      bool secure = WiFi.encryptionType(i) != WIFI_AUTH_OPEN;
+      auto same = std::find_if(found.begin(), found.end(), [&](const WifiNetwork &w) { return w.ssid == ssid; });
+      if (same == found.end()) {
+        found.push_back({ssid, rssi, secure});
+      } else if (rssi > same->rssi) {
+        same->rssi = rssi;
+        same->secure = secure;
+      }
+    }
+    std::sort(found.begin(), found.end(), [](const WifiNetwork &a, const WifiNetwork &b) { return a.rssi > b.rssi; });
+    WiFi.scanDelete();  // results buffer belongs to the core; we copied what we need
+
+    if (netLock()) {
+      scanResults = found;
+      netUnlock();
+    }
+    scanFailed = false;
+    scanDone = true;
+    scanInProgress = false;
+    scanAttempt = 0;
+    Serial.printf("[net] scan finished: %d networks (%d entries)\n", (int)found.size(), n);
+    return;
+  }
+
+  // the driver refuses scans while associating
+  if (scanRequested && netMode != NET_CONNECTING && (long)(millis() - scanRetryAt) >= 0) {
+    scanRequested = false;
+    scanDone = false;
+    scanFailed = false;
+    scanInProgress = true;
+    scanAttempt++;
+    if (WiFi.scanNetworks(true, false) == WIFI_SCAN_FAILED) {
+      scanAttemptFailed("could not be started");
+    } else {
+      Serial.printf("[net] scan attempt %u started\n", scanAttempt);
+    }
+  }
+}
+
+// Drive the network state machine. Call every loop() iteration while the management server runs.
+NetMode netLoop() {
+  handlePendingAction();
+  handleScan();
+
+  switch (netMode) {
+    case NET_CONNECTING:
+      if (WiFi.status() == WL_CONNECTED) {
+        netMode = NET_STATION;
+        connectResult = CR_OK;
+        staLostSince = 0;
+        WiFi.setAutoReconnect(true);
+        WiFi.setSleep(false);  // belt and braces: modem sleep would add tens of ms to every round trip
+        {
+          wifi_ps_type_t ps = WIFI_PS_NONE;
+          esp_wifi_get_ps(&ps);
+          wifi_ap_record_t ap;
+          bool apInfo = esp_wifi_sta_get_ap_info(&ap) == ESP_OK;
+          Serial.printf("[net] power save %s, ap phy %s%s%s%s, channel %d\n",
+                        ps == WIFI_PS_NONE ? "off" : ps == WIFI_PS_MIN_MODEM ? "MIN_MODEM" : "MAX_MODEM",
+                        apInfo && ap.phy_11b ? "b" : "", apInfo && ap.phy_11g ? "g" : "", apInfo && ap.phy_11n ? "n" : "",
+                        apInfo && ap.phy_lr ? "/LR" : "", apInfo ? ap.primary : 0);
+        }
+        if (apActive) {  // connected from the portal: hand the client over to the home network
+          apTeardownPending = true;
+          apTeardownSince = millis();
+        }
+        Serial.printf("[net] connected to \"%s\" ip=%s rssi=%d after %lu ms, reachable as %s.local, free heap %u\n",
+                      WiFi.SSID().c_str(), WiFi.localIP().toString().c_str(), WiFi.RSSI(),
+                      millis() - connectStart, boxHostname(), ESP.getFreeHeap());
+      } else if (millis() - connectStart > WIFI_CONNECT_TIMEOUT_MS) {
+        connectResult = CR_FAILED;
+        Serial.printf("[net] connect timeout after %d ms, last disconnect reason %u\n", WIFI_CONNECT_TIMEOUT_MS, lastDisconnectReason);
+        if (apActive) {
+          WiFi.disconnect(false);  // test from the portal failed, the hotspot is still up
+          netMode = NET_ACCESS_POINT;
+        } else {
+          enterAccessPoint();
+        }
+      }
+      break;
+
+    case NET_STATION:
+      if (WiFi.status() != WL_CONNECTED) {
+        if (!staLostSince) {
+          staLostSince = millis();
+          Serial.println("[net] station link lost, waiting for reconnect");
+        } else if (millis() - staLostSince > STA_LOST_TIMEOUT_MS) {
+          Serial.println("[net] link did not come back, falling back to hotspot");
+          if (apActive) {
+            netMode = NET_ACCESS_POINT;
+          } else {
+            enterAccessPoint();
+          }
+        }
+      } else {
+        staLostSince = 0;
+        announceMdnsPeriodically();
+      }
+      break;
+
+    case NET_ACCESS_POINT:
+      break;
+  }
+
+  if (apTeardownPending && netMode == NET_STATION && millis() - apTeardownSince > AP_TEARDOWN_GRACE_MS) {
+    tearDownAccessPoint();
+  }
+  if (apActive) dnsServer.processNextRequest();  // captive DNS only while the hotspot is up
+  return netMode;
+}
+
+// ---------------------------------------------------------------------------
+// Web handlers (AsyncTCP task)
+// ---------------------------------------------------------------------------
+
+void wifiStatusJson(AsyncWebServerRequest *request) {
+  NetMode mode = netMode;
+  ConnectResult result = connectResult;
+  uint8_t reason = lastDisconnectReason;
+  bool connected = WiFi.status() == WL_CONNECTED;
+
+  String json = "{\"mode\":\"";
+  json += mode == NET_CONNECTING ? "connecting" : mode == NET_STATION ? "station" : "ap";
+  json += "\",\"connected\":";
+  json += connected ? "true" : "false";
+  json += ",\"ssid\":\"" + jsonEscape(connected ? WiFi.SSID() : String("")) + "\"";
+  json += ",\"ip\":\"" + (connected ? WiFi.localIP().toString() : String("")) + "\"";
+  json += ",\"rssi\":" + String(connected ? WiFi.RSSI() : 0);
+  json += ",\"hostname\":\"" + String(boxHostname()) + ".local\"";
+  json += ",\"apActive\":";
+  json += apActive ? "true" : "false";
+  json += ",\"apSsid\":\"" BOX_NAME "\"";
+  json += ",\"apIp\":\"" + (apActive ? WiFi.softAPIP().toString() : String("")) + "\"";
+  json += ",\"result\":\"";
+  json += result == CR_NONE ? "none" : result == CR_OK ? "ok" : "failed";
+  json += "\",\"reason\":" + String(reason);
+  json += ",\"hint\":\"" + jsonEscape(result == CR_FAILED ? disconnectHint(reason) : "") + "\"";
+  json += ",\"saved\":\"" + jsonEscape(getSavedSsid()) + "\"";
+  json += ",\"hotspotClosing\":";
+  json += apTeardownPending ? "true" : "false";
+  json += ",\"heap\":" + String(ESP.getFreeHeap()) + "}";
+  // CORS: the setup page served by the hotspot probes this endpoint on <hostname>.local
+  // to find out when the box is reachable via the home network.
+  AsyncWebServerResponse *response = request->beginResponse(200, "application/json", json);
+  response->addHeader("Access-Control-Allow-Origin", "*");
+  response->addHeader("Cache-Control", "no-store");
+  request->send(response);
+}
+
+void wifiScanJson(AsyncWebServerRequest *request) {
+  if (request->hasParam("rescan") || (!scanDone && !scanInProgress && !scanRequested)) {
+    scanRequested = true;
+    scanAttempt = 0;  // a fresh request gets its full set of retries
+  }
+
+  const char *state = "scanning";
+  if (netMode == NET_CONNECTING) {
+    state = "busy";
+  } else if (!scanRequested && !scanInProgress && scanDone) {
+    state = scanFailed ? "failed" : "done";
+  }
+
+  String json = String("{\"state\":\"") + state + "\",\"networks\":[";
+  if (netLock()) {
+    for (size_t i = 0; i < scanResults.size(); i++) {
+      if (i) json += ',';
+      json += "{\"ssid\":\"" + jsonEscape(scanResults[i].ssid) + "\",\"rssi\":" + String(scanResults[i].rssi) + ",\"secure\":" + (scanResults[i].secure ? "true" : "false") + "}";
+    }
+    netUnlock();
+  }
+  json += "]}";
+  request->send(200, "application/json", json);
+}
+
+void wifiConnectPost(AsyncWebServerRequest *request) {
+  if (!request->hasParam("ssid", true)) {
+    request->redirect("/wifi?err=1");
+    return;
+  }
+  String ssid = request->getParam("ssid", true)->value();
+  String pass = request->hasParam("pass", true) ? request->getParam("pass", true)->value() : "";
+  ssid.trim();
+  if (ssid.isEmpty() || ssid.length() > 32 || (pass.length() > 0 && (pass.length() < 8 || pass.length() > 63))) {
+    request->redirect("/wifi?err=1");
+    return;
+  }
+
+  bool queued = false;
+  if (netLock()) {
+    pendingAction.type = PA_CONNECT;
+    pendingAction.ssid = ssid;
+    pendingAction.pass = pass;
+    pendingAction.at = millis();
+    queued = true;
+    netUnlock();
+  }
+  if (!queued) {
+    request->redirect("/wifi?err=2");
+    return;
+  }
+  connectResult = CR_NONE;  // so the status poll does not report a stale result
+  request->redirect("/wifi?connecting=1");
+}
+
+void wifiForgetPost(AsyncWebServerRequest *request) {
+  if (netLock()) {
+    pendingAction.type = PA_FORGET;
+    pendingAction.ssid = "";
+    pendingAction.pass = "";
+    pendingAction.at = millis();
+    netUnlock();
+  }
+  request->redirect("/wifi?forgot=1");
+}
+
+void wifiPage(AsyncWebServerRequest *request) {
+  NetMode mode = netMode;
+  bool connected = WiFi.status() == WL_CONNECTED;
+  bool station = mode == NET_STATION && connected;
+  String saved = getSavedSsid();
+  String hostname = String(boxHostname()) + ".local";
+
+  auto page = std::make_shared<PageBuffer>();
+  Print *res = page.get();
+  pageHead(res, request, "wifi");
+
+  // Connection card
+  res->print("<div class=\"card\"><div class=\"card-head\"><h2>Connection</h2>");
+  if (station) {
+    res->print("<span class=\"pill ok\" id=\"mp\"><span class=\"dot\"></span>Home network</span>");
+  } else if (mode == NET_CONNECTING) {
+    res->print("<span class=\"pill accent\" id=\"mp\"><span class=\"dot\"></span>Connecting</span>");
+  } else {
+    res->print("<span class=\"pill warn\" id=\"mp\"><span class=\"dot\"></span>Hotspot</span>");
+  }
+  res->print("</div><dl class=\"kv\">");
+  res->print("<dt>Mode</dt><dd id=\"k-mode\">");
+  if (station) {
+    res->print(apActive ? "Home network <span class=\"muted\">(hotspot still up)</span>" : "Home network");
+  } else if (mode == NET_CONNECTING) {
+    res->print("Connecting&hellip;");
+  } else {
+    res->print("Own hotspot <span class=\"muted\">(fallback)</span>");
+  }
+  res->print("</dd><dt>Network</dt><dd id=\"k-net\">");
+  if (station) {
+    res->printf("%s &middot; %d dBm", htmlEscape(WiFi.SSID()).c_str(), WiFi.RSSI());
+  } else {
+    res->print(BOX_NAME);
+  }
+  res->print("</dd><dt>Address</dt><dd id=\"k-ip\">");
+  if (station) res->print(WiFi.localIP().toString());
+  if (station && apActive) res->print(" &middot; hotspot ");
+  if (apActive) res->print(WiFi.softAPIP().toString());
+  res->printf("</dd><dt>Hostname</dt><dd>%s</dd>", hostname.c_str());
+  res->printf("<dt>Saved network</dt><dd id=\"k-saved\">%s</dd></dl>", saved.isEmpty() ? "<span class=\"muted\">none</span>" : htmlEscape(saved).c_str());
+  res->printf("<p class=\"hint\">With a saved home network the box joins it on the next management session and is reachable as <span class=\"mono\">%s</span>. "
+              "If that network is out of reach for %d seconds, it opens the hotspot &ldquo;%s&rdquo; instead.</p></div>",
+              hostname.c_str(), WIFI_CONNECT_TIMEOUT_MS / 1000, BOX_NAME);
+
+  res->print("<div id=\"bn\"></div>");
+  res->printf("<span id=\"wf\" hidden data-host=\"%s.local\" data-station=\"%d\"></span>", boxHostname(), station ? 1 : 0);
+
+  // Join card
+  res->print("<div class=\"card\"><div class=\"card-head\"><h2>Join a Home Network</h2>"
+             "<button class=\"btn secondary small\" type=\"button\" id=\"rs\">Rescan</button></div>"
+             "<ul class=\"nets\" id=\"nl\" role=\"listbox\" aria-label=\"Nearby networks\"><li class=\"status\">Scanning&hellip;</li></ul>"
+             "<form method=\"POST\" action=\"/wifi-connect\" accept-charset=\"UTF-8\" style=\"display:flex;flex-direction:column;gap:16px\">"
+             "<div class=\"field\"><label for=\"ssid\">Network</label>");
+  res->printf("<input class=\"input\" id=\"ssid\" name=\"ssid\" type=\"text\" value=\"%s\" maxlength=\"32\" required autocomplete=\"off\" spellcheck=\"false\"></div>", htmlEscape(saved).c_str());
+  res->print("<div class=\"field\"><label for=\"pass\">Password</label>"
+             "<input class=\"input\" id=\"pass\" name=\"pass\" type=\"password\" maxlength=\"63\" placeholder=\"8&ndash;63 characters, empty for open networks\" autocomplete=\"off\"></div>"
+             "<div class=\"actions between\"><span class=\"hint\" id=\"jh\"></span>"
+             "<button class=\"btn\" type=\"submit\">Connect &amp; Save</button></div></form></div>");
+
+  // Forget card
+  res->print("<div class=\"card\"><div class=\"card-head\"><h2>Forget Network</h2></div>"
+             "<form method=\"POST\" action=\"/wifi-forget\" class=\"actions between\" onsubmit=\"return confirm('Forget the saved network?')\">");
+  if (saved.isEmpty()) {
+    res->print("<p class=\"hint\">Nothing saved yet. Once a network is saved, this removes it and the box opens its own hotspot again.</p>"
+               "<button class=\"btn destructive\" type=\"submit\" disabled>Forget</button>");
+  } else {
+    res->printf("<p class=\"hint\">Removes &ldquo;%s&rdquo;. The box opens its own hotspot again.</p>"
+                "<button class=\"btn destructive\" type=\"submit\">Forget</button>",
+                htmlEscape(saved).c_str());
+  }
+  res->print("</form></div>");
+
+  pageFoot(res);
+  sendBuffered(request, page, "text/html");
+}
+
+void registerWifiRoutes(AsyncWebServer &server) {
+  server.on("/wifi", HTTP_GET, wifiPage);
+  server.on("/wifi-scan", HTTP_GET, wifiScanJson);
+  server.on("/wifi-status", HTTP_GET, wifiStatusJson);
+  server.on("/wifi-connect", HTTP_POST, wifiConnectPost);
+  server.on("/wifi-forget", HTTP_POST, wifiForgetPost);
+
+  // Download speed test to tell a slow radio link from a slow receive path:
+  //   curl -o /dev/null -w '%{speed_download}\n' http://<box>.local/speedtest
+  server.on("/speedtest", HTTP_GET, [](AsyncWebServerRequest *request) {
+    const size_t total = 4u * 1024u * 1024u;
+    AsyncWebServerResponse *response = request->beginChunkedResponse("application/octet-stream", [total](uint8_t *buffer, size_t maxLen, size_t index) -> size_t {
+      if (index >= total) return 0;
+      size_t n = std::min(maxLen, total - index);
+      memset(buffer, 'x', n);
+      return n;
+    });
+    response->addHeader("Cache-Control", "no-store");
+    request->send(response);
+  });
+}
+
+#endif

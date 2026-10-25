@@ -6,8 +6,8 @@ from io import BytesIO
 def create_collage(image_paths, output_path="output.jpg"):
     # Constants
     canvas_width, canvas_height = 1772, 1181
-    image_size = 533  # Size of each circular image
-    circle_diameter = 533
+    image_size = 515  # Size of each circular image
+    circle_diameter = 515
     padding_x = (canvas_width - 3 * image_size) // 4  # Horizontal padding
     padding_y = (canvas_height - 2 * image_size) // 3  # Vertical padding
 

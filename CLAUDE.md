@@ -7,7 +7,8 @@ haben aber unterschiedlich empfindliche Gehäusewände: PlatformIO-Envs `timon` 
 
 Ausführlich, Modul für Modul: **[doc/architecture.md](doc/architecture.md)**. Diese Datei hier ist das Minimum, um
 loszulegen. Lies den passenden Abschnitt dort, bevor du ein Teilsystem änderst. Platinen, Teile und Verkabelung:
-**[doc/hardware.md](doc/hardware.md)**, die KiCad-Projekte liegen unter `hardware/`.
+**[doc/hardware.md](doc/hardware.md)**, die KiCad-Projekte liegen unter `hardware/`. Druck und Zusammenbau des
+Gehäuses: **[doc/assembly.pdf](doc/assembly.pdf)**, gebaut aus `doc/assembly/`.
 
 ## Regeln
 
@@ -26,6 +27,10 @@ loszulegen. Lies den passenden Abschnitt dort, bevor du ein Teilsystem änderst.
 - **Kein passwortloses sudo** auf diesem Rechner (zazu). Kein tcpdump, kein `ip neigh replace`.
 - **Doku pflegen:** Wer ein Teilsystem ändert, passt den Abschnitt in `doc/architecture.md` im selben Commit an. Neue
   Fallstricke kommen hier unten dazu, neue Zustände oder Timeouts auch in `doc/state-machine.html`.
+- **Gehäuse-Anleitung:** `doc/assembly.pdf` nie direkt bearbeiten. Text und Schritte stehen in
+  `doc/assembly/content.py`, die Bilder rendert `doc/assembly/figures.py` aus `models/box.step`. Danach
+  `doc/assembly/build.sh` laufen lassen (mit `--figures`, wenn sich das Modell geändert hat) und das PDF im selben
+  Commit mitnehmen. Mehr in `doc/assembly/README.md`.
 
 ## Testen
 

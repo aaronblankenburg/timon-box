@@ -20,3 +20,7 @@ hardware/**/fp-info-cache
 hardware/**/*-backups/
 hardware/**/~*.lck
 hardware/**/_autosave-*
+
+# Assembly guide (doc/assembly/): tessellation cache of models/box.step
+doc/assembly/.cache/
+__pycache__/

@@ -3,6 +3,8 @@
 
 Teileliste, Platinen, Verkabelung und Aufbau stehen in [doc/hardware.md](doc/hardware.md). Die KiCad-Projekte der
 Hauptplatine und der Power Latch liegen mit Gerbern und Schaltplänen unter [hardware/](hardware/).
+Wie man das Gehäuse druckt und zusammenbaut, zeigt [doc/assembly.pdf](doc/assembly.pdf), das CAD-Modell liegt in
+[models/box.step](models/box.step).
 
 ### Knock-Sensoren (Vor / Zurück)
 Je ein Piezo-Element ist auf eine leicht flexible Fläche geklebt, parallel dazu 100 kΩ und eine 3,3-V-Zenerdiode,

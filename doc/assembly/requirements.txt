@@ -1,0 +1,6 @@
+reportlab>=4.0
+pillow
+numpy
+scipy
+# only needed to re-render the figures from models/box.step (figures.py)
+cadquery-ocp>=7.7

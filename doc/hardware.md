@@ -2,7 +2,8 @@
 
 Diese Datei beschreibt, wie man eine Box nachbaut. Wie die Firmware die Pins benutzt, steht in
 [architecture.md](architecture.md), Abschnitt 1. Wie die Klopfsensoren funktionieren und wie man sie abstimmt, steht
-im [README](../README.md#knock-sensoren-vor--zurück).
+im [README](../README.md#knock-sensoren-vor--zurück). Druck und Zusammenbau des Gehäuses beschreibt
+[assembly.pdf](assembly.pdf).
 
 Stand: Oktober 2026. So sind die Boxen Timon und Julius gebaut.
 
@@ -65,6 +66,8 @@ flowchart LR
 | `hardware/power-latch/power-latch-v2-schematic.pdf` | Schaltplan |
 | `hardware/power-latch/power-latch-v2-gerber.zip` | Gerber und Bohrdaten, 2 Lagen |
 | `hardware/wiring/power-side.yml` | Verdrahtung der Stromseite für WireViz, daraus `power-side.svg` |
+| `models/box.step` | CAD-Modell des Gehäuses (Onshape-Export), alle Teile in Einbaulage |
+| `doc/assembly.pdf` | Druck und Zusammenbau des Gehäuses, gebaut aus `doc/assembly/` |
 | `sdcard/` | `tap.mp3` und `alert.mp3` fürs Wurzelverzeichnis der SD-Karte |
 
 Die Projekte sind mit KiCad 8 gezeichnet. Die Symbole stecken im Schaltplan, die Footprints in der Platine. Die Gerber
@@ -83,7 +86,7 @@ sind mit `kicad-cli` aus den Platinen erzeugt. Wer die Platine ändert, füllt v
 | RC522-Modul | 1 | RFID mit 13,56 MHz. 8 Pins, sitzt unter der Hauptplatine |
 | TP4056-Lademodul mit Schutzschaltung | 1 | Wird auf die Rückseite der Power Latch gelötet |
 | Boost-Modul mit festen 5 V | 1 | Manche Module stellt man erst mit Lötbrücken auf 5 V |
-| 18650-Zelle | 1 | Eine einfache Li-Ion-Zelle. Die Schutzschaltung sitzt auf dem TP4056-Modul |
+| 18650-Zelle | 1–2 | Einfache Li-Ion-Zellen, 65 mm lang. Die Schutzschaltung sitzt auf dem TP4056-Modul. Im gedruckten Gehäuse zwei, parallel geschaltet, siehe [assembly.pdf](assembly.pdf) |
 | USB-C-Buchse auf kleiner Platine | 1 | Mit 5,1 kΩ an CC1 und CC2, sonst liefern USB-C-Netzteile keine 5 V. D+ und D− müssen herausgeführt sein |
 | 2N7000 (TO-92) | 2 | Umbau an der Power Latch, siehe dort |
 | Mikroschalter 12,8 × 5,8 mm | 1 | Wechsler mit C, NO und NC. Der Token drückt ihn |
@@ -240,6 +243,9 @@ GND. Löst ein Piezo erst beim Loslassen statt beim Drücken aus, seine beiden A
 nach links lauter statt leiser, die beiden äußeren Drähte am Poti tauschen.
 
 ### Mechanik
+
+Das Gehäuse (Modell [`models/box.step`](../models/box.step)), seine Druckteile und den Zusammenbau beschreibt
+[assembly.pdf](assembly.pdf).
 
 - Die Piezos kleben auf leicht flexiblen Gehäusewänden, siehe README.
 - Der Token liegt parallel über dem RC522 und drückt den Mikroschalter seitlich.

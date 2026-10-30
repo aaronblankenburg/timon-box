@@ -19,7 +19,7 @@ Ohne `--figures` braucht der Build nur ReportLab und Pillow, die Bilder liegen f
 | Datei | Inhalt |
 |---|---|
 | `content.py` | Der ganze Text: Kapitel, Tabellen, Schritte, Hinweise, Bildunterschriften und die Beschriftungen der Bilder |
-| `layout.py` | Seitenlayout, Schriften, Farben und Bausteine: Schritt, Hinweis, beschriftetes Bild, Schichtdiagramm, Parallelschaltung |
+| `layout.py` | Seitenlayout, Schriften, Farben und Bausteine: Schritt, Hinweis, beschriftetes Bild, Schichtdiagramm, Parallelschaltung, Lichtleiter |
 | `figures.py` | Rendert die Bilder aus `models/box.step` nach `fig/` |
 | `lib/step.py` | Liest das STEP-Modell mit OpenCascade (OCP) und vernetzt die Teile |
 | `lib/render.py` | Kleiner Software-Renderer: Kanten, Schnitte, hervorgehobene Flächen |

@@ -216,6 +216,51 @@ class ParallelDiagram(Flowable):
         c.setFillColor(KAP); c.roundRect(4, 2, 8, 4.6, 1.2, stroke=0, fill=1); c.setFillColor(MUTED); c.setFont('Plex', 6.6); c.drawString(15, 2.6, 'Kapton über den Lötstellen')
         c.restoreState()
 
+class LightPipeDiagram(Flowable):
+    """Side section through the rear wall at the USB-C socket: a bent light pipe from the 2 mm hole to the charge LED."""
+    def __init__(self, width=104*mm, height=52*mm):
+        super().__init__(); self.width = width; self.height = height; self.hAlign = 'CENTER'
+    def wrap(self, aw, ah): return self.width, self.height
+    def draw(self):
+        c = self.canv; s = 4.4; X0 = 112; Z0 = 15.0; yb = 14
+        X = lambda d: X0 + d*s                      # mm from the outer wall face, positive = inside
+        Y = lambda z: yb + (z - Z0)*s
+        SAL = HexColor('#eeb397'); SALD = HexColor('#d98f6e'); PCBB = HexColor('#2f5fa8'); PCBG = HexColor('#3f7f4f')
+        c.saveState(); c.setLineWidth(0.6)
+        for z0, z1 in ((Z0, 17.5), (21.0, 23.25), (25.25, 45.0)):          # wall with USB-C slot and 2 mm hole
+            c.setFillColor(SAL); c.setStrokeColor(SALD); c.rect(X(0), Y(z0), 3*s, (z1-z0)*s, stroke=1, fill=1)
+        c.setFillColor(HexColor('#c8ccd1')); c.setStrokeColor(HexColor('#8e959c')); c.rect(X(0), Y(17.62), 7.35*s, 3.26*s, stroke=1, fill=1)
+        c.setFillColor(PCBB); c.setStrokeColor(HexColor('#22467f')); c.rect(X(1.5), Y(16.4), 11.5*s, 1.2*s, stroke=1, fill=1)
+        bx = 9.0; zl = 33.0                                                 # board distance from the outer face, LED height
+        for z in (29.0, 41.5):                                              # 2K adhesive between wall and board
+            c.setFillColor(HexColor('#f2d49b')); c.setStrokeColor(HexColor('#c9a35a')); c.ellipse(X(2.6), Y(z-1.6), X(bx+0.5), Y(z+1.6), stroke=1, fill=1)
+        c.setFillColor(PCBB); c.setStrokeColor(HexColor('#22467f')); c.rect(X(bx), Y(27.0), 1.4*s, 17.0*s, stroke=1, fill=1)
+        c.setFillColor(PCBG); c.setStrokeColor(HexColor('#2c5c38')); c.rect(X(bx+2.4), Y(26.0), 1.6*s, 18.6*s, stroke=1, fill=1)
+        c.setFillColor(HexColor('#e0302a')); c.rect(X(bx-0.9), Y(zl-0.6), 0.9*s, 1.2*s, stroke=0, fill=1)
+        def pipe():                                                         # centre line of the bent filament
+            p = c.beginPath(); p.moveTo(X(0), Y(24.25)); p.lineTo(X(3.8), Y(24.25))
+            p.curveTo(X(6.6), Y(24.25), X(5.2), Y(zl), X(bx-0.9), Y(zl)); return p
+        c.setLineCap(0); c.setStrokeColor(HexColor('#7fb5c9')); c.setLineWidth(1.75*s); c.drawPath(pipe(), stroke=1, fill=0)
+        c.setStrokeColor(HexColor('#d6edf5')); c.setLineWidth(1.75*s - 1.4); c.drawPath(pipe(), stroke=1, fill=0)
+        c.setLineWidth(0.6); c.setFillColor(HexColor('#f6b3ae')); c.circle(X(0)-2.6, Y(24.25), 3.2, stroke=0, fill=1)
+        c.setFillColor(MUTED); c.setFont('Plex-SB', 6.6)
+        c.drawRightString(X(0)-3, Y(Z0)-9, 'AUSSEN'); c.drawString(X(3)+3, Y(Z0)-9, 'INNEN')
+        def lab(ax, ay, lx, ly, text, sub=None, right=False):
+            leader(c, ax, ay, lx, ly)
+            draw = c.drawRightString if right else c.drawString; dx = -2.5 if right else 2.5
+            c.setFont('Plex-Med', 7.5); c.setFillColor(INK); draw(lx + dx, ly + (1.2 if sub else -2.5), text)
+            if sub:
+                c.setFont('Plex', 6.8); c.setFillColor(MUTED); draw(lx + dx, ly - 7.2, sub)
+        lab(X(0)-2.6, Y(24.25), X(0)-26, Y(29.0), 'Ladeanzeige', 'Filament außen bündig', right=True)
+        lab(X(0)+2.0, Y(19.25), X(0)-26, Y(18.0), 'USB-C', right=True)
+        rx = X(bx+4.0) + 16
+        lab(X(1.5), Y(43.8), rx, Y(44.5), 'Rückwand, 3 mm')
+        lab(X(6.0), Y(41.5), rx, Y(39.5), '2K-Kleber', 'hält auch, wenn es warm wird')
+        lab(X(bx+0.7), Y(38.0), rx, Y(33.5), 'TP4056 auf der Power Latch', 'Modulseite zur Wand')
+        lab(X(bx-0.45), Y(zl), rx, Y(27.5), 'Lade-LED')
+        lab(X(5.5), Y(28.5), rx, Y(21.0), 'Filament 1,75 mm', 'darf gebogen verlaufen')
+        c.restoreState()
+
 class NumberedCanvas(rl_canvas.Canvas):
     def __init__(self, *a, **k): super().__init__(*a, **k); self._states = []
     def showPage(self): self._states.append(dict(self.__dict__)); self._startPage()

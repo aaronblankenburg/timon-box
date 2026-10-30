@@ -34,7 +34,7 @@ story += [fig('overview', [
     dict(a='a_led', t='LED', side='L'), dict(a='a_handle', t='Griff', side='L'), dict(a='a_prev', t='Taste „zurück“', s='Piezo innen', side='L'),
     dict(a='a_grill', t='Lautsprecher', side='L', dy=-6),
     dict(a='b_jack', t='Kopfhörerbuchse', s='noch verschlossen', side='R'), dict(a='b_next', t='Taste „vor“', side='R'),
-    dict(a='b_curved', t='Rückseite', s='leicht gewölbt', side='R'), dict(a='b_usb', t='USB-C', s='Laden und Flashen', side='R'),
+    dict(a='b_curved', t='Rückseite', s='leicht gewölbt', side='R'), dict(a='b_usb', t='USB-C', s='Laden und Flashen', side='R'), dict(a='b_chg', t='Ladeanzeige', s='Lichtleiter zur Lade-LED', side='R'),
     dict(a='b_bumper', t='Bumper (TPU)', side='R')], frac=0.70, gap=6),
   cap('Links von vorn, rechts von hinten.'),
   table([['Maß', 'Wert'], ['Grundfläche', '94 × 90 mm, mit Griffen 102 mm breit'], ['Höhe mit Bumper', 'hinten 94,5 mm, vorn 87 mm'],
@@ -110,9 +110,9 @@ story += [H1(4, 'Material und Werkzeug'), P('Zukaufteile fürs Gehäuse', 'h2'),
    ['Zylinderkopfschraube M3 × 5, ISO 4762', '4', 'Kopf Ø 5,5 mm versinkt in der Senkung Ø 5,6 mm und im Bumper. Nicht länger als 5 mm: In zwei Ecken steht direkt über dem Einsatz ein Akku'],
    ['18650-Zelle', '2', 'Einfache Zellen ohne Schutzschaltung (65 mm) mit Lötfahnen, gleicher Typ und gleiche Spannung. Parallel geschaltet'],
    ['Stoff', '1 Stück, 8 × 8 cm', 'Dünn und dehnbar, zum Beispiel eine Socke'],
-   ['NFC-Klebetag, rund, 25 mm', 'je Token', 'NTAG, höchstens 0,4 mm dick']], [55*mm, 26*mm, FW-81*mm]),
+   ['NFC-Klebetag, rund, 25 mm', 'je Token', 'NTAG, höchstens 0,4 mm dick'], ['Transparentes Filament, 1,75 mm', 'ein paar cm', 'Lichtleiter von der Lade-LED nach außen, darf gebogen verlaufen']], [55*mm, 26*mm, FW-81*mm]),
   P('Kleber und Kleinkram', 'h2'),
-  table([['Material', 'wofür'], ['Sekundenkleber', 'Gehäuseschale, Tasten, Lautsprechergitter, Bumper'], ['2-Komponenten-Kleber (Epoxid)', 'Lautsprecher'],
+  table([['Material', 'wofür'], ['Sekundenkleber', 'Gehäuseschale, Tasten, Lautsprechergitter, Bumper'], ['2-Komponenten-Kleber (Epoxid)', 'Lautsprecher, Ladeschaltung, Step-up'],
    ['UV-Lack mit UV-Lampe', 'LED, USB-C-Buchse, Mikroschalter'], ['Heißkleber', 'Akkus'], ['Dünnes doppelseitiges Klebeband', 'Piezos, RC522, Bilder auf den Token'],
    ['Kapton-Band, Schrumpfschlauch', 'Akkukontakte und Lötstellen isolieren'], ['Schleifpapier, Grundierung, Lack', 'optional, für die Oberfläche']], [62*mm, FW-62*mm]),
   P('Elektronik im Gehäuse', 'h2'), P('Die vollständige Teileliste steht in hardware.md. Diese Teile müssen zum Gehäuse passen:'),
@@ -122,11 +122,11 @@ story += [H1(4, 'Material und Werkzeug'), P('Zukaufteile fürs Gehäuse', 'h2'),
    ['PL9823, 8 mm', 'Deckel vorn links', 'Bohrung Ø 8 mm'],
    ['Poti 10 kΩ', 'Deckel hinten links', 'Gewinde M7 (Bohrung Ø 7 mm), Achse 6 mm rund. Gewindehülse und Mutter müssen in die 3 mm tiefe Aussparung im Knopf passen'],
    ['RC522', 'unter der Token-Mulde', 'Muldenboden 1 mm'], ['Mikroschalter', 'Tasche neben der Mulde', 'Hebel reicht durch den Schlitz in die Mulde'],
-   ['USB-C-Platine', 'Rückwand unten', 'Ausschnitt 9,2 × 3,5 mm'], ['Kopfhörerbuchse 3,5 mm', 'Deckel hinten rechts, optional', 'Bohrung Ø 6 mm, Tasche 12 × 7 × 2 mm']],
+   ['USB-C-Platine', 'Rückwand unten', 'Ausschnitt 9,2 × 3,5 mm'], ['Power Latch mit TP4056', 'Wandinnenseite, nahe der USB-C-Buchse', 'Lichtleiter vom Loch Ø 2 mm bis an die Lade-LED'], ['Step-up 5 V', 'freie Stelle an der Wandinnenseite', 'nicht auf den gedünnten Tastenflächen'], ['Kopfhörerbuchse 3,5 mm', 'Deckel hinten rechts, optional', 'Bohrung Ø 6 mm, Tasche 12 × 7 × 2 mm']],
    [38*mm, 44*mm, FW-82*mm]),
   P('Werkzeug', 'h2'),
   P('Lötkolben (für die Einsätze eine Einschmelzspitze oder eine alte Spitze), Innensechskant 2,5 mm, UV-Lampe, Heißklebepistole, Multimeter, Säge oder Seitenschneider für die Poti-Achse, Cutter, Schleifpapier.'),
-  PageBreak()]
+  CondPageBreak(160*mm)]
 
 # 5 Zusammenbau
 story += [H1(5, 'Zusammenbau'),
@@ -141,7 +141,7 @@ story += [KeepTogether([P('5.1  Vorbereiten', 'h2'), fig('inserts', [dict(a='ins
   step(2, 'Gewindeeinsätze einschmelzen', ['LK'], [
     'Die vier M3-Einsätze von unten in die Bohrungen in ' + pn('back') + ' setzen, also von der Seite, an der später die Klappe anliegt.',
     'Mit dem Lötkolben gerade einschmelzen, bis sie bündig mit der Auflagefläche sind. Den Lötkolben etwa auf Drucktemperatur des Materials stellen.'])]
-story += [CondPageBreak(120*mm), KeepTogether([P('5.2  Unterteil', 'h2'), fig('shell', [dict(a='front', t='front', s='erst in Schritt 11', side='R'),
+story += [CondPageBreak(120*mm), KeepTogether([P('5.2  Unterteil', 'h2'), fig('shell', [dict(a='front', t='front', s='erst in Schritt 12', side='R'),
      dict(a='frame_top', t='Klebekante oben', s='für den Deckel', side='R'), dict(a='frame', t='frame', side='R'), dict(a='back_glue', t='Klebefläche back', side='R'),
      dict(a='back', t='back', s='Einsätze nach unten', side='R'), dict(a='prev', t='prev button', s='links', side='L'), dict(a='next', t='next button', s='rechts', side='R')],
      arrows=[('prev_from','prev_to')], frac=0.56), cap('Klebeflächen orange. Die Tasten kleben außen auf der Seitenwand.')]),
@@ -167,7 +167,7 @@ story += [CondPageBreak(120*mm), KeepTogether([P('5.3  Wände', 'h2'), fig('insi
   step(7, 'Piezos ankleben', ['TB'], [
     'Je eine Piezo-Scheibe mit dünnem doppelseitigem Klebeband von innen auf die gedünnte Wand hinter ' + pn('prev button') + ' und ' + pn('next button') + ' kleben, mittig hinter der Taste, Messingseite zur Wand.',
     'Die Kabel beschriften: links ist „zurück“ (J2), rechts „vor“ (J3), siehe hardware.md.'],
-    [('tip', 'Dünnes, festes Klebeband überträgt den Druck besser als dickes Schaumklebeband. Die Schwellen werden in Schritt 11 abgestimmt.')]),
+    [('tip', 'Dünnes, festes Klebeband überträgt den Druck besser als dickes Schaumklebeband. Die Schwellen werden in Schritt 12 abgestimmt.')]),
   step(8, 'USB-C-Buchse einkleben', ['UV'], [
     'Die Kabel vorher anlöten: VBUS und GND zum TP4056, D+ und D− zum Kabel zur Hauptplatine (hardware.md, Verkabelung).',
     'Die Platine von innen in den Ausschnitt unten in der Rückwand setzen, die Buchse bündig mit der Außenseite.',
@@ -183,14 +183,22 @@ story += [CondPageBreak(120*mm), KeepTogether([P('5.4  Deckel', 'h2'), fig('lid'
     '<b>Mikroschalter:</b> In die Tasche an der Rückseite der Token-Mulde setzen, sodass der Hebel durch den Schlitz in die Mulde ragt. Prüfen, dass ein aufgelegter Token ihn hörbar drückt, dann mit UV-Lack fixieren und aushärten. Lack nur ans Gehäuse des Schalters, nicht an Hebel und Stößel.',
     '<b>RC522:</b> Mit dünnem doppelseitigem Klebeband von innen unter die Token-Mulde kleben, flache Rückseite nach oben, Antenne mittig unter der Mulde. Die Stiftleiste zeigt nach unten, dort steckt später die Hauptplatine.',
     '<b>Kopfhörerbuchse:</b> Bleibt vorerst leer, die Bohrung hinten rechts bleibt verschlossen. Für eine spätere Buchse ist innen eine Tasche; dann die 0,2-mm-Schicht mit 6 mm aufbohren.'])]
-story += [CondPageBreak(120*mm), KeepTogether([P('5.5  Elektronik und Akkus', 'h2'), fig('akkus', [
+story += [CondPageBreak(110*mm), KeepTogether([P('5.5  Elektronik und Akkus', 'h2'), LightPipeDiagram(),
+     cap('Schnitt durch die Rückwand an der USB-C-Buchse: Das Filament führt das Licht der Lade-LED nach außen und darf gebogen verlaufen.')]),
+  step(10, 'Ladeschaltung und Step-up einkleben', ['EP'], [
+    'Die Ladeschaltung, also die Power Latch mit dem TP4056-Modul auf der Rückseite, mit 2K-Kleber innen an die Wand kleben, in die Nähe der USB-C-Buchse. Heißkleber reicht hier nicht: Der Laderegler wird beim Laden sehr warm, und der Heißkleber kann sich dann lösen.',
+    'Schnell härtenden 2K-Kleber nehmen und die Platine halten, bis er anzieht. Kein Kleber auf die Lade-LED.',
+    'Ein Stück transparentes Filament (1,75 mm) von außen durch das 2-mm-Loch über der USB-C-Buchse stecken und innen bis an die Lade-LED führen. Es darf länger sein und in einem sanften Bogen verlaufen, so ist man bei der Lage der Ladeschaltung frei. Außen bündig abschneiden. Hält es nicht von selbst, mit einem Tropfen UV-Lack sichern.',
+    'Den Step-up-Konverter ebenfalls mit 2K-Kleber an eine freie Stelle der Wandinnenseite kleben, nicht auf die gedünnten Tastenflächen. Auch er wird unter Last warm.'],
+    [('tip', 'Beim Laden leuchtet das Filament neben der USB-C-Buchse in der Farbe der LED: je nach Modul rot beim Laden, blau oder grün, wenn der Akku voll ist.')]),
+  CondPageBreak(110*mm), KeepTogether([fig('akkus', [
      dict(a='cellA', t='18650 vorn links', s='stehend, Pluspol oben'), dict(a='cellB', t='18650 hinten rechts', s='diagonal gegenüber'),
      dict(a='kapton', t='Kapton über der Lötstelle'), dict(a='red', t='Plus, rot', s='zu B+ am TP4056'), dict(a='black', t='Minus, schwarz', s='zu B− am TP4056'),
      dict(a='window', t='Tastenwand', s='kein Kleber'), dict(a='usb', t='USB-C')], frac=0.6),
      cap('Akkus stehend in zwei diagonal gegenüberliegenden Ecken, hier vorn links und hinten rechts. Rahmen aufgeschnitten, Deckel noch nicht aufgeklebt.')]),
-  step(10, 'Elektronik einbauen und Akkus einkleben', ['EL', 'HG'], [
+  step(11, 'Elektronik verdrahten und Akkus einkleben', ['EL', 'HG'], [
     'Die Hauptplatine von unten auf die Stiftleiste des RC522 stecken.',
-    'Stromseite einsetzen (Power Latch mit TP4056, Boost-Modul, zwei 2N7000) und nach den Tabellen in hardware.md verdrahten: Kabel zu J4, Lautsprecher an den MAX98357A, Piezos an J2 und J3, Poti an J1, LED an J5, Mikroschalter mit C an Trigger + und NO an Trigger In der Latch.',
+    'Alles nach den Tabellen in hardware.md verdrahten: Kabel zu J4, Lautsprecher an den MAX98357A, Piezos an J2 und J3, Poti an J1, LED an J5, Mikroschalter mit C an Trigger + und NO an Trigger In der Latch.',
     'Die beiden 18650-Zellen stehend in zwei diagonal gegenüberliegende Ecken setzen, Pluspol oben, zum Beispiel vorn links und hinten rechts. Hinten links sitzt direkt darüber das Poti.',
     'Die Zellen stehen auf dem Boden direkt über den Gewindeeinsätzen und reichen bis knapp unter den Deckel. Einfache Zellen ohne Schutzschaltung (65 mm) passen, die Schutzschaltung sitzt auf dem TP4056-Modul.',
     'Mit Heißkleber in den Spalten zwischen Zelle und Ecke fixieren. Kein Kleber auf die gedünnten Wandflächen der Tasten, er dämpft sonst die Piezos.',
@@ -207,11 +215,11 @@ story += [CondPageBreak(120*mm), KeepTogether([P('5.6  Abschluss', 'h2'), fig('d
      dict(a='door', t='door', s='Bodenklappe', side='R'), dict(a='bumper_glue', t='bumper (TPU)', s='Klebefläche zur Klappe', side='L'),
      dict(a='scr0', t='4 × M3 × 5', s='ISO 4762', side='L')], arrows=[('scr0','dhole0'),('scr1','dhole1'),('scr3','dhole3')], frac=0.56),
      cap('Bodenklappe mit Bumper und Schrauben. Orange: Klebefläche.')]),
-  step(11, 'Testen, dann Deckel aufkleben', ['CA'], [
+  step(12, 'Testen, dann Deckel aufkleben', ['CA'], [
     'Vor dem Verkleben in Betrieb nehmen, wie in hardware.md unter Inbetriebnahme beschrieben: Token auflegen, Box startet, flashen, Lautstärke, LED und Akkuanzeige prüfen.',
     'Die Klopfsensoren mit <font name="Mono" size="8.3">knockdebug:1</font> und <font name="Mono" size="8.3">knockdebug:2</font> abstimmen (README). Die Schwellen stehen pro Box in der <font name="Mono" size="8.3">platformio.ini</font>, eine neue Box bekommt dort eine eigene Env.',
     'Die Kabel nach innen legen, auf der Klebekante darf nichts liegen. Den Deckel mit Sekundenkleber auf den Rahmen kleben, die gewölbte Seite nach hinten. Danach die Klopfsensoren kurz gegenprüfen.']),
-  step(12, 'Bodenklappe anschrauben', ['CA'], [
+  step(13, 'Bodenklappe anschrauben', ['CA'], [
     'Den Bumper mit Sekundenkleber unter die Klappe kleben. Zum Ausrichten zwei Schrauben durch Bumper und Klappe stecken.',
     'Die Klappe mit vier Schrauben M3 × 5 anschrauben. Die Köpfe versinken im Bumper. Durch die Klappe kommt man wieder an die Elektronik.'],
     [('warn', 'Keine längeren Schrauben als M3 × 5 verwenden. In zwei Ecken steht direkt über dem Einsatz ein Akku.')]),
@@ -228,7 +236,7 @@ story += [H1(6, 'Maße und Schnittstellen'), P('Alle Werte aus dem STEP-Modell, 
    ['LED', 'Bohrung Ø 8 mm'],
    ['Poti und Knopf', 'Bohrung Ø 7 mm; Knopf Ø 14 × 9 mm, Achsloch Ø 6,2 mm (8 mm tief ab Unterkante), Aussparung Ø 12 × 3 mm'],
    ['Kopfhörerbuchse', 'Bohrung Ø 6 mm, oben mit 0,2 mm verschlossen; Tasche 12 × 7 × 2 mm'],
-   ['USB-C', 'Ausschnitt 9,2 × 3,5 mm, Ecken R 1,5'],
+   ['USB-C', 'Ausschnitt 9,2 × 3,5 mm, Ecken R 1,5; Mitte 5 mm darüber ein Loch Ø 2 mm für den Lichtleiter'],
    ['Lautsprecher', 'Öffnung Ø 55 mm; Gitter mit Rand Ø 54,6 mm, Auflagering Ø 48,6–54,6 mm, steht 3 mm vor'],
    ['Tasten', 'Ø 20 × 1 mm, Mitte 31 mm über der Unterkante des Rahmens'],
    ['Gewindeeinsätze', '4 Bohrungen Ø 4,0 mm, 4,5 mm tief, durchgehend'],

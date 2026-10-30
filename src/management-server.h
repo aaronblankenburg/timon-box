@@ -15,6 +15,7 @@
 #include <atomic>
 #include <vector>
 
+#include "box-config.h"
 #include "web-ui.h"
 #include "wifi-setup.h"
 #include "podcast.h"
@@ -260,7 +261,7 @@ String folderDisplayName(const String &folder, const String &tag) {
 
 // Same conversion as getBattery() in main.ino, kept here because only the raw ADC value is shared.
 int batteryMilliVolts() {
-  return ::map((uint)*batteryAdcValueManagementServer, 1994, 2390, 3685, 4322);
+  return ::map((long)*batteryAdcValueManagementServer, BATTERY_ADC_LOW, BATTERY_ADC_HIGH, BATTERY_MV_LOW, BATTERY_MV_HIGH);
 }
 
 int batteryPercent() {

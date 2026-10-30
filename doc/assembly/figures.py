@@ -87,19 +87,134 @@ def autoscale(items, view, size, margin=0.08):
     d = Pp[:,:2].max(0)-Pp[:,:2].min(0); return min(size[0]*(1-2*margin)/d[0], size[1]*(1-2*margin)/d[1])
 def tic(name, t0): print(f'{name}: {time.time()-t0:.1f}s', flush=True)
 
-which = sys.argv[1:] or ['hero','overview','exploded','tiles','token','inserts','shell','inside','lid','door','akkus']
+# ---- electronics stand-ins (lib/electronics.py), placed in the box ----------------------------------------
+from lib.kicad import load_board
+from lib import electronics as el
+ROOT = HERE.parent.parent
+U = np.array([t[2], 0, -t[0]]); YV = np.array([0, 1.0, 0])
+LID = np.stack([U, YV, t])                                # lid frame: X along the tilted x, Z along t
+
+
+def L(x, y, h):
+    """Point at box-x/y on the lid plane with height h (along t)."""
+    return np.array([x, y, (h - t[0]*x)/t[2]])
+
+
+def lid_parts():
+    return (el.place(el.led_pl9823(), LID, L(65, 17.5, 94.988)) + el.place(el.poti_16mm(), LID, L(10, 17.5, 95.988))
+            + el.place(el.microswitch(), LID, L(12.9, 45, 88.5)))
+
+
+SPACER = next(iter(load_parts(str(ROOT/'models'/'pcb_spacer.step')).values()))
+P['pcb_spacer'] = {k: SPACER[k] for k in ('name', 'V', 'N', 'F', 'FID', 'color')}
+
+
+def spacer_local(info):
+    """Spacer in the stack frame: its slot holds the main board's free edge, its foot stands on the RC522."""
+    k = info['inward']                                                  # +1/-1: from the free edge towards the header
+    Rs = np.array([[-k, 0, 0], [0, 0, 1.0], [0, k, 0]])               # y across the boards: foot on the RC522, the main
+    Ts = np.array([0.0, info['free_edge'] + 0.6*k, -12.6])           # board's edges sit between the bumps 11-13 mm up
+    return el.place([dict(P['pcb_spacer'])], Rs, Ts)
+
+
+def tie_local(info):
+    """Cable tie around main board, spacer and RC522, right at the free end."""
+    y = info['free_edge'] + 1.4*info['inward']; x0, x1, z0, z1, r = -23.2, 23.2, -14.9, 9.2, 1.8
+    pts = []
+    for cx, cz, a0 in ((x1-r, z1-r, 0), (x0+r, z1-r, 90), (x0+r, z0+r, 180), (x1-r, z0+r, 270)):
+        pts += [(cx + r*np.cos(np.radians(a)), y, cz + r*np.sin(np.radians(a))) for a in np.linspace(a0, a0+90, 7)]
+    pts.append(pts[0]); NYLON = hexc('#ece8dc')
+    return [prim.ribbon(pts, 2.6, 1.1, NYLON, wdir=(0, 1, 0)), prim.box((8.0, y, z1 + 1.6), (5.0, 4.0, 3.2), NYLON),
+            prim.box((12.5, y, z1 + 2.2), (6.0, 2.6, 1.1), NYLON)]
+
+
+def stack(groups=('main', 'rc522'), spacer=True, tie=False):
+    items, info = el.mainboard_stack(load_board(str(ROOT/'hardware'/'mainboard'/'timon-box.kicad_pcb')))
+    R = np.stack([-U, YV, -t]); xr, yr = info['rc522_center']
+    T = L(38, 45, 87.988) + xr*U - yr*YV + info['rc522_back']*t
+    keep = [it for it in items if it.get('grp', 'main') in groups]
+    if spacer and 'main' in groups: keep += spacer_local(info)
+    if tie and 'main' in groups: keep += tie_local(info)
+    return el.place(keep, R, T), (R, T, info)
+
+
+def strap_path(apex, xc=39.7):
+    """Centre line of the strap: through both loops, ends folded back, arch over the lid with its top at z=apex."""
+    pts = [(-2.9, 99.0), (-3.0, 93.0), (-6.4, 86.0), (-6.9, 81.0), (-6.9, 72.0)]
+    c = np.array([-4.2, 71.5]); r = 2.7
+    pts += [tuple(c + r*np.array([np.cos(a), np.sin(a)])) for a in np.linspace(np.pi, 2*np.pi, 9)[1:]]
+    pts += [(-1.5, 76.0), (-1.5, 86.0)]
+    p0, p1, p2, p3 = map(np.array, ((-1.5, 86.0), (-3.6, 86.0 + 0.62*(apex-86.0)), (16.0, apex), (45.0, apex)))
+    pts += [tuple((1-u)**3*p0 + 3*u*(1-u)**2*p1 + 3*u*u*(1-u)*p2 + u**3*p3) for u in np.linspace(0, 1, 24)[1:]]
+    right = [(90.0 - y, z) for y, z in reversed(pts)]
+    return [(xc, y, z) for y, z in pts + right[1:]]
+
+
+def strap_apex(length):
+    """Apex height (z) at which the strap centre line has the given length (mm)."""
+    plen = lambda a: sum(np.linalg.norm(np.subtract(q, p)) for p, q in zip(strap_path(a)[:-1], strap_path(a)[1:]))
+    lo, hi = 100.0, 260.0
+    for _ in range(40):
+        mid = (lo + hi)/2
+        lo, hi = (mid, hi) if plen(mid) < length else (lo, mid)
+    return (lo + hi)/2
+
+
+STRAP_LENGTH = 300.0   # mm, as in step 14
+
+
+def strap(length=STRAP_LENGTH, width=15.0):
+    """Shutter strap of the given length; the arch height follows from it."""
+    return prim.ribbon(strap_path(strap_apex(length)), width, 1.1, hexc('#c4b79a'))
+
+
+def power_parts():
+    lat, info = el.latch_stack(load_board(str(ROOT/'hardware'/'power-latch'/'power-latch-v2.kicad_pcb')))
+    R = np.array([[0, 1.0, 0], [0, 0, 1.0], [1.0, 0, 0]])                # X -> y, Y -> z, Z -> +x (into the box)
+    TL = np.array([0.6, 45.0, 33.0]); TB = np.array([-3.0, 17.0, 30.0])
+    lx, ly, lz = info['led']; led = TL + lx*R[0] + ly*R[1] + lz*R[2]
+    items = el.place(lat, R, TL) + el.place(el.boost_module(), R, TB)
+    p0 = np.array([-9.8, 45, 24.25]); p1 = np.array([-6.0, 45, 24.25]); p3 = led + np.array([-0.15, 0, 0])
+    c1 = p1 + np.array([2.2, 0, 0]); c2 = p3 + np.array([-2.2, 0, 0])
+    curve = [((1-s)**3)*p1 + 3*s*(1-s)**2*c1 + 3*s*s*(1-s)*c2 + s**3*p3 for s in np.linspace(0, 1, 9)]
+    items.append(prim.tube([p0] + curve, 0.875, hexc('#cfe8f2')))
+    EPOX = hexc('#f2d49b')
+    for c in ((-5.3, 31.5, 39.0), (-5.3, 58.5, 28.0), (-4.6, 8.0, 30.0), (-4.6, 26.0, 30.0)):
+        items.append(prim.ellipsoid(c, (1.8, 2.6, 2.6), EPOX))
+    anchors = {'latch': TL + np.array([1.8, 6.0, 5.0]), 'boost': TB + np.array([3.0, -4.0, 1.0]), 'pipe': curve[4], 'ledpcb': led}
+    return items, anchors
+
+
+def cable(T_stack, R_stack, info, lift=0.0, ends=None):
+    """Seven-wire XH cable from J4 on the main board down to the power side."""
+    b = load_board(str(ROOT/'hardware'/'mainboard'/'timon-box.kicad_pcb')); f = next(x for x in b['footprints'] if x['ref'] == 'J4')
+    xs = [p['x'] for p in f['pads']]; cx = (min(xs)+max(xs))/2
+    BB = el.Board(b); items = []; cols = ['#d23a2f', '#2b2b2b', '#2f6fd0', '#f2c230', '#f08a24', '#3a9a4a', '#f4f4f0']
+    pins = sorted([BB.L(p['x'], p['y']) for p in f['pads']])
+    up = np.array([0, 0, lift])
+    plug_c = np.mean(pins, axis=0)
+    items += el.place([el.box(min(q[0] for q in pins)-2.45, max(q[0] for q in pins)+2.45, plug_c[1]-2.9, plug_c[1]+2.85, 7.0, 12.5, el.BEIGE)], R_stack, T_stack + up)
+    for i, (x, y) in enumerate(pins):
+        a = T_stack + up + x*R_stack[0] + y*R_stack[1] + 12.5*R_stack[2]
+        b2 = a + np.array([0, 0, -8.0])
+        e = np.array(ends[i]); c = e + np.array([6.0, 0, 6.0])
+        pts = [a, b2] + [((1-s)**3)*b2 + 3*s*(1-s)**2*(b2+np.array([0, 0, -12.0])) + 3*s*s*(1-s)*c + s**3*e for s in np.linspace(0.1, 1, 10)]
+        items.append(prim.tube(pts, 0.5, hexc(cols[i]), seg=10))
+    return items
+
+which = sys.argv[1:] or ['hero','overview','exploded','tiles','token','inserts','shell','inside','lid','door','akkus','lid_full','lidopen','spacer_stack','strap','lid_stack']
 VA = (1.0,-1.25,0.8); VB = (-1.0,1.3,0.7)
 
 if 'hero' in which:
-    t0=time.time(); im, prj = render([part(k) for k in P], view=VA, size=(1400,1250), ss=2, transparent=True, margin=0.03)
+    t0=time.time(); im, prj = render([part(k) for k in P if k != 'pcb_spacer'] + [strap()], view=VA, size=(1400,1250), ss=2, transparent=True, margin=0.03)
     save(im, 'hero'); tic('hero', t0)
 if 'overview' in which:
     t0=time.time()
-    im, prj = render([part(k) for k in P], view=VA, size=(1000,920), ss=2, margin=0.07)
+    im, prj = render([part(k) for k in P if k != 'pcb_spacer'], view=VA, size=(1000,920), ss=2, margin=0.07)
     save(im, 'overview_a', {'token':(37.7,45,ztop(37.7,45,103.988)), 'knob':(10.6,17.5,107.6), 'led':(65,17.5,ztop(65,17.5,98.988)),
          'grill':(87.2,45,49.8), 'prev':(38.6,-1,45.6), 'handle':(39.7,-6,77.2), 'lid':(70,60,ztop(70,60,98.988))}, prj)
-    im, prj = render([part(k) for k in P], view=VB, size=(1000,920), ss=2, margin=0.07)
-    save(im, 'overview_b', {'usb':(-9.8,45,19.25), 'next':(38.6,91,45.6), 'jack':(10,72.5,ztop(10,72.5,98.988)),
+    im, prj = render([part(k) for k in P if k != 'pcb_spacer'], view=VB, size=(1000,920), ss=2, margin=0.07)
+    save(im, 'overview_b', {'usb':(-9.8,45,19.25), 'chg':(-9.8,45,24.25), 'next':(38.6,91,45.6), 'jack':(10,72.5,ztop(10,72.5,98.988)),
          'handle':(39.7,96,77.2), 'bumper':(-4,60,5.5), 'curved':(-9.8,70,50)}, prj)
     # both views side by side as one figure; anchors get a/b prefixes
     oa, ob = Image.open(OUT+'overview_a.jpg'), Image.open(OUT+'overview_b.jpg'); gap = 30
@@ -126,7 +241,7 @@ if 'exploded' in which:
 if 'tiles' in which:
     t0=time.time()
     TILES = [('frame',(0,0,1)), ('front',t), ('back',(0,0,-1)), ('door',(0,0,-1)), ('bumper',(0,0,-1)),
-             ('speaker grill',(-1,0,0)), ('prev button',(0,1,0)), ('next button',(0,-1,0)), ('volume',-t), ('token',-t)]
+             ('speaker grill',(-1,0,0)), ('prev button',(0,1,0)), ('next button',(0,-1,0)), ('volume',-t), ('token',-t), ('pcb_spacer',(0,0,1))]
     TV = (1,-1.3,1.05); TS = (620,470)
     def tile_items(name, up):
         p = oriented(name, up); V = p['V']; lo, hi = V.min(0), V.max(0); m = 5 + 0.06*max(hi[0]-lo[0], hi[1]-lo[1])
@@ -165,15 +280,86 @@ if 'akkus' in which:
     ctx = [prim.cylinder((38.6,1.05,45.6),(0,1,0),17.5,0.3,BRASS), prim.cylinder((38.6,1.35,45.6),(0,1,0),12.5,0.25,CERAMIC),
            prim.box((-1.6,45,16.9),(13.0,12.0,1.2),PCB), prim.box((-6.12,45,19.25),(7.35,8.94,3.26),SILVER)]
     p0 = (49.0,49.0,0); n = (1,1,0)
-    items = [cutp(part('frame'),p0,n), cutp(part('back'),p0,n), cutp(part('door'),p0,n)] + ctx + cell(*CA) + cell(*CB) + blobs(gA) + blobs(gB) + wires
+    pw, pa = power_parts()
+    items = [cutp(part('frame'),p0,n), cutp(part('back'),p0,n), cutp(part('door'),p0,n)] + ctx + cell(*CA) + cell(*CB) + blobs(gA) + blobs(gB) + wires + pw
     im, prj = render(items, view=(0.78,0.72,0.85), size=(1500,1150), ss=2, margin=0.05)
     save(im, 'akkus', {'cellA':(77.8,19.4,50), 'cellB':(12.1,83.2,40), 'kapton':(71.1,13.1,81.0), 'red':(62.6,21.8,82.0),
-         'black':(19.8,63.7,15.7), 'window':(30,1.2,24), 'usb':(-2.5,45,20.9), 'floor':(40,40,9.9)}, prj, crop=True)
+         'black':(19.8,63.7,15.7), 'window':(30,1.2,24), 'usb':(-2.5,45,20.9), 'floor':(40,40,9.9), 'latch':pa['latch'], 'boost':pa['boost']}, prj, crop=True)
     det = [part('frame'), part('back')] + cell(*CA) + blobs(gA) + [wires[0]]
     fitp = [(54,-3,83),(88,-3,83),(54,33,83),(88,33,83),(54,-3,60),(88,33,60)]
     im, prj = render(det, view=(-0.15,0.15,1.0), up=(1,-1,0), size=(800,760), ss=2, fit=fitp, margin=0.03)
     save(im, 'akku_detail', {'glue1':(80.3,18.2,78.0), 'glue2':(67.0,3.6,78.0), 'kapton':(71.1,13.1,81.0), 'window':(59,1.1,74), 'cell':(63.1,17.7,70)}, prj)
     tic('akkus', t0)
+
+if 'lid_full' in which:
+    t0=time.time()
+    st, (R, T, info) = stack(groups=('rc522',), spacer=False)
+    items = [part('front')] + lid_parts() + st
+    im, prj = render(items, view=(0.35,-0.45,-1.0), size=(1400,1100), ss=2, margin=0.05)
+    hx, hy = info['header']
+    save(im, 'lid_full', {'led':L(65,17.5,90.0), 'poti':L(10,17.5,90.5), 'switch':L(12.9,47,88.6), 'rc522':L(44,58,86.3),
+         'header':T + hx*R[0] + hy*R[1] - 7.0*R[2], 'lugs':L(1.6,17.5,86.0)}, prj)
+    tic('lid_full', t0)
+if 'lidopen' in which:
+    t0=time.time(); p0=(49.0,49.0,0); n=(1,1,0)
+    box_items = [cutp(part('frame'),p0,n), cutp(part('back'),p0,n), cutp(part('door'),p0,n), cutp(part('speaker grill'),p0,n)]
+    WRAP = hexc('#3e58a6'); NICKEL = hexc('#c9cdd2'); KAPTON = hexc('#d9952e')
+    for cx_, cy_ in ((71.1, 13.1), (5.3, 76.95)):
+        box_items += [prim.cylinder((cx_,cy_,14.55),(0,0,1),9.2,64.9,WRAP), prim.cylinder((cx_,cy_,79.45),(0,0,1),9.0,0.35,NICKEL),
+                      prim.cylinder((cx_,cy_,79.8),(0,0,1),3.8,0.9,NICKEL), prim.cylinder((cx_,cy_,80.7),(0,0,1),5.8,0.3,KAPTON)]
+    box_items += [prim.cylinder((38.6,1.05,45.6),(0,1,0),17.5,0.3,BRASS), prim.cylinder((38.6,1.35,45.6),(0,1,0),12.5,0.25,CERAMIC),
+                  prim.box((-1.6,45,16.9),(13.0,12.0,1.2),PCB), prim.box((-6.12,45,19.25),(7.35,8.94,3.26),SILVER)]
+    pw, pa = power_parts(); box_items += pw
+    st, (R, T, info) = stack(tie=True)
+    # lid swung open about its rear lower edge, underside towards the viewer
+    H = np.array([-10.6, 0.0, 89.4]); ph = np.radians(-112)
+    M = np.array([[np.cos(ph), 0, np.sin(ph)], [0, 1, 0], [-np.sin(ph), 0, np.cos(ph)]])
+    rot = lambda v: (np.asarray(v, float) - H) @ M.T + H
+    lid_items = el.place([part('front'), part('volume')] + lid_parts() + st, M.T, H - H @ M.T)
+    b_ = load_board(str(ROOT/'hardware'/'mainboard'/'timon-box.kicad_pcb')); f = next(x for x in b_['footprints'] if x['ref'] == 'J4')
+    BB = el.Board(b_); pins = sorted([BB.L(q['x'], q['y']) for q in f['pads']]); plug_c = np.mean(pins, axis=0)
+    plug = el.place([el.box(min(q[0] for q in pins)-2.45, max(q[0] for q in pins)+2.45, plug_c[1]-2.9, plug_c[1]+2.85, 7.0, 12.5, el.BEIGE)], R, T)
+    lid_items += el.place(plug, M.T, H - H @ M.T)
+    d = R[2] @ M.T; cols = ['#d23a2f', '#2b2b2b', '#2f6fd0', '#f2c230', '#f08a24', '#3a9a4a', '#f4f4f0']; wires_ = []
+    for i, (x, y) in enumerate(pins):
+        a_ = rot(T + x*R[0] + y*R[1] + 12.5*R[2]); b2 = a_ + 7.0*d; e = np.array([2.5, 51.0 - 1.3*i, 44.0])
+        c1 = b2 + 16.0*d; c2 = e + np.array([3.0, 0, 18.0])
+        pts = [a_, b2] + [((1-s)**3)*b2 + 3*s*(1-s)**2*c1 + 3*s*s*(1-s)*c2 + s**3*e for s in np.linspace(0.08, 1, 14)]
+        wires_.append(prim.tube(pts, 0.5, hexc(cols[i]), seg=10))
+    items = box_items + lid_items + wires_
+    im, prj = render(items, view=(0.85,0.62,0.5), size=(1500,1400), ss=2, margin=0.04)
+    hx, hy = info['header']
+    save(im, 'lidopen', {'mainboard':rot(T + 16*R[0] + 22*R[1] + 0.0*R[2]), 'rc522':rot(T - 2*R[0] - 31*R[1] - 13.4*R[2]),
+         'modules':rot(T - 10*R[0] - 20*R[1] + 10.6*R[2]), 'esp32':rot(T + 14*R[0] + 6*R[1] + 3.2*R[2]), 'lid':rot(L(70,85,95.0)),
+         'cable':np.array([14.0, 46.0, 66.0]), 'latch':pa['latch'], 'boost':pa['boost'], 'cellA':(77.8,19.4,50), 'cellB':(12.1,83.2,40),
+         'led':rot(L(65,17.5,90.0)), 'poti':rot(L(10,17.5,90.5))}, prj, crop=True)
+    tic('lidopen', t0)
+
+if 'spacer_stack' in which:
+    t0=time.time()
+    items, info = el.mainboard_stack(load_board(str(ROOT/'hardware'/'mainboard'/'timon-box.kicad_pcb')))
+    items = items + spacer_local(info)
+    k = info['inward']; fe = info['free_edge']
+    im, prj = render(items, view=(0.95, -1.45*k, 0.55), size=(1400,1000), ss=2, margin=0.05)
+    save(im, 'spacer_stack', {'spacer':(8.0*k, fe+1.3*k, -6.0), 'arm':(21.3*k, fe+3.0*k, 1.0), 'mainboard':(-8.0*k, fe+14.0*k, 0.0),
+         'rc522':(-10.0*k, fe+3.0*k, -13.4)}, prj, crop=True)
+    tic('spacer_stack', t0)
+if 'strap' in which:
+    t0=time.time(); STRAP_APEX = strap_apex(STRAP_LENGTH)
+    im, prj = render([part(k) for k in P if k != 'pcb_spacer'] + [strap()], view=(1.0,-1.25,0.8), size=(1400,1300), ss=2, margin=0.05)
+    save(im, 'strap', {'apex':(39.7, 45.0, STRAP_APEX), 'loop':(39.7, -6.0, 77.0), 'fold':(39.7, -6.9, 84.0), 'loop_r':(39.7, 96.0, 77.0)}, prj, crop=True)
+    tic('strap', t0)
+
+if 'lid_stack' in which:
+    t0=time.time()
+    st, (R, T, info) = stack(tie=True)
+    items = [part('front')] + lid_parts() + st
+    im, prj = render(items, view=(0.35,-0.45,-1.0), size=(1400,1150), ss=2, margin=0.05)
+    B = lambda X, Y, Z: T + X*R[0] + Y*R[1] + Z*R[2]
+    fe = info['free_edge']; hx, hy = info['header']; k = info['inward']
+    save(im, 'lid_stack', {'tie':B(12.0, fe+1.4*k, 9.7), 'spacer':B(21.6, fe+3.0*k, 1.0), 'mainboard':B(10.0, -5.0, 0.0), 'rc522':B(18.0, fe+6.0*k, -13.4),
+         'header':B(hx, hy, -5.0), 'modules':B(-12.0, 4.0, 10.1)}, prj, crop=True)
+    tic('lid_stack', t0)
 
 if 'inserts' in which:
     t0=time.time()

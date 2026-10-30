@@ -66,3 +66,28 @@ def tube(points, r, color, seg=16):
         d = b-a; L = np.linalg.norm(d); parts.append(cylinder(a, d/L, r, L, color, seg=seg))
     for p in P[1:-1]: parts.append(ellipsoid(p, (r, r, r), color, nu=16, nv=8))
     return merge(*parts, color=np.asarray(color, float))
+
+
+def ribbon(points, width, thick, color, wdir=(1.0, 0.0, 0.0)):
+    """Flat band swept along a polyline: width along wdir, thickness across; smooth, one face id per side."""
+    P = [np.asarray(p, float) for p in points]; w = np.asarray(wdir, float); w /= np.linalg.norm(w)
+    T = [P[1]-P[0]] + [P[i+1]-P[i-1] for i in range(1, len(P)-1)] + [P[-1]-P[-2]]
+    Nn = []
+    for d in T:
+        n = np.cross(w, d / np.linalg.norm(d)); Nn.append(n / np.linalg.norm(n))
+    V = []; N = []; F = []; FID = []
+    for side, (sw, sn, fid) in enumerate(((0, 1, 0), (0, -1, 1), (1, 0, 2), (-1, 0, 3))):
+        base = len(V)
+        for p, n in zip(P, Nn):
+            if sw == 0:
+                V += [p - w*width/2 + n*sn*thick/2, p + w*width/2 + n*sn*thick/2]; N += [n*sn, n*sn]
+            else:
+                V += [p + w*sw*width/2 - n*thick/2, p + w*sw*width/2 + n*thick/2]; N += [w*sw, w*sw]
+        for i in range(len(P)-1):
+            a0, a1, b0, b1 = base+2*i, base+2*i+1, base+2*i+2, base+2*i+3
+            F += [(a0, b0, b1), (a0, b1, a1)]; FID += [fid, fid]
+    for end, d in ((0, -1), (len(P)-1, 1)):
+        p, n = P[end], Nn[end]; t = T[end] / np.linalg.norm(T[end]) * d; base = len(V)
+        V += [p - w*width/2 - n*thick/2, p + w*width/2 - n*thick/2, p + w*width/2 + n*thick/2, p - w*width/2 + n*thick/2]; N += [t]*4
+        F += [(base, base+1, base+2), (base, base+2, base+3)]; FID += [4+end, 4+end]
+    return fix_winding(dict(V=np.array(V), N=np.array(N), F=np.array(F), FID=np.array(FID), color=np.asarray(color, float)))

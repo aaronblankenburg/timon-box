@@ -1,4 +1,6 @@
 reportlab>=4.0
+svglib
+pdfrw
 pillow
 numpy
 scipy

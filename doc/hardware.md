@@ -2,8 +2,8 @@
 
 Diese Datei beschreibt, wie man eine Box nachbaut. Wie die Firmware die Pins benutzt, steht in
 [architecture.md](architecture.md), Abschnitt 1. Wie die Klopfsensoren funktionieren und wie man sie abstimmt, steht
-im [README](../README.md#knock-sensoren-vor--zurück). Druck und Zusammenbau des Gehäuses beschreibt
-[assembly.pdf](assembly.pdf).
+im [README](../README.md#knock-sensoren-vor--zurück). Eine Bauanleitung mit Bestückungsplänen, Verkabelung
+und dem Zusammenbau des Gehäuses ist [assembly.pdf](assembly.pdf).
 
 Stand: Oktober 2026. So sind die Boxen Timon und Julius gebaut.
 
@@ -67,7 +67,8 @@ flowchart LR
 | `hardware/power-latch/power-latch-v2-gerber.zip` | Gerber und Bohrdaten, 2 Lagen |
 | `hardware/wiring/power-side.yml` | Verdrahtung der Stromseite für WireViz, daraus `power-side.svg` |
 | `models/box.step` | CAD-Modell des Gehäuses (Onshape-Export), alle Teile in Einbaulage |
-| `doc/assembly.pdf` | Druck und Zusammenbau des Gehäuses, gebaut aus `doc/assembly/` |
+| `models/pcb_spacer.step` | Abstandshalter zwischen Hauptplatine und RC522 |
+| `doc/assembly.pdf` | Bauanleitung: Elektronik, Druck und Zusammenbau, gebaut aus `doc/assembly/` |
 | `sdcard/` | `tap.mp3` und `alert.mp3` fürs Wurzelverzeichnis der SD-Karte |
 
 Die Projekte sind mit KiCad 8 gezeichnet. Die Symbole stecken im Schaltplan, die Footprints in der Platine. Die Gerber
@@ -249,7 +250,8 @@ Das Gehäuse (Modell [`models/box.step`](../models/box.step)), seine Druckteile 
 
 - Die Piezos kleben auf leicht flexiblen Gehäusewänden, siehe README.
 - Der Token liegt parallel über dem RC522 und drückt den Mikroschalter seitlich.
-- Das RC522 sitzt mit Stift- und Buchsenleiste unter der Hauptplatine. Der Abstand ergibt sich aus den Leisten.
+- Das RC522 sitzt mit Stift- und Buchsenleiste unter der Hauptplatine. Am anderen Ende hält ein gedruckter
+  Abstandshalter (`models/pcb_spacer.step`) beide Platinen zusammen, im Gehäuse zusätzlich ein Kabelbinder. Der Abstand ergibt sich aus den Leisten.
 
 ## Aufbau
 
@@ -277,20 +279,41 @@ Das Gehäuse (Modell [`models/box.step`](../models/box.step)), seine Druckteile 
 
 ## Inbetriebnahme
 
+Alles, was sich von Box zu Box unterscheidet, steht in einer eigenen Env in der `platformio.ini`. Im Code stehen nur
+Ersatzwerte (`src/box-config.h`, `src/knock.cpp`).
+
+| Wert | Bedeutung | So findet man ihn |
+|---|---|---|
+| `BOX_NAME` | Name im WLAN, bei Bluetooth und in der Web-UI | frei wählen |
+| `BOX_COLOR` | Farbe des Symbols im Browser-Tab | frei wählen |
+| `BLUETOOTH_TAG`, `MANAGEMENT_SERVER_TAG` | UIDs der beiden Sondertokens | Token auflegen, die Konsole meldet `tag: <uid>` |
+| `BATTERY_ADC_LOW`, `BATTERY_MV_LOW`, `BATTERY_ADC_HIGH`, `BATTERY_MV_HIGH` | Zwei Messpunkte für die Akkuanzeige | `battery:` oder die Management-Seite zeigt den ADC-Wert, ein Multimeter die Spannung |
+| `RKS_THRESHOLD`, `LKS_THRESHOLD`, `KNOCK_ON_LEVEL`, `KNOCK_MIN_PRESS_MS`, `KNOCK_MAX_GAP_US` | Klopfsensoren | `knockdebug:1` und `knockdebug:2`, siehe README |
+
+**Serielle Konsole:** USB-C-Buchse an den Rechner stecken, die Box mit einem Token einschalten und
+`~/.platformio/penv/bin/pio device monitor -b 115200` starten. Befehle mit Doppelpunkt eintippen, etwa `battery:`,
+dann Enter.
+
 1. **SD-Karte:** FAT32. Ins Wurzelverzeichnis gehören `tap.mp3` (Klick beim Klopfen) und `alert.mp3` (Warnton bei
    schwachem Akku), beide aus `sdcard/`. Den Aufbau der Karte beschreibt architecture.md, Abschnitt 4.
-2. **Eigene Env:** In `platformio.ini` einen Abschnitt wie `[env:timon]` anlegen, mit eigenem `BOX_NAME` und
-   `BOX_COLOR`. Die Klopfschwellen von Timon sind ein guter Anfang.
+2. **Eigene Env:** In `platformio.ini` eine bestehende Env wie `[env:timon]` kopieren und umbenennen, `BOX_NAME` und
+   `BOX_COLOR` anpassen. Die übrigen Werte von Timon sind ein guter Anfang, sie folgen in den nächsten Schritten.
 3. **Flashen:** Die Box mit dem Mikroschalter einschalten, über USB geht sie nicht an. Dann die USB-C-Buchse an den
    Rechner stecken und `~/.platformio/penv/bin/pio run -e <box> -t upload --upload-port /dev/ttyUSBn` ausführen.
-   Der serielle Monitor läuft mit 115200 Baud.
-4. **Sondertokens:** Ein Token für den Bluetooth-Modus und einer für den Management-Modus sind als UID fest im Code.
-   Jeden der beiden auflegen, die Box meldet seriell `tag: <uid>`. Die UIDs in `src/main.ino` bei `BLUETOOTH_TAG` und
-   `MANAGEMENT_SERVER_TAG` eintragen und neu flashen. Jede andere UID ist ein Album.
-5. **Klopfsensoren abstimmen:** mit `knockdebug:1` und `knockdebug:2`, siehe README.
-6. **Akkuanzeige prüfen:** `getBattery()` in `main.ino` rechnet den ADC-Wert mit Werten um, die an den
-   ursprünglichen Boxen gemessen wurden. ESP32-ADCs streuen. Zeigt die Box bei vollem Akku nicht etwa 100 %, die Werte
-   dort anpassen.
+4. **Sondertokens:** Ein Token für den Bluetooth-Modus und einer für den Management-Modus. Jeden auflegen, die
+   Konsole meldet `tag: <uid>`. Die UIDs als `BLUETOOTH_TAG` und `MANAGEMENT_SERVER_TAG` in die Env eintragen, in
+   Anführungszeichen wie bei `BOX_NAME`, und neu flashen. Jede andere UID ist ein Album.
+5. **Klopfsensoren abstimmen:** mit `knockdebug:1` und `knockdebug:2`, siehe README. Die Schwellen stehen in der Env.
+6. **Akkuanzeige kalibrieren:** ESP32-ADCs streuen. Die Box rechnet den ADC-Wert über zwei Messpunkte in Millivolt
+   um. Jeder Punkt ist ein ADC-Wert und die Spannung, die ein Multimeter im selben Moment zwischen `Vcc` und `GND`
+   an J1 der Latch misst.
+   - Am USB zeigt `battery:` den ADC-Wert. Er und die gemessene Spannung kommen in `BATTERY_ADC_HIGH` und
+     `BATTERY_MV_HIGH`.
+   - Im Akkubetrieb ohne USB, am besten mit halb leerem Akku, den Management-Token auflegen. Die Management-Seite
+     zeigt unter „Battery“ den ADC-Wert. Er und die gemessene Spannung kommen in `BATTERY_ADC_LOW` und
+     `BATTERY_MV_LOW`.
+
+   Neu flashen. `battery:` zeigt danach Spannung und Prozent, die Spannung sollte zum Multimeter passen.
 
 ## Was man wissen sollte
 

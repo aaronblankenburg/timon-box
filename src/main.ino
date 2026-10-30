@@ -7,6 +7,7 @@
 #include <esp_task_wdt.h>
 
 #include "Arduino.h"
+#include "box-config.h"  // per-box values from platformio.ini, before anything that uses them
 #include "BluetoothA2DPSink.h"
 #include "esp_bt.h"
 #include "knock.cpp"
@@ -19,8 +20,6 @@
 #define CR_MISO GPIO_NUM_19  // 19
 #define CR_RST GPIO_NUM_18   // 22
 
-#define BLUETOOTH_TAG "04c6d4b26e6780"
-#define MANAGEMENT_SERVER_TAG "042041122a6781"
 #define VOLUME_PIN GPIO_NUM_36
 #define POWER_SUPPLY_PIN GPIO_NUM_33
 #define LKS_PIN GPIO_NUM_35
@@ -594,9 +593,13 @@ void checkBattery(bool playAlert) {
   }
 }
 
+// Vcc in mV from the filtered ADC value, linear through the two calibration points (box-config.h, platformio.ini).
+int batteryMilliVoltsFromAdc(float adc) {
+  return ::map((long)adc, BATTERY_ADC_LOW, BATTERY_ADC_HIGH, BATTERY_MV_LOW, BATTERY_MV_HIGH);
+}
+
 unsigned int getBattery() {
-  // unsigned int batteryPercent = ::map(value, 400, 3100, 0, 100);
-  unsigned int batteryPercent = constrain(::map(::map((uint)batteryAdcValue, 1994, 2390, 3685, 4322), 3200, 4200, 0, 100), 0, 100);
+  unsigned int batteryPercent = constrain(::map(batteryMilliVoltsFromAdc(batteryAdcValue), 3200, 4200, 0, 100), 0, 100);
   return batteryPercent;
 }
 
@@ -712,6 +715,10 @@ void checkSerialForCommands() {
     uint32_t size;
     String sum = fileMd5(value, size);
     Serial.printf("md5 %s %s (%u bytes)\n", sum.c_str(), value.c_str(), size);
+  } else if (cmd == "battery") {  // raw value for the calibration in platformio.ini, see doc/hardware.md
+    Serial.printf("battery: ADC %d, %d mV, %u %% (calibration: ADC %d = %d mV, ADC %d = %d mV)\n", (int)batteryAdcValue,
+                  batteryMilliVoltsFromAdc(batteryAdcValue), getBattery(), BATTERY_ADC_LOW, BATTERY_MV_LOW, BATTERY_ADC_HIGH,
+                  BATTERY_MV_HIGH);
   } else if (cmd == "knockdebug") {
     value.trim();
     int level = constrain(value.toInt(), 0, 2);
@@ -721,7 +728,7 @@ void checkSerialForCommands() {
     Serial.println("Command \"" + cmd +
                    "\" is not supported. Supported commands: low[:<-40..6>], "
                    "mid[:<-40..6>], high[:<-40..6>], list, play:<index>, "
-                   "maxVolume:<safe|unsafe>, knockDebug:<0|1|2>, heap[:<seconds>], dl:<url>, dlstop, "
+                   "maxVolume:<safe|unsafe>, knockDebug:<0|1|2>, battery, heap[:<seconds>], dl:<url>, dlstop, "
                    "dlplay[:<path>], dlclean, md5:<path>, podcast, audio, dltls:<0|1>, podcasturl:<url>[ <keep>], playat:<byte>, "
                    "restart");
   }

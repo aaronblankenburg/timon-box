@@ -7,8 +7,8 @@ haben aber unterschiedlich empfindliche Gehäusewände: PlatformIO-Envs `timon` 
 
 Ausführlich, Modul für Modul: **[doc/architecture.md](doc/architecture.md)**. Diese Datei hier ist das Minimum, um
 loszulegen. Lies den passenden Abschnitt dort, bevor du ein Teilsystem änderst. Platinen, Teile und Verkabelung:
-**[doc/hardware.md](doc/hardware.md)**, die KiCad-Projekte liegen unter `hardware/`. Druck und Zusammenbau des
-Gehäuses: **[doc/assembly.pdf](doc/assembly.pdf)**, gebaut aus `doc/assembly/`.
+**[doc/hardware.md](doc/hardware.md)**, die KiCad-Projekte liegen unter `hardware/`. Bauanleitung mit Elektronik,
+Druck und Zusammenbau: **[doc/assembly.pdf](doc/assembly.pdf)**, gebaut aus `doc/assembly/`.
 
 ## Regeln
 
@@ -27,10 +27,12 @@ Gehäuses: **[doc/assembly.pdf](doc/assembly.pdf)**, gebaut aus `doc/assembly/`.
 - **Kein passwortloses sudo** auf diesem Rechner (zazu). Kein tcpdump, kein `ip neigh replace`.
 - **Doku pflegen:** Wer ein Teilsystem ändert, passt den Abschnitt in `doc/architecture.md` im selben Commit an. Neue
   Fallstricke kommen hier unten dazu, neue Zustände oder Timeouts auch in `doc/state-machine.html`.
-- **Gehäuse-Anleitung:** `doc/assembly.pdf` nie direkt bearbeiten. Text und Schritte stehen in
+- **Bauanleitung:** `doc/assembly.pdf` nie direkt bearbeiten. Text und Schritte stehen in
   `doc/assembly/content.py`, die Bilder rendert `doc/assembly/figures.py` aus `models/box.step`. Danach
   `doc/assembly/build.sh` laufen lassen (mit `--figures`, wenn sich das Modell geändert hat) und das PDF im selben
-  Commit mitnehmen. Mehr in `doc/assembly/README.md`.
+  Commit mitnehmen. Kapitel 5 (Elektronik) fasst `doc/hardware.md` zusammen und zeichnet die Bestückungspläne aus
+  den KiCad-Dateien: Wer `doc/hardware.md` oder die Platinen ändert, zieht `content.py` im selben Commit nach. Mehr
+  in `doc/assembly/README.md`.
 
 ## Testen
 
@@ -39,7 +41,7 @@ Gehäuses: **[doc/assembly.pdf](doc/assembly.pdf)**, gebaut aus `doc/assembly/`.
   an. Der Kopfkommentar des Skripts zeigt die Benutzung. Logs und FIFO gehören ins Scratchpad, nicht ins Repo. Befehle
   immer als `befehl:` mit Doppelpunkt schicken, mit ein paar Sekunden Abstand. Der Parser in `main.ino` liest bis
   `:` und verschluckt danach eine Sekunde lang alles.
-- **Wichtige Befehle:** `audio:`, `podcast:`, `heap:[s]`, `list:`, `play:<i>`, `knockdebug:<0|1|2>`, `md5:<pfad>`,
+- **Wichtige Befehle:** `audio:`, `podcast:`, `heap:[s]`, `list:`, `play:<i>`, `knockdebug:<0|1|2>`, `battery:`, `md5:<pfad>`,
   `dl:<url>`, `dlplay:`, `dlstop:`, `dlclean:`, `podcasturl:<url> [keep]`, `playat:<byte>`, `restart:`. Die volle
   Liste gibt ein unbekannter Befehl aus.
 - **Podcast-Testserver:** `tools/podcast-test-server.py --dir <mp3-ordner>` liefert einen Feed mit Schaltern für
@@ -58,6 +60,7 @@ kommt der Rest. Die meisten Header definieren globale Variablen und Funktionen. 
 | Datei | Aufgabe |
 |---|---|
 | `main.ino` | Zustandsautomat, Token-Erkennung, LED, Lautstärke, Akku, serielle Befehle, Ein/Aus |
+| `box-config.h` | Ersatzwerte für die Werte pro Box aus `platformio.ini`: Sondertokens, Akku-Kalibrierung |
 | `player.cpp` | Basisklasse `Player`: Albumordner, Playlist (`index.txt`), `last_played.txt` mit Position |
 | `playerI2S.h` | `PlayerI2S`: Audio-Bibliothek, I²S, Start eines Titels, Klick und Alarm |
 | `knock.cpp` | Klopfsensor: ADC per `esp_timer` mit 2 kHz, erkennt einen Druck an der Buckelform |

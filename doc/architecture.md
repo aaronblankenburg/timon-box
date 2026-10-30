@@ -40,11 +40,14 @@ Der Zustandsautomat steht in `loop()` in `main.ino`.
 | `managementServerConnecting` | weiß | Management-Modus, verbindet sich mit dem Heimnetz |
 | `managementServerLan` | cyan | Management-Modus im Heimnetz |
 
-Bei Akku ≤ 20 % (`LOW_BATTERY_THRESHOLD`) leuchtet die LED rot. Während die andere Box Titel abholt, pulsiert die
+Bei Akku ≤ 20 % (`LOW_BATTERY_THRESHOLD`) leuchtet die LED rot. Den ADC-Wert rechnet `getBattery()` über zwei
+Kalibrierpunkte pro Box in Millivolt um (`BATTERY_ADC_*`, `BATTERY_MV_*` in `platformio.ini`), der Befehl `battery:`
+zeigt Rohwert und Ergebnis. Während die andere Box Titel abholt, pulsiert die
 Zustandsfarbe (`updateTransferLed()`).
 
 **Token:** `getTag()` liest das RFID nur, wenn der Token-Schalter einen Token meldet und noch keine Kennung bekannt ist.
-Die Kennung ist die UID als Hex-String. Zwei Kennungen sind fest im Code: `BLUETOOTH_TAG` und `MANAGEMENT_SERVER_TAG`.
+Die Kennung ist die UID als Hex-String. Zwei Kennungen stehen pro Box in der `platformio.ini`: `BLUETOOTH_TAG` und
+`MANAGEMENT_SERVER_TAG`, Ersatzwerte in `box-config.h`.
 Jede andere Kennung ist ein Album.
 
 **Auflegen im Zustand `paused`:**

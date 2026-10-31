@@ -1,8 +1,8 @@
 # Architektur der Firmware
 
 Diese Datei beschreibt, wie die Firmware funktioniert und was man vor einer Änderung wissen muss. Die Kurzfassung mit
-Regeln und Arbeitsablauf steht in [CLAUDE.md](../CLAUDE.md). Für die Bedienung, den Klopfsensor-Hintergrund und den
-Token-Bogen siehe [README.md](../README.md). Die Zustände als Diagramm zeigt [state-machine.html](state-machine.html).
+Regeln und Arbeitsablauf steht in [CLAUDE.md](../CLAUDE.md). Die Bedienung beschreibt [usage.md](usage.md), Klopfsensoren, Podcast-Technik und
+Token-Bogen [development.md](development.md). Die Zustände als Diagramm zeigt [state-machine.html](state-machine.html).
 Wer Zustände oder Timeouts ändert, aktualisiert das Diagramm mit.
 
 Stand: Oktober 2026, Branch `podcast`.
@@ -450,7 +450,7 @@ einem Neustart. Ton funktioniert, die I²S-Fehlermeldung beim Start ist harmlos 
 
 ## 9. Klopfsensoren (`knock.cpp`)
 
-Das Prinzip steht im README. Ein Druck ist ein einzelner ununterbrochener Buckel im ADC-Signal. Er zählt, wenn er
+Das Prinzip steht in [development.md](development.md#klopfsensoren). Ein Druck ist ein einzelner ununterbrochener Buckel im ADC-Signal. Er zählt, wenn er
 lange genug dauert (`KNOCK_MIN_PRESS_MS`) oder seine Fläche groß genug ist (`RKS_THRESHOLD` und `LKS_THRESHOLD`).
 Musik erzeugt dagegen viele kurze Halbwellen mit Pausen.
 

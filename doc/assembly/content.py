@@ -6,8 +6,8 @@ META = dict(
     title='Timon Box – Bauanleitung: Elektronik, Druck und Zusammenbau', subject='Hardware-Doku: Platinen, Verkabelung, Druckteile, Zusammenbau',
     kicker='HARDWARE-DOKU · BAUANLEITUNG', name='Timon Box', subtitle='Elektronik, Druck und Zusammenbau',
     intro='Platinen bestücken, verkabeln, Gehäuse drucken und alles Schritt für Schritt zusammenbauen.',
-    facts=[repo('#cfe3db'), 'Modell: models/box.step', 'Platinen: hardware/ (KiCad 8)', 'Hintergründe: doc/hardware.md', 'Stand: Oktober 2026'],
-    header='Timon Box · Bauanleitung', footer='Stand Oktober 2026 · Modell models/box.step')
+    facts=[repo('#cfe3db'), 'Modell: models/box.step', 'Platinen: hardware/ (KiCad 8)', 'Hintergründe: doc/hardware.md', 'Stand: Oktober 2026', 'Lizenz: CC BY-NC-SA 4.0', '© 2026 Aaron Blankenburg'],
+    header='Timon Box · Bauanleitung', footer='Stand Oktober 2026 · © Aaron Blankenburg · Lizenz CC BY-NC-SA 4.0')
 
 
 def glance():
@@ -41,7 +41,7 @@ story += [fig('overview', [
   table([['Maß', 'Wert'], ['Grundfläche', '94 × 90 mm, mit Laschen 102 mm breit'], ['Höhe mit Bumper', 'hinten 94,5 mm, vorn 87 mm'],
          ['Darüber', 'Token 5 mm, Drehknopf 9 mm über der Deckeloberfläche']], [42*mm, FW-42*mm]), Spacer(1, 10),
   P('Auf einen Blick', 'h2'), glance(), Spacer(1, 10),
-  note('Firmware, Platinen, Modell und diese Anleitung liegen im Repo ' + repo() + '. Kapitel 5 beschreibt den Aufbau der Elektronik, Kapitel 6 den Zusammenbau. Hintergründe zur Schaltung stehen in <b>doc/hardware.md</b>, die Pinbelegung der Firmware in <b>doc/architecture.md</b>, das Abstimmen der Klopfsensoren im <b>README</b>.', 'info'),
+  note('Firmware, Platinen, Modell und diese Anleitung liegen im Repo ' + repo() + '. Kapitel 5 beschreibt den Aufbau der Elektronik, Kapitel 6 den Zusammenbau. Hintergründe zur Schaltung stehen in <b>doc/hardware.md</b>, die Pinbelegung der Firmware in <b>doc/architecture.md</b>, das Abstimmen der Klopfsensoren in <b>doc/development.md</b>.', 'info'),
   PageBreak()]
 
 # 2 Druckteile
@@ -113,11 +113,7 @@ story += [H1(4, 'Material und Werkzeug'), P('Zukaufteile fürs Gehäuse', 'h2'),
    ['Zylinderkopfschraube M3 × 5, ISO 4762', '4', 'Kopf Ø 5,5 mm versinkt in der Senkung Ø 5,6 mm und im Bumper. Nicht länger als 5 mm: In zwei Ecken steht direkt über dem Einsatz ein Akku'],
    ['18650-Zelle', '2', 'Einfache Zellen ohne Schutzschaltung (65 mm) mit Lötfahnen, gleicher Typ und gleiche Spannung. Parallel geschaltet'],
    ['Stoff', '1 Stück, 8 × 8 cm', 'Dünn und dehnbar, zum Beispiel eine Socke'],
-<<<<<<< HEAD
    ['NFC-Klebetag, rund, 25 mm', 'je Token', 'NTAG, höchstens 0,4 mm dick'], ['Rolladengurt, ca. 15 mm breit', 'ca. 30 cm', 'Tragegurt durch die Laschen, aus dem Baumarkt'], ['Kabelbinder, schmal', '1', 'Um Hauptplatine, Abstandshalter und RC522'], ['Transparentes Filament, 1,75 mm', 'ein paar cm', 'Lichtleiter von der Lade-LED nach außen, darf gebogen verlaufen']], [55*mm, 26*mm, FW-81*mm]),
-=======
-   ['NFC-Klebetag, rund, 25 mm', 'je Token', 'NTAG, höchstens 0,4 mm dick'], ['Transparentes Filament, 1,75 mm', 'ein paar cm', 'Lichtleiter von der Lade-LED nach außen, darf gebogen verlaufen']], [55*mm, 26*mm, FW-81*mm]),
->>>>>>> 25e2960d7aa34102d2d0a27d80930b01dce578b1
   P('Kleber und Kleinkram', 'h2'),
   table([['Material', 'wofür'], ['Sekundenkleber', 'Gehäuseschale, Tasten, Lautsprechergitter, Bumper'], ['2-Komponenten-Kleber (Epoxid)', 'Lautsprecher, Ladeschaltung, Step-up'],
    ['UV-Lack mit UV-Lampe', 'LED, USB-C-Buchse, Mikroschalter'], ['Heißkleber', 'Akkus'], ['Dünnes doppelseitiges Klebeband', 'Piezos, RC522, Bilder auf den Token'],
@@ -132,11 +128,7 @@ story += [H1(4, 'Material und Werkzeug'), P('Zukaufteile fürs Gehäuse', 'h2'),
    ['USB-C-Platine', 'Rückwand unten', 'Ausschnitt 9,2 × 3,5 mm'], ['Power Latch mit TP4056', 'Wandinnenseite, nahe der USB-C-Buchse', 'Lichtleiter vom Loch Ø 2 mm bis an die Lade-LED'], ['Step-up 5 V', 'freie Stelle an der Wandinnenseite', 'nicht auf den gedünnten Tastenflächen'], ['Kopfhörerbuchse 3,5 mm', 'Deckel hinten rechts, optional', 'Bohrung Ø 6 mm, Tasche 12 × 7 × 2 mm']],
    [38*mm, 44*mm, FW-82*mm]),
   P('Werkzeug', 'h2'),
-<<<<<<< HEAD
   P('Lötkolben (für die Einsätze eine Einschmelzspitze oder eine alte Spitze), Innensechskant 2,5 mm, UV-Lampe, Heißklebepistole, Multimeter, Säge oder Seitenschneider für die Poti-Achse, Cutter, Schleifpapier. Für die Elektronik dazu: Lötkolben mit feiner Spitze, Lötzinn, Flussmittel, Entlötlitze, Pinzette, Abisolierzange und ein USB-C-Kabel zum Flashen.'),
-=======
-  P('Lötkolben (für die Einsätze eine Einschmelzspitze oder eine alte Spitze), Innensechskant 2,5 mm, UV-Lampe, Heißklebepistole, Multimeter, Säge oder Seitenschneider für die Poti-Achse, Cutter, Schleifpapier.'),
->>>>>>> 25e2960d7aa34102d2d0a27d80930b01dce578b1
   CondPageBreak(160*mm)]
 
 # 5 Zusammenbau
@@ -326,7 +318,7 @@ story += [CondPageBreak(110*mm), P('5.5  Inbetriebnahme', 'h2'),
          [code('BOX_COLOR', 7.6), 'Farbe des Symbols im Browser-Tab', 'frei wählen'],
          [code('BLUETOOTH_TAG', 7.6) + '<br/>' + code('MANAGEMENT_SERVER_TAG', 7.6), 'UIDs der beiden Sondertokens', 'Token auflegen, die Konsole meldet ' + code('tag: <uid>', 7.6) + ' (Schritt 4)'],
          [code('BATTERY_ADC_LOW', 7.6) + '<br/>' + code('BATTERY_MV_LOW', 7.6) + '<br/>' + code('BATTERY_ADC_HIGH', 7.6) + '<br/>' + code('BATTERY_MV_HIGH', 7.6), 'Zwei Messpunkte für die Akkuanzeige: ADC-Wert und Spannung in mV', code('battery:', 7.6) + ' oder die Management-Seite zeigt den ADC-Wert, ein Multimeter die Spannung (Schritt 6)'],
-         [code('RKS_THRESHOLD', 7.6) + '<br/>' + code('LKS_THRESHOLD', 7.6) + '<br/>' + code('KNOCK_…', 7.6), 'Klopfsensoren', code('knockdebug:1', 7.6) + ' und ' + code('knockdebug:2', 7.6) + ', siehe README (Schritt 5)']],
+         [code('RKS_THRESHOLD', 7.6) + '<br/>' + code('LKS_THRESHOLD', 7.6) + '<br/>' + code('KNOCK_…', 7.6), 'Klopfsensoren', code('knockdebug:1', 7.6) + ' und ' + code('knockdebug:2', 7.6) + ', siehe doc/development.md (Schritt 5)']],
         [50*mm, 52*mm, FW-102*mm]),
   P('Serielle Konsole', 'h3'),
   P('USB-C-Buchse an den Rechner stecken, die Box mit einem Token einschalten und ' + code('pio device monitor -b 115200') + ' starten, oder den Serial Monitor in VS Code. Befehle mit Doppelpunkt eintippen, etwa ' + code('battery:') + ', dann Enter.'),
@@ -336,7 +328,7 @@ story += [CondPageBreak(110*mm), P('5.5  Inbetriebnahme', 'h2'),
     '<b>Eigene Env:</b> In der ' + code('platformio.ini') + ' eine bestehende Env wie ' + code('[env:timon]') + ' kopieren und umbenennen, ' + code('BOX_NAME') + ' und ' + code('BOX_COLOR') + ' anpassen. Die übrigen Werte folgen in den nächsten Schritten.',
     '<b>Flashen:</b> Die Box mit dem Mikroschalter einschalten, über USB geht sie nicht an. Dann die USB-C-Buchse an den Rechner stecken und ' + code('~/.platformio/penv/bin/pio run -e <box> -t upload --upload-port /dev/ttyUSBn') + ' ausführen.',
     '<b>Sondertokens:</b> Ein Token für den Bluetooth-Modus und einer für den Management-Modus. Jeden auflegen, die Konsole meldet ' + code('tag: <uid>') + '. Die UIDs als ' + code('BLUETOOTH_TAG') + ' und ' + code('MANAGEMENT_SERVER_TAG') + ' in die Env eintragen und neu flashen. Jede andere UID ist ein Album.',
-    '<b>Klopfsensoren abstimmen:</b> ' + code('knockdebug:1') + ' zeigt pro Sekunde Pegel und Flächen, ' + code('knockdebug:2') + ' zusätzlich den Verlauf des nächsten Drucks. Die Schwellen in der Env so setzen, dass ein Druck sicher auslöst und laute Musik nicht (README). Neu flashen.',
+    '<b>Klopfsensoren abstimmen:</b> ' + code('knockdebug:1') + ' zeigt pro Sekunde Pegel und Flächen, ' + code('knockdebug:2') + ' zusätzlich den Verlauf des nächsten Drucks. Die Schwellen in der Env so setzen, dass ein Druck sicher auslöst und laute Musik nicht (doc/development.md). Neu flashen.',
     '<b>Akkuanzeige kalibrieren:</b> ESP32-ADCs streuen. Die Box rechnet den ADC-Wert über zwei Messpunkte in Millivolt um. Jeder Punkt ist ein ADC-Wert und die Spannung, die ein Multimeter im selben Moment zwischen ' + code('Vcc') + ' und ' + code('GND') + ' an J1 der Latch misst. '
     'Am USB zeigt ' + code('battery:') + ' den ADC-Wert, er und die Spannung kommen in ' + code('BATTERY_ADC_HIGH') + ' und ' + code('BATTERY_MV_HIGH') + '. '
     'Im Akkubetrieb ohne USB, am besten mit halb leerem Akku, den Management-Token auflegen: Die Management-Seite zeigt unter „Battery“ den ADC-Wert, er und die Spannung kommen in ' + code('BATTERY_ADC_LOW') + ' und ' + code('BATTERY_MV_LOW') + '. '
@@ -358,11 +350,7 @@ story += [KeepTogether([P('6.1  Vorbereiten', 'h2'), fig('inserts', [dict(a='ins
   step(2, 'Gewindeeinsätze einschmelzen', ['LK'], [
     'Die vier M3-Einsätze von unten in die Bohrungen in ' + pn('back') + ' setzen, also von der Seite, an der später die Klappe anliegt.',
     'Mit dem Lötkolben gerade einschmelzen, bis sie bündig mit der Auflagefläche sind. Den Lötkolben etwa auf Drucktemperatur des Materials stellen.'])]
-<<<<<<< HEAD
 story += [CondPageBreak(120*mm), KeepTogether([P('6.2  Unterteil', 'h2'), fig('shell', [dict(a='front', t='front', s='erst in Schritt 12', side='R'),
-=======
-story += [CondPageBreak(120*mm), KeepTogether([P('5.2  Unterteil', 'h2'), fig('shell', [dict(a='front', t='front', s='erst in Schritt 12', side='R'),
->>>>>>> 25e2960d7aa34102d2d0a27d80930b01dce578b1
      dict(a='frame_top', t='Klebekante oben', s='für den Deckel', side='R'), dict(a='frame', t='frame', side='R'), dict(a='back_glue', t='Klebefläche back', side='R'),
      dict(a='back', t='back', s='Einsätze nach unten', side='R'), dict(a='prev', t='prev button', s='links', side='L'), dict(a='next', t='next button', s='rechts', side='R')],
      arrows=[('prev_from','prev_to')], frac=0.56), cap('Klebeflächen orange. Die Tasten kleben außen auf der Seitenwand.')]),
@@ -387,11 +375,7 @@ story += [CondPageBreak(120*mm), KeepTogether([P('6.3  Wände', 'h2'), fig('insi
     'Kleber nur auf den Rand, nicht auf die Membran. Aushärten lassen.']),
   step(7, 'Piezos ankleben', ['TB'], [
     'Je eine Piezo-Scheibe mit dünnem doppelseitigem Klebeband von innen auf die gedünnte Wand hinter ' + pn('prev button') + ' und ' + pn('next button') + ' kleben, mittig hinter der Taste, Messingseite zur Wand.',
-<<<<<<< HEAD
     'Die Kabel beschriften: links ist „zurück“ (J2), rechts „vor“ (J3), siehe Kapitel 5.4.'],
-=======
-    'Die Kabel beschriften: links ist „zurück“ (J2), rechts „vor“ (J3), siehe hardware.md.'],
->>>>>>> 25e2960d7aa34102d2d0a27d80930b01dce578b1
     [('tip', 'Dünnes, festes Klebeband überträgt den Druck besser als dickes Schaumklebeband. Die Schwellen werden in Schritt 12 abgestimmt.')]),
   step(8, 'USB-C-Buchse einkleben', ['UV'], [
     'Die Kabel vorher anlöten: VBUS und GND zum TP4056, D+ und D− zum Kabel zur Hauptplatine (Kapitel 5.4).',
@@ -407,16 +391,11 @@ story += [CondPageBreak(120*mm), KeepTogether([P('6.4  Deckel', 'h2'), fig('lid'
     '<b>Poti:</b> Von innen durch die 7-mm-Bohrung hinten links stecken, außen Scheibe und Mutter. Den Verdrehschutz-Nocken am Poti abbrechen, falls vorhanden; der Deckel hat dafür kein Loch. Die Achse so kürzen, dass sie 8,5 mm über die Deckeloberfläche ragt, dann sitzt der Knopf mit 0,5 mm Luft. Den Knopf ' + pn('volume') + ' aufstecken.',
     '<b>Mikroschalter:</b> In die Tasche an der Rückseite der Token-Mulde setzen, sodass der Hebel durch den Schlitz in die Mulde ragt. Prüfen, dass ein aufgelegter Token ihn hörbar drückt, dann mit UV-Lack fixieren und aushärten. Lack nur ans Gehäuse des Schalters, nicht an Hebel und Stößel.',
     '<b>RC522:</b> Mit dünnem doppelseitigem Klebeband von innen unter die Token-Mulde kleben, flache Rückseite nach oben, Antenne mittig unter der Mulde. Die Stiftleiste zeigt nach unten, dort steckt später die Hauptplatine.',
-<<<<<<< HEAD
     '<b>Kopfhörerbuchse:</b> Bleibt vorerst leer, die Bohrung hinten rechts bleibt verschlossen. Für eine spätere Buchse ist innen eine Tasche; dann die 0,2-mm-Schicht mit 6 mm aufbohren.']),
   KeepTogether([fig('lid_full', [dict(a='rc522', t='RC522', s='flache Rückseite an der Mulde'), dict(a='header', t='Stiftleiste', s='für die Hauptplatine'),
      dict(a='led', t='LED', s='UV-Lack'), dict(a='poti', t='Poti', s='Mutter von außen'), dict(a='switch', t='Mikroschalter', s='UV-Lack')], frac=0.58),
      cap('Deckel nach Schritt 9. Die Hauptplatine kommt in Schritt 11 auf die Stiftleiste des RC522.')])]
 story += [CondPageBreak(110*mm), KeepTogether([P('6.5  Elektronik und Akkus', 'h2'), LightPipeDiagram(),
-=======
-    '<b>Kopfhörerbuchse:</b> Bleibt vorerst leer, die Bohrung hinten rechts bleibt verschlossen. Für eine spätere Buchse ist innen eine Tasche; dann die 0,2-mm-Schicht mit 6 mm aufbohren.'])]
-story += [CondPageBreak(110*mm), KeepTogether([P('5.5  Elektronik und Akkus', 'h2'), LightPipeDiagram(),
->>>>>>> 25e2960d7aa34102d2d0a27d80930b01dce578b1
      cap('Schnitt durch die Rückwand an der USB-C-Buchse: Das Filament führt das Licht der Lade-LED nach außen und darf gebogen verlaufen.')]),
   step(10, 'Ladeschaltung und Step-up einkleben', ['EP'], [
     'Die Ladeschaltung, also die Power Latch mit dem TP4056-Modul auf der Rückseite, mit 2K-Kleber innen an die Wand kleben, in die Nähe der USB-C-Buchse. Heißkleber reicht hier nicht: Der Laderegler wird beim Laden sehr warm, und der Heißkleber kann sich dann lösen.',
@@ -427,20 +406,12 @@ story += [CondPageBreak(110*mm), KeepTogether([P('5.5  Elektronik und Akkus', 'h
   CondPageBreak(110*mm), KeepTogether([fig('akkus', [
      dict(a='cellA', t='18650 vorn links', s='stehend, Pluspol oben'), dict(a='cellB', t='18650 hinten rechts', s='diagonal gegenüber'),
      dict(a='kapton', t='Kapton über der Lötstelle'), dict(a='red', t='Plus, rot', s='zu B+ am TP4056'), dict(a='black', t='Minus, schwarz', s='zu B− am TP4056'),
-<<<<<<< HEAD
      dict(a='window', t='Tastenwand', s='kein Kleber'), dict(a='usb', t='USB-C'), dict(a='latch', t='Ladeschaltung', s='2K-Kleber'), dict(a='boost', t='Step-up', s='2K-Kleber')], frac=0.6),
      cap('Akkus stehend in zwei diagonal gegenüberliegenden Ecken, hier vorn links und hinten rechts. An der Rückwand Ladeschaltung und Step-up. Rahmen aufgeschnitten, Deckel noch nicht aufgeklebt.')]),
   step(11, 'Elektronik verdrahten und Akkus einkleben', ['EL', 'HG'], [
     'Die Hauptplatine von unten auf die Stiftleiste des RC522 stecken und am freien Ende den Abstandshalter einclipsen (Kapitel 5.2, Schritt E6).',
     'Zur Sicherheit einen Kabelbinder um Hauptplatine, Abstandshalter und RC522 legen, am Ende gegenüber der Stiftleiste. Dort ist zwischen RC522 und Deckel Platz, denn die Token-Mulde trägt das RC522 nur in der Mitte.',
     'Alles nach den Tabellen in Kapitel 5.4 verdrahten: Kabel zu J4, Lautsprecher an den MAX98357A, Piezos an J2 und J3, Poti an J1, LED an J5, Mikroschalter mit C an Trigger + und NO an Trigger In der Latch.',
-=======
-     dict(a='window', t='Tastenwand', s='kein Kleber'), dict(a='usb', t='USB-C')], frac=0.6),
-     cap('Akkus stehend in zwei diagonal gegenüberliegenden Ecken, hier vorn links und hinten rechts. Rahmen aufgeschnitten, Deckel noch nicht aufgeklebt.')]),
-  step(11, 'Elektronik verdrahten und Akkus einkleben', ['EL', 'HG'], [
-    'Die Hauptplatine von unten auf die Stiftleiste des RC522 stecken.',
-    'Alles nach den Tabellen in hardware.md verdrahten: Kabel zu J4, Lautsprecher an den MAX98357A, Piezos an J2 und J3, Poti an J1, LED an J5, Mikroschalter mit C an Trigger + und NO an Trigger In der Latch.',
->>>>>>> 25e2960d7aa34102d2d0a27d80930b01dce578b1
     'Die beiden 18650-Zellen stehend in zwei diagonal gegenüberliegende Ecken setzen, Pluspol oben, zum Beispiel vorn links und hinten rechts. Hinten links sitzt direkt darüber das Poti.',
     'Die Zellen stehen auf dem Boden direkt über den Gewindeeinsätzen und reichen bis knapp unter den Deckel. Einfache Zellen ohne Schutzschaltung (65 mm) passen, die Schutzschaltung sitzt auf dem TP4056-Modul.',
     'Mit Heißkleber in den Spalten zwischen Zelle und Ecke fixieren. Kein Kleber auf die gedünnten Wandflächen der Tasten, er dämpft sonst die Piezos.',
@@ -462,19 +433,12 @@ story += [CondPageBreak(120*mm), KeepTogether([P('6.6  Abschluss', 'h2'), fig('l
      cap('Vor dem Aufkleben: Der Deckel trägt RC522, Hauptplatine mit Modulen, LED, Poti und Mikroschalter. Das 7-polige Kabel verbindet ihn mit der Stromseite.')]),
   step(12, 'Testen, dann Deckel aufkleben', ['CA'], [
     'Vor dem Verkleben in Betrieb nehmen, wie in Kapitel 5.5 beschrieben: Token auflegen, Box startet, flashen, Lautstärke, LED und Akkuanzeige prüfen.',
-    'Die Klopfsensoren mit <font name="Mono" size="8.3">knockdebug:1</font> und <font name="Mono" size="8.3">knockdebug:2</font> abstimmen (README). Die Schwellen stehen pro Box in der <font name="Mono" size="8.3">platformio.ini</font>, eine neue Box bekommt dort eine eigene Env.',
+    'Die Klopfsensoren mit <font name="Mono" size="8.3">knockdebug:1</font> und <font name="Mono" size="8.3">knockdebug:2</font> abstimmen (doc/development.md). Die Schwellen stehen pro Box in der <font name="Mono" size="8.3">platformio.ini</font>, eine neue Box bekommt dort eine eigene Env.',
     'Die Kabel nach innen legen, auf der Klebekante darf nichts liegen. Den Deckel mit Sekundenkleber auf den Rahmen kleben, die gewölbte Seite nach hinten. Danach die Klopfsensoren kurz gegenprüfen.']),
   KeepTogether([fig('door', [dict(a='back', t='back', s='mit Einschmelzgewinden', side='R'),
      dict(a='door', t='door', s='Bodenklappe', side='R'), dict(a='bumper_glue', t='bumper (TPU)', s='Klebefläche zur Klappe', side='L'),
      dict(a='scr0', t='4 × M3 × 5', s='ISO 4762', side='L')], arrows=[('scr0','dhole0'),('scr1','dhole1'),('scr3','dhole3')], frac=0.56),
      cap('Bodenklappe mit Bumper und Schrauben. Orange: Klebefläche.')]),
-<<<<<<< HEAD
-=======
-  step(12, 'Testen, dann Deckel aufkleben', ['CA'], [
-    'Vor dem Verkleben in Betrieb nehmen, wie in hardware.md unter Inbetriebnahme beschrieben: Token auflegen, Box startet, flashen, Lautstärke, LED und Akkuanzeige prüfen.',
-    'Die Klopfsensoren mit <font name="Mono" size="8.3">knockdebug:1</font> und <font name="Mono" size="8.3">knockdebug:2</font> abstimmen (README). Die Schwellen stehen pro Box in der <font name="Mono" size="8.3">platformio.ini</font>, eine neue Box bekommt dort eine eigene Env.',
-    'Die Kabel nach innen legen, auf der Klebekante darf nichts liegen. Den Deckel mit Sekundenkleber auf den Rahmen kleben, die gewölbte Seite nach hinten. Danach die Klopfsensoren kurz gegenprüfen.']),
->>>>>>> 25e2960d7aa34102d2d0a27d80930b01dce578b1
   step(13, 'Bodenklappe anschrauben', ['CA'], [
     'Den Bumper mit Sekundenkleber unter die Klappe kleben. Zum Ausrichten zwei Schrauben durch Bumper und Klappe stecken.',
     'Die Klappe mit vier Schrauben M3 × 5 anschrauben. Die Köpfe versinken im Bumper. Durch die Klappe kommt man wieder an die Elektronik.'],
@@ -513,7 +477,7 @@ story += [H1(7, 'Maße und Schnittstellen'), P('Alle Werte aus dem STEP-Modell, 
    ['<font name="Mono" size="7.9">models/pcb_spacer.step</font>', 'Abstandshalter zwischen Hauptplatine und RC522'],
    ['<font name="Mono" size="7.9">hardware/</font>', 'KiCad-Projekte, Schaltpläne und Gerber der Platinen, Verdrahtung der Stromseite (WireViz)'],
    ['<font name="Mono" size="7.9">doc/hardware.md</font>', 'Elektronik: Teileliste, Platinen, Verkabelung, Inbetriebnahme'],
-   ['<font name="Mono" size="7.9">README.md</font>', 'Klopfsensoren abstimmen'], ['<font name="Mono" size="7.9">tools/token-sheet.html</font>', 'Token-Bilder als Fotoabzug 10 × 15 cm'],
+   ['<font name="Mono" size="7.9">README.md</font>', 'Überblick und Schnellstart'], ['<font name="Mono" size="7.9">doc/usage.md</font>', 'Bedienung'], ['<font name="Mono" size="7.9">doc/development.md</font>', 'Klopfsensoren abstimmen, Entwicklung'], ['<font name="Mono" size="7.9">tools/token-sheet.html</font>', 'Token-Bilder als Fotoabzug 10 × 15 cm'],
    ['<font name="Mono" size="7.9">doc/assembly/</font>', 'Quellen dieser Anleitung: Text, Bilder aus dem Modell, Build-Skript']],
    [52*mm, FW-52*mm])]
 

@@ -202,7 +202,7 @@ def cable(T_stack, R_stack, info, lift=0.0, ends=None):
         items.append(prim.tube(pts, 0.5, hexc(cols[i]), seg=10))
     return items
 
-which = sys.argv[1:] or ['hero','overview','exploded','tiles','token','inserts','shell','inside','lid','door','akkus','lid_full','lidopen','spacer_stack','strap','lid_stack']
+which = sys.argv[1:] or ['hero','overview','exploded','tiles','token','inserts','shell','inside','lid','door','akkus','lid_full','lidopen','spacer_stack','strap','lid_stack','readme_hero']
 VA = (1.0,-1.25,0.8); VB = (-1.0,1.3,0.7)
 
 if 'hero' in which:
@@ -213,11 +213,7 @@ if 'overview' in which:
     im, prj = render([part(k) for k in P if k != 'pcb_spacer'], view=VA, size=(1000,920), ss=2, margin=0.07)
     save(im, 'overview_a', {'token':(37.7,45,ztop(37.7,45,103.988)), 'knob':(10.6,17.5,107.6), 'led':(65,17.5,ztop(65,17.5,98.988)),
          'grill':(87.2,45,49.8), 'prev':(38.6,-1,45.6), 'handle':(39.7,-6,77.2), 'lid':(70,60,ztop(70,60,98.988))}, prj)
-<<<<<<< HEAD
     im, prj = render([part(k) for k in P if k != 'pcb_spacer'], view=VB, size=(1000,920), ss=2, margin=0.07)
-=======
-    im, prj = render([part(k) for k in P], view=VB, size=(1000,920), ss=2, margin=0.07)
->>>>>>> 25e2960d7aa34102d2d0a27d80930b01dce578b1
     save(im, 'overview_b', {'usb':(-9.8,45,19.25), 'chg':(-9.8,45,24.25), 'next':(38.6,91,45.6), 'jack':(10,72.5,ztop(10,72.5,98.988)),
          'handle':(39.7,96,77.2), 'bumper':(-4,60,5.5), 'curved':(-9.8,70,50)}, prj)
     # both views side by side as one figure; anchors get a/b prefixes
@@ -364,6 +360,12 @@ if 'lid_stack' in which:
     save(im, 'lid_stack', {'tie':B(12.0, fe+1.4*k, 9.7), 'spacer':B(21.6, fe+3.0*k, 1.0), 'mainboard':B(10.0, -5.0, 0.0), 'rc522':B(18.0, fe+6.0*k, -13.4),
          'header':B(hx, hy, -5.0), 'modules':B(-12.0, 4.0, 10.1)}, prj, crop=True)
     tic('lid_stack', t0)
+
+if 'readme_hero' in which:
+    t0=time.time()
+    im, prj = render([part(k) for k in P if k != 'pcb_spacer'] + [strap()], view=VA, size=(1100,1200), ss=2, margin=0.04)
+    save(im, 'readme_hero', {}, prj, crop=True)
+    tic('readme_hero', t0)
 
 if 'inserts' in which:
     t0=time.time()

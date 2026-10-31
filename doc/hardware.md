@@ -2,7 +2,7 @@
 
 Diese Datei beschreibt, wie man eine Box nachbaut. Wie die Firmware die Pins benutzt, steht in
 [architecture.md](architecture.md), Abschnitt 1. Wie die Klopfsensoren funktionieren und wie man sie abstimmt, steht
-im [README](../README.md#knock-sensoren-vor--zurück). Eine Bauanleitung mit Bestückungsplänen, Verkabelung
+in [development.md](development.md#klopfsensoren). Eine Bauanleitung mit Bestückungsplänen, Verkabelung
 und dem Zusammenbau des Gehäuses ist [assembly.pdf](assembly.pdf).
 
 Stand: Oktober 2026. So sind die Boxen Timon und Julius gebaut.
@@ -109,7 +109,7 @@ sind mit `kicad-cli` aus den Platinen erzeugt. Wer die Platine ändert, füllt v
 | U3 | CH340C | SOIC-16 | USB-seriell, ohne Quarz |
 | Q1, Q2 | 2N7002 | SOT-23 | Auto-Reset: DTR und RTS steuern EN und IO0 |
 | D1, D2 | BZT52C3V3 | SOD-323 | Zenerdioden, begrenzen die Piezo-Spannung auf 3,3 V |
-| R1, R2 | 100 kΩ | 0805 | Last parallel zu den Piezos, siehe README |
+| R1, R2 | 100 kΩ | 0805 | Last parallel zu den Piezos, siehe [development.md](development.md#klopfsensoren) |
 | R3 | 10 kΩ | 0805 | Pull-up an EN |
 | R4, R5 | 10 kΩ | 0805 | Pull-ups für I²C (Reserve) |
 | C1, C8 | 100 nF | 0805 | Abblockkondensatoren CH340C und ESP32 |
@@ -248,7 +248,7 @@ nach links lauter statt leiser, die beiden äußeren Drähte am Poti tauschen.
 Das Gehäuse (Modell [`models/box.step`](../models/box.step)), seine Druckteile und den Zusammenbau beschreibt
 [assembly.pdf](assembly.pdf).
 
-- Die Piezos kleben auf leicht flexiblen Gehäusewänden, siehe README.
+- Die Piezos kleben auf leicht flexiblen Gehäusewänden, siehe [development.md](development.md#klopfsensoren).
 - Der Token liegt parallel über dem RC522 und drückt den Mikroschalter seitlich.
 - Das RC522 sitzt mit Stift- und Buchsenleiste unter der Hauptplatine. Am anderen Ende hält ein gedruckter
   Abstandshalter (`models/pcb_spacer.step`) beide Platinen zusammen, im Gehäuse zusätzlich ein Kabelbinder. Der Abstand ergibt sich aus den Leisten.
@@ -288,7 +288,7 @@ Ersatzwerte (`src/box-config.h`, `src/knock.cpp`).
 | `BOX_COLOR` | Farbe des Symbols im Browser-Tab | frei wählen |
 | `BLUETOOTH_TAG`, `MANAGEMENT_SERVER_TAG` | UIDs der beiden Sondertokens | Token auflegen, die Konsole meldet `tag: <uid>` |
 | `BATTERY_ADC_LOW`, `BATTERY_MV_LOW`, `BATTERY_ADC_HIGH`, `BATTERY_MV_HIGH` | Zwei Messpunkte für die Akkuanzeige | `battery:` oder die Management-Seite zeigt den ADC-Wert, ein Multimeter die Spannung |
-| `RKS_THRESHOLD`, `LKS_THRESHOLD`, `KNOCK_ON_LEVEL`, `KNOCK_MIN_PRESS_MS`, `KNOCK_MAX_GAP_US` | Klopfsensoren | `knockdebug:1` und `knockdebug:2`, siehe README |
+| `RKS_THRESHOLD`, `LKS_THRESHOLD`, `KNOCK_ON_LEVEL`, `KNOCK_MIN_PRESS_MS`, `KNOCK_MAX_GAP_US` | Klopfsensoren | `knockdebug:1` und `knockdebug:2`, siehe [development.md](development.md#klopfsensoren) |
 
 **Serielle Konsole:** USB-C-Buchse an den Rechner stecken, die Box mit einem Token einschalten und
 `~/.platformio/penv/bin/pio device monitor -b 115200` starten. Befehle mit Doppelpunkt eintippen, etwa `battery:`,
@@ -303,7 +303,7 @@ dann Enter.
 4. **Sondertokens:** Ein Token für den Bluetooth-Modus und einer für den Management-Modus. Jeden auflegen, die
    Konsole meldet `tag: <uid>`. Die UIDs als `BLUETOOTH_TAG` und `MANAGEMENT_SERVER_TAG` in die Env eintragen, in
    Anführungszeichen wie bei `BOX_NAME`, und neu flashen. Jede andere UID ist ein Album.
-5. **Klopfsensoren abstimmen:** mit `knockdebug:1` und `knockdebug:2`, siehe README. Die Schwellen stehen in der Env.
+5. **Klopfsensoren abstimmen:** mit `knockdebug:1` und `knockdebug:2`, siehe [development.md](development.md#klopfsensoren). Die Schwellen stehen in der Env.
 6. **Akkuanzeige kalibrieren:** ESP32-ADCs streuen. Die Box rechnet den ADC-Wert über zwei Messpunkte in Millivolt
    um. Jeder Punkt ist ein ADC-Wert und die Spannung, die ein Multimeter im selben Moment zwischen `Vcc` und `GND`
    an J1 der Latch misst.

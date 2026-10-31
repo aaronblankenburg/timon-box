@@ -8,7 +8,9 @@ haben aber unterschiedlich empfindliche Gehäusewände: PlatformIO-Envs `timon` 
 Ausführlich, Modul für Modul: **[doc/architecture.md](doc/architecture.md)**. Diese Datei hier ist das Minimum, um
 loszulegen. Lies den passenden Abschnitt dort, bevor du ein Teilsystem änderst. Platinen, Teile und Verkabelung:
 **[doc/hardware.md](doc/hardware.md)**, die KiCad-Projekte liegen unter `hardware/`. Bauanleitung mit Elektronik,
-Druck und Zusammenbau: **[doc/assembly.pdf](doc/assembly.pdf)**, gebaut aus `doc/assembly/`.
+Druck und Zusammenbau: **[doc/assembly.pdf](doc/assembly.pdf)**, gebaut aus `doc/assembly/`. Bedienung:
+[doc/usage.md](doc/usage.md). Klopfsensoren, Podcast-Technik und Token-Bogen im Detail: [doc/development.md](doc/development.md). Welche
+Lizenz für welchen Ordner gilt: [LICENSE.md](LICENSE.md).
 
 ## Regeln
 

@@ -23,7 +23,11 @@ Ohne `--figures` braucht der Build nur ReportLab, Pillow, svglib und pdfrw, die 
 | Datei | Inhalt |
 |---|---|
 | `content.py` | Der ganze Text: Kapitel, Tabellen, Schritte, Hinweise, Bildunterschriften und die Beschriftungen der Bilder |
+<<<<<<< HEAD
 | `layout.py` | Seitenlayout, Schriften, Farben und Bausteine: Schritt, Hinweis, beschriftetes Bild, Diagramme, Bestückungsplan (`PcbView`), Fotos, Schaltplan- und SVG-Seiten |
+=======
+| `layout.py` | Seitenlayout, Schriften, Farben und Bausteine: Schritt, Hinweis, beschriftetes Bild, Schichtdiagramm, Parallelschaltung, Lichtleiter |
+>>>>>>> 25e2960d7aa34102d2d0a27d80930b01dce578b1
 | `figures.py` | Rendert die Bilder aus `models/box.step` nach `fig/` |
 | `lib/step.py` | Liest das STEP-Modell mit OpenCascade (OCP) und vernetzt die Teile |
 | `lib/kicad.py` | Liest die KiCad-Platinen (Umriss, Footprints, Pads, Beschriftung) für die Bestückungspläne |

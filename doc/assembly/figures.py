@@ -213,7 +213,11 @@ if 'overview' in which:
     im, prj = render([part(k) for k in P if k != 'pcb_spacer'], view=VA, size=(1000,920), ss=2, margin=0.07)
     save(im, 'overview_a', {'token':(37.7,45,ztop(37.7,45,103.988)), 'knob':(10.6,17.5,107.6), 'led':(65,17.5,ztop(65,17.5,98.988)),
          'grill':(87.2,45,49.8), 'prev':(38.6,-1,45.6), 'handle':(39.7,-6,77.2), 'lid':(70,60,ztop(70,60,98.988))}, prj)
+<<<<<<< HEAD
     im, prj = render([part(k) for k in P if k != 'pcb_spacer'], view=VB, size=(1000,920), ss=2, margin=0.07)
+=======
+    im, prj = render([part(k) for k in P], view=VB, size=(1000,920), ss=2, margin=0.07)
+>>>>>>> 25e2960d7aa34102d2d0a27d80930b01dce578b1
     save(im, 'overview_b', {'usb':(-9.8,45,19.25), 'chg':(-9.8,45,24.25), 'next':(38.6,91,45.6), 'jack':(10,72.5,ztop(10,72.5,98.988)),
          'handle':(39.7,96,77.2), 'bumper':(-4,60,5.5), 'curved':(-9.8,70,50)}, prj)
     # both views side by side as one figure; anchors get a/b prefixes

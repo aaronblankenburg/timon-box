@@ -266,6 +266,7 @@ class LightPipeDiagram(Flowable):
         lab(X(5.5), Y(28.5), rx, Y(21.0), 'Filament 1,75 mm', 'darf gebogen verlaufen')
         c.restoreState()
 
+<<<<<<< HEAD
 class PcbView(Flowable):
     """Assembly drawing of one board side from a KiCad file: outline, pads, part bodies and references.
 
@@ -434,6 +435,8 @@ class SvgPage(Flowable):
         c.saveState(); c.translate(self.width/2, self.height/2); c.rotate(90); c.scale(s, s); c.translate(-dw/2, -dh/2)
         renderPDF.draw(self.d, c, 0, 0); c.restoreState()
 
+=======
+>>>>>>> 25e2960d7aa34102d2d0a27d80930b01dce578b1
 class NumberedCanvas(rl_canvas.Canvas):
     def __init__(self, *a, **k): super().__init__(*a, **k); self._states = []
     def showPage(self): self._states.append(dict(self.__dict__)); self._startPage()

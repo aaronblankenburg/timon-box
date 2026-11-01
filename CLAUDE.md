@@ -29,8 +29,8 @@ Lizenz für welchen Ordner gilt: [LICENSE.md](LICENSE.md).
 - **Kein passwortloses sudo** auf diesem Rechner (zazu). Kein tcpdump, kein `ip neigh replace`.
 - **Doku pflegen:** Wer ein Teilsystem ändert, passt den Abschnitt in `doc/architecture.md` im selben Commit an. Neue
   Fallstricke kommen hier unten dazu, neue Zustände oder Timeouts auch in `doc/state-machine.html`.
-- **Bauanleitung:** `doc/assembly.pdf` nie direkt bearbeiten. Text und Schritte stehen in
-  `doc/assembly/content.py`, die Bilder rendert `doc/assembly/figures.py` aus `models/box.step`. Danach
+- **Bauanleitung:** `doc/assembly.pdf` und `doc/assembly-en.pdf` nie direkt bearbeiten. Text und Schritte stehen in
+  `doc/assembly/content.py`, jeder Text als Paar `T('deutsch', 'English')`: immer beide Hälften pflegen, die Bilder rendert `doc/assembly/figures.py` aus `models/box.step`. Danach
   `doc/assembly/build.sh` laufen lassen (mit `--figures`, wenn sich das Modell geändert hat) und das PDF im selben
   Commit mitnehmen. Kapitel 5 (Elektronik) fasst `doc/hardware.md` zusammen und zeichnet die Bestückungspläne aus
   den KiCad-Dateien: Wer `doc/hardware.md` oder die Platinen ändert, zieht `content.py` im selben Commit nach. Mehr

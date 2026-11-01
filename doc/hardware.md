@@ -71,6 +71,7 @@ flowchart LR
 | `models/plates/` | Fertige Druckbetten als 3MF, eins pro Farbe, dazu ein Bambu-Studio-Projekt mit allen Betten |
 | `models/stl/` | Jedes Druckteil als STL, in Druckausrichtung |
 | `doc/assembly.pdf` | Bauanleitung: Elektronik, Druck und Zusammenbau, gebaut aus `doc/assembly/` |
+| `doc/assembly-en.pdf` | Dieselbe Bauanleitung auf Englisch |
 | `sdcard/` | `tap.mp3` und `alert.mp3` fürs Wurzelverzeichnis der SD-Karte |
 
 Die Projekte sind mit KiCad 8 gezeichnet. Die Symbole stecken im Schaltplan, die Footprints in der Platine. Die Gerber

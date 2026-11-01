@@ -27,7 +27,8 @@ Die Box besteht aus einem 3D-gedruckten Gehäuse, zwei kleinen Platinen und ein 
 Verstärker, SD-Karte, RFID-Leser und Lademodul. Man braucht einen 3D-Drucker und einen Lötkolben mit feiner Spitze,
 denn einige Bauteile sind SMD in 0805.
 
-**Die Bauanleitung [doc/assembly.pdf](doc/assembly.pdf) führt durch alles:** Teileliste, Platinen bestücken, Gehäuse
+**Die Bauanleitung [doc/assembly.pdf](doc/assembly.pdf) führt durch alles** (auf Englisch:
+[doc/assembly-en.pdf](doc/assembly-en.pdf)): Teileliste, Platinen bestücken, Gehäuse
 drucken, zusammenbauen und die Firmware aufspielen. Jeder Schritt hat ein Bild.
 
 <p align="center">
@@ -70,7 +71,7 @@ als Android-App in [android/](android/).
 | Datei | Inhalt |
 |---|---|
 | [doc/usage.md](doc/usage.md) | Bedienung: Tokens, LED, Musik hochladen, Podcasts, Bluetooth |
-| [doc/assembly.pdf](doc/assembly.pdf) | Bauanleitung: Elektronik, Druck und Zusammenbau |
+| [doc/assembly.pdf](doc/assembly.pdf) | Bauanleitung: Elektronik, Druck und Zusammenbau, auf Englisch [doc/assembly-en.pdf](doc/assembly-en.pdf) |
 | [doc/hardware.md](doc/hardware.md) | Elektronik: Teile, Platinen, Verkabelung, Inbetriebnahme |
 | [doc/architecture.md](doc/architecture.md) | Firmware Modul für Modul |
 | [doc/development.md](doc/development.md) | Entwickeln: Klopfsensoren, Podcast-Technik, Tests, Android-App |

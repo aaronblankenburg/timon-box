@@ -1,7 +1,8 @@
-# Quellen für doc/assembly.pdf
+# Quellen für doc/assembly.pdf und doc/assembly-en.pdf
 
-[`doc/assembly.pdf`](../assembly.pdf) ist die Bauanleitung: Elektronik, Druck und Zusammenbau. Das PDF wird aus diesem
-Ordner gebaut und nie direkt bearbeitet: Quellen ändern, neu bauen, PDF im selben Commit mitnehmen.
+[`doc/assembly.pdf`](../assembly.pdf) ist die Bauanleitung: Elektronik, Druck und Zusammenbau, auf Englisch
+[`doc/assembly-en.pdf`](../assembly-en.pdf). Beide PDFs werden aus diesem Ordner gebaut und nie direkt bearbeitet:
+Quellen ändern, neu bauen, beide PDFs im selben Commit mitnehmen.
 
 Außer den Dateien hier liest der Build `models/box.step` (nur `figures.py`), die KiCad-Platinen, Schaltpläne und das
 WireViz-SVG unter `hardware/` und die Fotos unter `assets/`. Kapitel 5 fasst `doc/hardware.md` zusammen; ändert sich
@@ -11,7 +12,8 @@ dort etwas, `content.py` nachziehen.
 
 ```bash
 pip install -r requirements.txt     # einmalig, cadquery-ocp braucht man nur für --figures
-./build.sh                          # PDF aus content.py und den Bildern in fig/
+./build.sh                          # beide PDFs aus content.py und den Bildern in fig/
+./build.sh --lang en                # nur eine Sprache
 ./build.sh --figures                # vorher alle Bilder neu aus models/box.step rendern, dauert einige Minuten
 ./build.sh --figures lid door       # nur diese Bilder neu rendern
 python3 export_print_files.py       # Druckteile als STL nach models/stl/, Druckbetten als 3MF nach models/plates/
@@ -21,11 +23,32 @@ python3 figures.py thingiverse      # Bilder für die Thingiverse-Seite nach fig
 
 Ohne `--figures` braucht der Build nur ReportLab, Pillow, svglib und pdfrw, die Bilder liegen fertig in `fig/`.
 
+## Zwei Sprachen
+
+Jeder Text steht in `content.py` und `layout.py` als Paar direkt nebeneinander:
+
+```python
+step(5, T('SD-Modul kürzen', 'Shorten the SD module'), ...)
+```
+
+`T()` aus `i18n.py` liefert je nach `ASSEMBLY_LANG` (`de` oder `en`) die passende Hälfte. Wer einen Text ändert,
+ändert beide Hälften. Text, der in beiden Sprachen gleich ist, etwa Teilenummern, Signal- und Dateinamen, braucht
+kein `T()`.
+
+Der englische Build meldet, was noch Deutsch ist: `T()` ohne englischen Text, deutsch aussehende Texte ohne `T()`
+und deutsche Beschriftungen im Verdrahtungsdiagramm. Ist die Liste leer, ist das englische PDF vollständig.
+
+Das Verdrahtungsdiagramm im Anhang kommt aus `hardware/wiring/power-side.yml`. Für Englisch tauscht `wiring.py` die
+Beschriftungen aus (`WIRING_EN`) und lässt WireViz `hardware/wiring/power-side-en.svg` rendern. Das passiert bei
+jedem englischen Build, wenn `wireviz` und Graphviz installiert sind; sonst nimmt er das eingecheckte SVG.
+
 ## Dateien
 
 | Datei | Inhalt |
 |---|---|
-| `content.py` | Der ganze Text: Kapitel, Tabellen, Schritte, Hinweise, Bildunterschriften und die Beschriftungen der Bilder |
+| `content.py` | Der ganze Text, deutsch und englisch: Kapitel, Tabellen, Schritte, Hinweise, Bildunterschriften und die Beschriftungen der Bilder |
+| `i18n.py` | `T('deutsch', 'English')`, Sprachwahl über `ASSEMBLY_LANG` und die Prüfung auf fehlende Übersetzungen |
+| `wiring.py` | Englische Beschriftungen für das Verdrahtungsdiagramm, rendert `power-side-en.svg` mit WireViz |
 | `layout.py` | Seitenlayout, Schriften, Farben und Bausteine: Schritt, Hinweis, beschriftetes Bild, Diagramme, Bestückungsplan (`PcbView`), Fotos, Schaltplan- und SVG-Seiten |
 | `figures.py` | Rendert die Bilder aus `models/box.step` nach `fig/`, mit dem Ziel `thingiverse` auch die Galerie für Thingiverse |
 | `export_print_files.py` | Schreibt jedes Druckteil als STL nach `models/stl/`, gedreht wie in der Tabelle in Kapitel 3, und die Druckbetten nach `models/plates/`: eine 3MF pro Farbe, für PrusaSlicer mit den Einstellungen aus Kapitel 3 und der Pause für die Tokens. Welche Teile auf welchem Bett liegen, steht in `PLATES` |

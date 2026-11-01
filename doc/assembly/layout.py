@@ -1,4 +1,7 @@
-"""Page layout, fonts, colours and building blocks of doc/assembly.pdf. The text lives in content.py."""
+"""Page layout, fonts, colours and building blocks of the build guide. The text lives in content.py.
+
+Labels drawn here are T('deutsch', 'English') pairs as well, see i18n.py.
+"""
 import json, math
 from pathlib import Path
 from PIL import Image as PILImage
@@ -14,6 +17,7 @@ from reportlab.platypus import (BaseDocTemplate, PageTemplate, Frame, Paragraph,
                                 KeepTogether, PageBreak, NextPageTemplate, Flowable, ListFlowable, CondPageBreak)
 from reportlab.platypus.doctemplate import Indenter
 from reportlab.platypus.tableofcontents import TableOfContents
+from i18n import T
 from reportlab.pdfgen import canvas as rl_canvas
 from reportlab.lib.utils import simpleSplit
 
@@ -30,9 +34,11 @@ ACC2=HexColor('#447766'); TINT=HexColor('#e7f0ec'); DARK=HexColor('#1b2a26'); WA
 WARN_BG=HexColor('#fdf0e7'); TIP_BG=HexColor('#eaf3ef'); INFO=HexColor('#3d6fb6'); INFO_BG=HexColor('#edf2fa')
 ORANGE=HexColor('#e2701f')
 W, H = A4; LM = 18*mm; FW = W - 2*LM
-CHIPS = {'CA':('Sekundenkleber','#f08a24'), 'EP':('2K-Kleber','#d9534f'), 'UV':('UV-Lack','#8b6cc9'),
-         'HG':('Heißkleber','#e3b23c'), 'TB':('Doppelseitiges Klebeband','#6f9ef0'), 'LK':('Lötkolben','#7a8580'),
-         'SL':('Schleifen und Lack (optional)','#a9b4af'), 'EL':('Elektronik aus Kapitel 5','#2f5fa8')}
+CHIPS = {'CA':(T('Sekundenkleber', 'Super glue'),'#f08a24'), 'EP':(T('2K-Kleber', '2-part epoxy'),'#d9534f'),
+         'UV':(T('UV-Lack', 'UV resin'),'#8b6cc9'), 'HG':(T('Heißkleber', 'Hot glue'),'#e3b23c'),
+         'TB':(T('Doppelseitiges Klebeband', 'Double-sided tape'),'#6f9ef0'), 'LK':(T('Lötkolben', 'Soldering iron'),'#7a8580'),
+         'SL':(T('Schleifen und Lack (optional)', 'Sanding and paint (optional)'),'#a9b4af'),
+         'EL':(T('Elektronik aus Kapitel 5', 'Electronics from chapter 5'),'#2f5fa8')}
 
 S = {}
 S['body'] = ParagraphStyle('body', fontName='Plex', fontSize=9.3, leading=13.6, textColor=INK, spaceAfter=6)
@@ -55,7 +61,7 @@ def pn(n, size=7.9): return f'<font name="Mono" size="{size}" color="#2f6b5a">{n
 def P(t, s='body'): return Paragraph(t, S[s])
 FIGN = [0]
 def cap(t):
-    FIGN[0] += 1; return P(f'<font name="Plex-SB">Abb. {FIGN[0]}</font>  {t}', 'cap')
+    FIGN[0] += 1; return P(f'<font name="Plex-SB">{T("Abb.", "Fig.")} {FIGN[0]}</font>  {t}', 'cap')
 
 class H1(Paragraph):
     def __init__(self, num, title):
@@ -70,7 +76,8 @@ def table(rows, cw, head=True, fs=None):
     t.setStyle(TableStyle(st)); return t
 
 def note(text, kind='tip', width=None):
-    bg, border, label = {'tip':(TIP_BG, ACCENT, 'Tipp'), 'warn':(WARN_BG, WARN, 'Achtung'), 'info':(INFO_BG, INFO, 'Hinweis')}[kind]
+    bg, border, label = {'tip':(TIP_BG, ACCENT, T('Tipp', 'Tip')), 'warn':(WARN_BG, WARN, T('Achtung', 'Caution')),
+                        'info':(INFO_BG, INFO, T('Hinweis', 'Note'))}[kind]
     p = Paragraph(f'<font name="Plex-SB" color="{border.hexval().replace("0x","#")}">{label}:</font> {text}', S['note'])
     t = Table([[p]], colWidths=[width or FW])
     t.setStyle(TableStyle([('BACKGROUND',(0,0),(-1,-1),bg), ('LINEBEFORE',(0,0),(0,-1),2.6,border),
@@ -172,9 +179,11 @@ class LayerDiagram(Flowable):
         c = self.canv; x0, x1 = 2, 88; rh = 15; gap = 13; y0 = 16; lx = x1 + 9
         SAL = HexColor('#eeb397'); SALD = HexColor('#d98f6e'); TAG = HexColor('#c77d3a')
         c.setFillColor(HexColor('#d5dce1')); c.rect(x0-2, y0-6, x1-x0+4, 5.4, stroke=0, fill=1)
-        c.setFont('Plex', 6.7); c.setFillColor(MUTED); c.drawString(lx, y0-5.2, 'Druckbett')
-        rows = [('Z 0–14,4', 'Token, Oberseite auf dem Bett', 'rest'), ('Z 14,4–14,6', 'Tasche', 'pocket'),
-                ('Z 14,6–14,8', 'Tasche', 'pocket'), ('Z 14,8–15,0', 'letzte Schicht, schließt die Tasche', 'cover')]
+        c.setFont('Plex', 6.7); c.setFillColor(MUTED); c.drawString(lx, y0-5.2, T('Druckbett', 'Print bed'))
+        rows = [(T('Z 0–14,4', 'Z 0–14.4'), T('Token, Oberseite auf dem Bett', 'token, top side on the bed'), 'rest'),
+                (T('Z 14,4–14,6', 'Z 14.4–14.6'), T('Tasche', 'pocket'), 'pocket'),
+                (T('Z 14,6–14,8', 'Z 14.6–14.8'), T('Tasche', 'pocket'), 'pocket'),
+                (T('Z 14,8–15,0', 'Z 14.8–15.0'), T('letzte Schicht, schließt die Tasche', 'last layer, closes the pocket'), 'cover')]
         px0, px1 = x0 + (x1-x0)*0.2, x0 + (x1-x0)*0.8
         for i, (lab, txt, kind) in enumerate(rows):
             yy = y0 + i*rh + (gap if i == 3 else 0); hh = rh - 1.6
@@ -185,7 +194,7 @@ class LayerDiagram(Flowable):
                 c.setFillColor(SAL); c.rect(x0, yy, px0-x0, hh, stroke=1, fill=1); c.rect(px1, yy, x1-px1, hh, stroke=1, fill=1)
                 if i == 1:
                     c.setFillColor(TAG); c.rect(px0+3, yy, px1-px0-6, 5.5, stroke=0, fill=1)
-                    c.setFont('Plex-SB', 6.6); c.setFillColor(TAG); c.drawCentredString((px0+px1)/2, yy+7.6, 'NFC-Tag')
+                    c.setFont('Plex-SB', 6.6); c.setFillColor(TAG); c.drawCentredString((px0+px1)/2, yy+7.6, T('NFC-Tag', 'NFC tag'))
             else:
                 c.setFillColor(HexColor('#f7e3d9')); c.setDash(2.2, 1.6); c.setStrokeColor(ORANGE); c.setLineWidth(0.9)
                 c.rect(x0, yy, x1-x0, hh, stroke=1, fill=1); c.setDash()
@@ -193,7 +202,7 @@ class LayerDiagram(Flowable):
             c.setFont('Plex', 6.8); c.setFillColor(MUTED); c.drawString(lx + stringWidth(lab, 'Plex-SB', 7.1) + 5, yy+hh/2-2.4, txt)
         yp = y0 + 3*rh + gap/2 - 0.8
         c.setStrokeColor(ORANGE); c.setLineWidth(1.2); c.setDash(3, 2); c.line(0, yp, lx-4, yp); c.setDash()
-        c.setFillColor(ORANGE); c.setFont('Plex-SB', 7.2); c.drawString(lx, yp-2.4, 'Pause: Tag einlegen')
+        c.setFillColor(ORANGE); c.setFont('Plex-SB', 7.2); c.drawString(lx, yp-2.4, T('Pause: Tag einlegen', 'Pause: insert the tag'))
 
 class ParallelDiagram(Flowable):
     def __init__(self, width=86*mm, height=40*mm): super().__init__(); self.width=width; self.height=height
@@ -201,7 +210,7 @@ class ParallelDiagram(Flowable):
     def draw(self):
         c = self.canv; WRAPC=HexColor('#3e58a6'); NIC=HexColor('#c9cdd2'); KAP=HexColor('#d9952e'); REDC=HexColor('#c8322b'); BLKC=HexColor('#2b2b2b')
         yb, ch, cw = 30, 48, 20; yt = yb+ch; ytop = yt+15; ybot = yb-13; bx0, bx1 = 150, self.width-4
-        cells = [(16, 'Zelle 1', 'vorn links'), (78, 'Zelle 2', 'hinten rechts')]
+        cells = [(16, T('Zelle 1', 'Cell 1'), T('vorn links', 'front left')), (78, T('Zelle 2', 'Cell 2'), T('hinten rechts', 'back right'))]
         c.saveState(); c.setLineCap(1); c.setLineJoin(1); c.setLineWidth(2.2)
         x1, x2 = cells[0][0]+cw/2, cells[1][0]+cw/2
         c.setStrokeColor(REDC); p = c.beginPath(); p.moveTo(x1, yt+5); p.lineTo(x1, ytop); p.lineTo(bx0, ytop); c.drawPath(p, stroke=1, fill=0); c.line(x2, yt+5, x2, ytop)
@@ -218,7 +227,7 @@ class ParallelDiagram(Flowable):
         c.roundRect(bx0, ybot-10, bx1-bx0, (ytop+10)-(ybot-10), 4, stroke=1, fill=1)
         c.setFillColor(HexColor('#2f5fa8')); c.setFont('Plex-SB', 8.4); c.drawCentredString((bx0+bx1)/2+6, (ytop+ybot)/2-3, 'TP4056')
         c.setFont('Plex-SB', 7.6); c.setFillColor(REDC); c.drawString(bx0+6, ytop-2.7, 'B+'); c.setFillColor(BLKC); c.drawString(bx0+6, ybot-2.7, 'B−')
-        c.setFillColor(KAP); c.roundRect(4, 2, 8, 4.6, 1.2, stroke=0, fill=1); c.setFillColor(MUTED); c.setFont('Plex', 6.6); c.drawString(15, 2.6, 'Kapton über den Lötstellen')
+        c.setFillColor(KAP); c.roundRect(4, 2, 8, 4.6, 1.2, stroke=0, fill=1); c.setFillColor(MUTED); c.setFont('Plex', 6.6); c.drawString(15, 2.6, T('Kapton über den Lötstellen', 'Kapton over the solder joints'))
         c.restoreState()
 
 class LightPipeDiagram(Flowable):
@@ -249,21 +258,21 @@ class LightPipeDiagram(Flowable):
         c.setStrokeColor(HexColor('#d6edf5')); c.setLineWidth(1.75*s - 1.4); c.drawPath(pipe(), stroke=1, fill=0)
         c.setLineWidth(0.6); c.setFillColor(HexColor('#f6b3ae')); c.circle(X(0)-2.6, Y(24.25), 3.2, stroke=0, fill=1)
         c.setFillColor(MUTED); c.setFont('Plex-SB', 6.6)
-        c.drawRightString(X(0)-3, Y(Z0)-9, 'AUSSEN'); c.drawString(X(3)+3, Y(Z0)-9, 'INNEN')
+        c.drawRightString(X(0)-3, Y(Z0)-9, T('AUSSEN', 'OUTSIDE')); c.drawString(X(3)+3, Y(Z0)-9, T('INNEN', 'INSIDE'))
         def lab(ax, ay, lx, ly, text, sub=None, right=False):
             leader(c, ax, ay, lx, ly)
             draw = c.drawRightString if right else c.drawString; dx = -2.5 if right else 2.5
             c.setFont('Plex-Med', 7.5); c.setFillColor(INK); draw(lx + dx, ly + (1.2 if sub else -2.5), text)
             if sub:
                 c.setFont('Plex', 6.8); c.setFillColor(MUTED); draw(lx + dx, ly - 7.2, sub)
-        lab(X(0)-2.6, Y(24.25), X(0)-26, Y(29.0), 'Ladeanzeige', 'Filament außen bündig', right=True)
+        lab(X(0)-2.6, Y(24.25), X(0)-26, Y(29.0), T('Ladeanzeige', 'Charge indicator'), T('Filament außen bündig', 'filament flush outside'), right=True)
         lab(X(0)+2.0, Y(19.25), X(0)-26, Y(18.0), 'USB-C', right=True)
         rx = X(bx+4.0) + 16
-        lab(X(1.5), Y(43.8), rx, Y(44.5), 'Rückwand, 3 mm')
-        lab(X(6.0), Y(41.5), rx, Y(39.5), '2K-Kleber', 'hält auch, wenn es warm wird')
-        lab(X(bx+0.7), Y(38.0), rx, Y(33.5), 'TP4056 auf der Power Latch', 'Modulseite zur Wand')
-        lab(X(bx-0.45), Y(zl), rx, Y(27.5), 'Lade-LED')
-        lab(X(5.5), Y(28.5), rx, Y(21.0), 'Filament 1,75 mm', 'darf gebogen verlaufen')
+        lab(X(1.5), Y(43.8), rx, Y(44.5), T('Rückwand, 3 mm', 'Back wall, 3 mm'))
+        lab(X(6.0), Y(41.5), rx, Y(39.5), T('2K-Kleber', '2-part epoxy'), T('hält auch, wenn es warm wird', 'holds even when it gets warm'))
+        lab(X(bx+0.7), Y(38.0), rx, Y(33.5), T('TP4056 auf der Power Latch', 'TP4056 on the power latch'), T('Modulseite zur Wand', 'module side to the wall'))
+        lab(X(bx-0.45), Y(zl), rx, Y(27.5), T('Lade-LED', 'Charge LED'))
+        lab(X(5.5), Y(28.5), rx, Y(21.0), T('Filament 1,75 mm', 'Filament 1.75 mm'), T('darf gebogen verlaufen', 'may run in a bend'))
         c.restoreState()
 
 class PcbView(Flowable):
@@ -394,6 +403,7 @@ def photos(items, cols=3, gap=5*mm, width=None):
 
 WIRES = {'rot': '#d23a2f', 'schwarz': '#2b2b2b', 'blau': '#2f6fd0', 'gelb': '#f2c230', 'orange': '#f08a24',
          'grün': '#3a9a4a', 'weiß': '#ffffff'}
+WIRES_EN = {'rot': 'red', 'schwarz': 'black', 'blau': 'blue', 'gelb': 'yellow', 'orange': 'orange', 'grün': 'green', 'weiß': 'white'}
 
 
 class Wire(Flowable):
@@ -402,7 +412,7 @@ class Wire(Flowable):
     def wrap(self, aw, ah): return self.width, self.height
     def draw(self):
         c = self.canv; c.setFillColor(HexColor(WIRES[self.name])); c.setStrokeColor(HexColor('#8a9590')); c.setLineWidth(0.5)
-        c.roundRect(0, 1, 14, 6, 3, stroke=1, fill=1); c.setFillColor(INK); c.setFont('Plex', 8.3); c.drawString(19, 1.4, self.name)
+        c.roundRect(0, 1, 14, 6, 3, stroke=1, fill=1); c.setFillColor(INK); c.setFont('Plex', 8.3); c.drawString(19, 1.4, T(self.name, WIRES_EN[self.name]))
 
 
 class PdfPage(Flowable):
@@ -442,7 +452,7 @@ class NumberedCanvas(rl_canvas.Canvas):
         for st in self._states:
             self.__dict__.update(st)
             if self._pageNumber > 1:
-                self.setFont('Plex', 7.4); self.setFillColor(MUTED); self.drawRightString(W-LM, 9*mm, f'Seite {self._pageNumber} von {n}')
+                self.setFont('Plex', 7.4); self.setFillColor(MUTED); self.drawRightString(W-LM, 9*mm, T(f'Seite {self._pageNumber} von {n}', f'Page {self._pageNumber} of {n}'))
             super().showPage()
         super().save()
 

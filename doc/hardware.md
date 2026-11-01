@@ -66,8 +66,10 @@ flowchart LR
 | `hardware/power-latch/power-latch-v2-schematic.pdf` | Schaltplan |
 | `hardware/power-latch/power-latch-v2-gerber.zip` | Gerber und Bohrdaten, 2 Lagen |
 | `hardware/wiring/power-side.yml` | Verdrahtung der Stromseite für WireViz, daraus `power-side.svg` |
-| `models/box.step` | CAD-Modell des Gehäuses (Onshape-Export), alle Teile in Einbaulage |
+| `models/box.step` | CAD-Modell des Gehäuses, alle Teile in Einbaulage |
 | `models/pcb_spacer.step` | Abstandshalter zwischen Hauptplatine und RC522 |
+| `models/plates/` | Fertige Druckbetten als 3MF, eins pro Farbe, dazu ein Bambu-Studio-Projekt mit allen Betten |
+| `models/stl/` | Jedes Druckteil als STL, in Druckausrichtung |
 | `doc/assembly.pdf` | Bauanleitung: Elektronik, Druck und Zusammenbau, gebaut aus `doc/assembly/` |
 | `sdcard/` | `tap.mp3` und `alert.mp3` fürs Wurzelverzeichnis der SD-Karte |
 

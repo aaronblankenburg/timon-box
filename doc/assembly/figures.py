@@ -6,7 +6,7 @@ Coordinates are model millimetres: x to the front (speaker), y to the right (nex
 import pickle, json, sys, os, time
 from pathlib import Path
 import numpy as np
-from PIL import Image
+from PIL import Image, ImageDraw, ImageFont
 from lib.render import render, clip_mesh, hexc, nrm, camera
 from lib import prim
 from lib.step import load_parts
@@ -204,6 +204,9 @@ def cable(T_stack, R_stack, info, lift=0.0, ends=None):
 
 which = sys.argv[1:] or ['hero','overview','exploded','tiles','token','inserts','shell','inside','lid','door','akkus','lid_full','lidopen','spacer_stack','strap','lid_stack','readme_hero']
 VA = (1.0,-1.25,0.8); VB = (-1.0,1.3,0.7)
+# print orientation: part -> direction (in assembly position) that points up on the bed
+TILES = [('frame',(0,0,1)), ('front',t), ('back',(0,0,-1)), ('door',(0,0,-1)), ('bumper',(0,0,-1)),
+         ('speaker grill',(-1,0,0)), ('prev button',(0,1,0)), ('next button',(0,-1,0)), ('volume',-t), ('token',-t), ('pcb_spacer',(0,0,1))]
 
 if 'hero' in which:
     t0=time.time(); im, prj = render([part(k) for k in P if k != 'pcb_spacer'] + [strap()], view=VA, size=(1400,1250), ss=2, transparent=True, margin=0.03)
@@ -240,8 +243,6 @@ if 'exploded' in which:
     save(im, 'exploded', anc, prj); tic('exploded', t0)
 if 'tiles' in which:
     t0=time.time()
-    TILES = [('frame',(0,0,1)), ('front',t), ('back',(0,0,-1)), ('door',(0,0,-1)), ('bumper',(0,0,-1)),
-             ('speaker grill',(-1,0,0)), ('prev button',(0,1,0)), ('next button',(0,-1,0)), ('volume',-t), ('token',-t), ('pcb_spacer',(0,0,1))]
     TV = (1,-1.3,1.05); TS = (620,470)
     def tile_items(name, up):
         p = oriented(name, up); V = p['V']; lo, hi = V.min(0), V.max(0); m = 5 + 0.06*max(hi[0]-lo[0], hi[1]-lo[1])
@@ -366,6 +367,86 @@ if 'readme_hero' in which:
     im, prj = render([part(k) for k in P if k != 'pcb_spacer'] + [strap()], view=VA, size=(1100,1200), ss=2, margin=0.04)
     save(im, 'readme_hero', {}, prj, crop=True)
     tic('readme_hero', t0)
+
+if 'thingiverse' in which:
+    # Images for the Thingiverse page (not part of the PDF): 4:3 on white, the object centred with room around it,
+    # because Thingiverse crops previews to other ratios. Written to fig/thingiverse/.
+    t0 = time.time(); TV = OUT + 'thingiverse/'; os.makedirs(TV, exist_ok=True); SZ = (1600, 1200)
+    Ct, nt, At = tri_info(P['token'])
+    TOP = {max(fids('token', t), key=lambda f: float((Ct[P['token']['FID'] == f] @ t).max()))}   # picture side
+    PIC = [hexc('#e8a33d'), hexc('#d8643f'), hexc('#4f86c6'), hexc('#7bb662')]
+    ZMIN = min(float(P[k]['V'][:, 2].min()) for k in P if k != 'pcb_spacer')
+    def box_items(off=(0, 0, 0), body=None, pic=PIC[0], strap_=True):
+        its = []
+        for k in P:
+            if k == 'pcb_spacer': continue
+            kw = dict(offset=off)
+            if body is not None and k in ('frame', 'door', 'volume'): kw['color'] = body
+            if k == 'token': kw['face_colors'] = [(TOP, pic)]
+            its.append(part(k, **kw))
+        if strap_:
+            st_ = strap(); st_ = dict(st_); st_['offset'] = off; its.append(st_)
+        return its
+    def loose_token(x, y, pic, turn=0.0):
+        p = oriented('token', t, face_colors=[(TOP, pic)])
+        c, s_ = np.cos(np.radians(turn)), np.sin(np.radians(turn)); Rz = np.array([[c, -s_, 0], [s_, c, 0], [0, 0, 1.0]])
+        p['V'] = p['V'] @ Rz.T; p['N'] = p['N'] @ Rz.T; p['offset'] = (x, y, ZMIN); return p
+    def fitpts(its): return np.concatenate([it['V'] + np.asarray(it.get('offset', (0, 0, 0)), float) for it in its])
+    def canvas(im, name, fill=0.88):
+        a = np.asarray(im.convert('L')); ys, xs = np.nonzero(a < 248)
+        im = im.crop((int(xs.min()), int(ys.min()), int(xs.max()) + 1, int(ys.max()) + 1))
+        s_ = min(SZ[0]*fill/im.width, SZ[1]*fill/im.height); im = im.resize((round(im.width*s_), round(im.height*s_)), Image.LANCZOS)
+        c = Image.new('RGB', SZ, 'white'); c.paste(im, ((SZ[0]-im.width)//2, (SZ[1]-im.height)//2)); c.save(TV + name + '.jpg', quality=92, subsampling=0)
+        return s_, ((SZ[0]-im.width)//2, (SZ[1]-im.height)//2), (int(xs.min()), int(ys.min()))
+    # 1: two boxes and a few tokens
+    A = box_items(pic=PIC[0]); B = box_items(off=(64, 128, 0), body=hexc('#c4573a'), pic=PIC[2], strap_=False)
+    toks = [loose_token(150, -40, PIC[1], 10), loose_token(118, -92, PIC[3], 40), loose_token(196, 4, PIC[2], 70)]
+    im, _ = render(A + B + toks, view=VA, size=SZ, ss=2, margin=0.09)
+    im.save(TV + '01_cover.jpg', quality=92, subsampling=0)
+    # 2: back with USB-C, charge light and the strap lugs
+    A = box_items(pic=PIC[1])
+    im, _ = render(A, view=(-1.5, 0.8, 0.75), size=SZ, ss=2, margin=0.1)
+    im.save(TV + '02_back.jpg', quality=92, subsampling=0)
+    # 3: exploded view
+    canvas(Image.open(OUT + 'exploded.jpg'), '03_exploded', 0.92)
+    # 5: open lid, electronics inside
+    canvas(Image.open(OUT + 'lidopen.jpg'), '05_inside', 0.92)
+    # 6: token in section with the NFC tag, labelled in English
+    src = Image.open(OUT + 'token_section.jpg'); anc = json.load(open(OUT + 'token_section.json'))['anchors']
+    s_, (ox, oy), (cx, cy) = canvas(src, '06_token', 0.86)
+    im = Image.open(TV + '06_token.jpg'); dr = ImageDraw.Draw(im)
+    fnt = ImageFont.truetype(str(HERE/'fonts'/'IBMPlexSans-Medium.ttf'), 34); sub = ImageFont.truetype(str(HERE/'fonts'/'IBMPlexSans-Regular.ttf'), 28)
+    def at(k): return ((anc[k][0]-cx)*s_ + ox, (anc[k][1]-cy)*s_ + oy)
+    ink = (34, 38, 42)
+    for k, ty, head, line2 in (('pocket', 150, 'NFC tag', 'drop it in during a print pause before Z = 15.0 mm'),
+                               ('top', 1040, 'Picture side on the bed', 'the top of the token prints face down')):
+        x_, y_ = at(k); w = max(fnt.getlength(head), sub.getlength(line2))
+        tx = min(max(100, x_ - 40), SZ[0] - 100 - w)               # keep the text on the canvas
+        dr.line([(x_, y_), (x_, ty + (76 if ty < 600 else -14))], fill=ink, width=3); dr.ellipse([x_-7, y_-7, x_+7, y_+7], fill=ink)
+        dr.text((tx, ty - 6), head, font=fnt, fill=ink); dr.text((tx, ty + 34), line2, font=sub, fill=(90, 96, 102))
+    im.save(TV + '06_token.jpg', quality=92, subsampling=0)
+    # 4: the ready-made plates from export_print_files.py, one per colour
+    from export_print_files import PLATES, layout
+    UPS = dict(TILES); CAPS = ['1 · Frame, hatch, knob', '2 · Lid, bottom ring, buttons', '3 · Grill, spacer',
+                               '4 · Bumper, TPU', '5 · Tokens, pause at 15 mm']
+    sheet = Image.new('RGB', SZ, 'white'); dr = ImageDraw.Draw(sheet); cap = ImageFont.truetype(str(HERE/'fonts'/'IBMPlexSans-Medium.ttf'), 30)
+    cw, ch = SZ[0] // 3, SZ[1] // 2
+    for i, (name, cols) in enumerate(PLATES):
+        ps = {k: oriented(k, UPS[k]) for col in cols for k in col}
+        if 'token' in ps: ps['token']['face_colors'] = [(TOP, PIC[0])]
+        its = [dict(ps[k], offset=(xy[0], xy[1], 0.0)) for k, xy in layout(cols, ps)]
+        bed = prim.box((120, 105, -0.75), (230, 220, 1.5), BED)
+        im, _ = render(its + [bed], view=(0.55, -1.0, 1.25), size=(cw, ch - 60), ss=2, margin=0.06)
+        x0, y0 = (i % 3) * cw, (i // 3) * ch; sheet.paste(im, (x0, y0))
+        w = dr.textlength(CAPS[i], font=cap); dr.text((x0 + (cw - w) / 2, y0 + ch - 70), CAPS[i], font=cap, fill=(34, 38, 42))
+    note_ = ImageFont.truetype(str(HERE/'fonts'/'IBMPlexSans-Regular.ttf'), 28); x0, y0 = 2 * cw + 30, ch + 150
+    dr.text((x0, y0), 'Ready-made 3MF plates,', font=cap, fill=(34, 38, 42)); dr.text((x0, y0 + 42), 'one per colour', font=cap, fill=(34, 38, 42))
+    for j, line in enumerate(['PrusaSlicer: open as project,', 'supports and the token pause', 'are already set.']):
+        dr.text((x0, y0 + 110 + 38 * j), line, font=note_, fill=(90, 96, 102))
+    sheet.save(TV + '04_plates.jpg', quality=92, subsampling=0)
+    # 7: the board stack with the printed spacer
+    canvas(Image.open(OUT + 'spacer_stack.jpg'), '07_electronics', 0.9)
+    tic('thingiverse', t0)
 
 if 'inserts' in which:
     t0=time.time()

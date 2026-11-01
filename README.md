@@ -38,6 +38,8 @@ drucken, zusammenbauen und die Firmware aufspielen. Jeder Schritt hat ein Bild.
 
 | Was | Wo |
 |---|---|
+| Fertige Druckbetten, eins pro Farbe, für PrusaSlicer und Bambu Studio | [models/plates/](models/plates/) |
+| Druckteile einzeln als STL, schon in Druckausrichtung | [models/stl/](models/stl/) |
 | Gehäuse und Abstandshalter als STEP | [models/](models/) |
 | Platinen: KiCad, Gerber und Schaltpläne | [hardware/](hardware/) |
 | Elektronik im Detail | [doc/hardware.md](doc/hardware.md) |

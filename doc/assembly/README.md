@@ -14,6 +14,9 @@ pip install -r requirements.txt     # einmalig, cadquery-ocp braucht man nur fü
 ./build.sh                          # PDF aus content.py und den Bildern in fig/
 ./build.sh --figures                # vorher alle Bilder neu aus models/box.step rendern, dauert einige Minuten
 ./build.sh --figures lid door       # nur diese Bilder neu rendern
+python3 export_print_files.py       # Druckteile als STL nach models/stl/, Druckbetten als 3MF nach models/plates/
+BAMBU_STUDIO=…/AppRun python3 export_bambu_project.py --check   # Bambu-Studio-Projekt mit allen Betten
+python3 figures.py thingiverse      # Bilder für die Thingiverse-Seite nach fig/thingiverse/
 ```
 
 Ohne `--figures` braucht der Build nur ReportLab, Pillow, svglib und pdfrw, die Bilder liegen fertig in `fig/`.
@@ -24,7 +27,9 @@ Ohne `--figures` braucht der Build nur ReportLab, Pillow, svglib und pdfrw, die 
 |---|---|
 | `content.py` | Der ganze Text: Kapitel, Tabellen, Schritte, Hinweise, Bildunterschriften und die Beschriftungen der Bilder |
 | `layout.py` | Seitenlayout, Schriften, Farben und Bausteine: Schritt, Hinweis, beschriftetes Bild, Diagramme, Bestückungsplan (`PcbView`), Fotos, Schaltplan- und SVG-Seiten |
-| `figures.py` | Rendert die Bilder aus `models/box.step` nach `fig/` |
+| `figures.py` | Rendert die Bilder aus `models/box.step` nach `fig/`, mit dem Ziel `thingiverse` auch die Galerie für Thingiverse |
+| `export_print_files.py` | Schreibt jedes Druckteil als STL nach `models/stl/`, gedreht wie in der Tabelle in Kapitel 3, und die Druckbetten nach `models/plates/`: eine 3MF pro Farbe, für PrusaSlicer mit den Einstellungen aus Kapitel 3 und der Pause für die Tokens. Welche Teile auf welchem Bett liegen, steht in `PLATES` |
+| `export_bambu_project.py` | Baut mit der Kommandozeile von Bambu Studio `models/plates/timon-box_bambu-studio.3mf`: alle fünf Betten in einem Projekt für den X1 Carbon, mit Filamenten, Stützen und Pause. Das ist auch das Druckprofil für MakerWorld. `--check` sliced danach alle Betten zur Kontrolle. Vorschaubilder kann die Kommandozeile nicht erzeugen: Das Projekt danach einmal in Bambu Studio öffnen und speichern, möglichst mit der ältesten Version, die es öffnen soll. Die Datei im Repo ist mit 2.8.0 gespeichert |
 | `lib/step.py` | Liest das STEP-Modell mit OpenCascade (OCP) und vernetzt die Teile |
 | `lib/kicad.py` | Liest die KiCad-Platinen (Umriss, Footprints, Pads, Beschriftung) für die Bestückungspläne |
 | `lib/electronics.py` | 3D-Stellvertreter der Elektronik für die Bilder: Platinen aus den KiCad-Dateien, Module, LED, Poti, Mikroschalter, Step-up |
@@ -50,7 +55,7 @@ Ohne `--figures` braucht der Build nur ReportLab, Pillow, svglib und pdfrw, die 
 - **Elektronik in den Bildern:** Die Teile baut `lib/electronics.py`, ihre Lage im Gehäuse steht in `figures.py`
   (`lid_parts`, `stack`, `power_parts`). Ändert sich eine Platine, rendern `./build.sh --figures lid_full akkus lidopen`
   sie neu.
-- **Modell geändert:** `./build.sh --figures`, danach die Bilder ansehen. Anker und Hilfskörper (Akkus, Schrauben,
+- **Modell geändert:** `./build.sh --figures` und `python3 export_print_files.py`, danach die Bilder ansehen. Anker und Hilfskörper (Akkus, Schrauben,
   Kabel) sind feste Koordinaten und wandern nicht mit. Die Maße im Text und in Kapitel 6 stehen von Hand in
   `content.py`.
 
